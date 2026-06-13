@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    restart: always
+
+    ports:
+      - "${PORT}:${PORT}"
+
+    environment:
+      - PORT=${PORT}
+      - NODE_ENV=development
+
+    volumes:
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules
