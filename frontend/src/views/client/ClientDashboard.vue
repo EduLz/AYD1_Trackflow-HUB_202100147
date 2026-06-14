@@ -1,38 +1,42 @@
 <template>
   <div>
     <UpperbarComponent />
-    <div class="sidebar-container client-theme">
+    
+    <aside class="sidebar-client">
       <div class="sidebar-menu">
         <nav class="nav-group">
-          <p class="menu-title">Servicios Cliente</p>
-          <router-link to="/client/dashboard" class="menu-item active">Buscar Servicios</router-link>
-          <a href="#" class="menu-item">Contratar Envíos</a>
-          <a href="#" class="menu-item">Carrito de Compras</a>
-          <a href="#" class="menu-item">Métodos de Pago</a>
+          <p class="menu-title">Operaciones</p>
+          <router-link to="/client/dashboard" class="menu-item" active-class="active">Gestión de Envíos</router-link>
+          <a href="#" class="menu-item">Gestión de Transporte</a>
+          <a href="#" class="menu-item">Gestión de Pagos</a>
+          <a href="#" class="menu-item">Calificaciones y Reseñas</a>
         </nav>
       </div>
-    </div>
+    </aside>
+
     <main class="dashboard-content">
-      <h1>Panel de Clientes</h1>
-      <p>Busca, cotiza y contrata servicios de transporte y paquetería en tiempo real.</p>
+      <div class="dashboard-card">
+        <h1>Módulo de Clientes</h1>
+        <p>Bienvenido al Sistema de Gestión de Envíos y Logística TrackFlow-HUB. Utilice el menú lateral para contratar nuevos servicios o realizar pagos.</p>
+      </div>
     </main>
   </div>
 </template>
 
-<script setup>
+<script>
 import UpperbarComponent from '../../common/components/Upperbar/UpperbarComponent.vue';
+// Importaciones directas de hojas de estilo
+import '../../common/components/Upperbar/upperbar.css';
+import './client-dashboard.css';
+
+export default {
+  name: 'ClientDashboard',
+  components: {
+    UpperbarComponent
+  }
+};
 </script>
 
 <style scoped>
-.sidebar-container {
-  width: 240px; background-color: #ffffff; position: fixed;
-  top: 60px; bottom: 0; left: 0; z-index: 90; padding: 1.5rem 1rem;
-  border-right: 1px solid var(--border-color);
-}
-.nav-group { display: flex; flex-direction: column; gap: 0.4rem; }
-.menu-title { font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; padding-left: 0.5rem; margin-bottom: 0.5rem; }
-.menu-item { color: var(--text-main); text-decoration: none; padding: 0.7rem 1rem; border-radius: var(--radius-sm); font-size: 0.88rem; font-weight: 600; display: block; }
-.menu-item:hover { background-color: #f8fafc; }
-.client-theme .menu-item.active { background-color: #ecfdf5; color: var(--color-client); font-weight: 700; }
-.dashboard-content { margin-top: 60px; margin-left: 240px; padding: 2rem; background-color: var(--bg-primary); min-height: calc(100vh - 60px); }
+/* Estilos aislados del componente */
 </style>

@@ -3,10 +3,9 @@
     <div class="login-card">
       <div class="login-header">
         <h2>TRACKFLOW-HUB</h2>
-        <p>{{ step === 1 ? 'Control de Acceso al Sistema Logístico' : 'Segundo Factor de Autenticación' }}</p>
+        <p>{{ step === 1 ? 'Control de Acceso a la Práctica' : 'Segundo Factor de Autenticación' }}</p>
       </div>
 
-      <!-- Paso 1: Ingreso de Credenciales Tradicionales -->
       <form v-if="step === 1" @submit.prevent="handleLogin" class="login-form">
         <div v-if="errorMessage" class="alert-error">
           {{ errorMessage }}
@@ -45,14 +44,13 @@
         </button>
       </form>
 
-      <!-- Paso 2: Doble Factor de Autenticación (Exclusivo Administrador) -->
       <form v-else @submit.prevent="handleVerifyOTP" class="login-form">
         <div v-if="errorMessage" class="alert-error">
           {{ errorMessage }}
         </div>
 
         <div class="alert-info-box">
-          Se ha enviado un código de seguridad de un solo uso con vigencia de 2 minutos. Ingrese el token a continuación para validar sus accesos de nivel administrativo.
+          Se ha enviado un código de seguridad de un solo uso. Ingrese el token a continuación para validar sus accesos de nivel administrativo.
         </div>
 
         <div class="form-group">
@@ -88,7 +86,6 @@
         </div>
       </form>
 
-      <!-- Footer con enlace de Registro -->
       <div v-if="step === 1" class="login-footer">
         <p>¿Aún no eres usuario? <a href="#" @click.prevent="goToRegister">Regístrate acá</a></p>
       </div>
@@ -112,6 +109,7 @@ export default {
     const errorMessage = ref('');
     const isLoading = ref(false);
 
+    // Parámetros reactivos para la gestión dinámica del OTP
     const step = ref(1);
     const otpCode = ref('');
     const idUsuarioRetenido = ref(null);
@@ -134,15 +132,15 @@ export default {
       errorMessage.value = '';
       isLoading.value = true;
 
-      // Simulación de credenciales quemadas para entorno local de pruebas
+      // Simulación de control de accesos local para TrackFlow-HUB
       setTimeout(() => {
         isLoading.value = false;
         const userLower = correo.value.toLowerCase();
 
         if (userLower === 'admin@trackflow.com') {
-          // El administrador es retenido obligatoriamente para solicitar su 2FA
-          idUsuarioRetenido.value = 100;
-          step.value = 2;
+          // El administrador exige obligatoriamente la verificación del segundo factor (2FA)
+          idUsuarioRetenido.value = 101;
+          step.value = 2; 
         } else if (userLower === 'cliente@trackflow.com') {
           authStore.setSession('Juan Cliente', 'client');
           redirigirPorRol('client');
@@ -155,7 +153,7 @@ export default {
         } else {
           errorMessage.value = 'Credenciales incorrectas en el entorno local de desarrollo.';
         }
-      }, 600);
+      }, 400);
     };
 
     const handleVerifyOTP = async () => {
@@ -170,7 +168,7 @@ export default {
         } else {
           errorMessage.value = 'Código OTP inválido o expirado.';
         }
-      }, 600);
+      }, 400);
     };
 
     const cancelarFlujoOTP = () => {
