@@ -13,7 +13,7 @@
         <span v-else>{{ userInitials }}</span>
       </div>
       <span class="user-name">{{ authStore.user }}</span>
-      <button @click="handleLogout" class="btn-logout">Cerrar Sesión</button>
+      <button @click="handleLogout" class="btn-logout">Cerrar Sesion</button>
     </div>
   </header>
 </template>

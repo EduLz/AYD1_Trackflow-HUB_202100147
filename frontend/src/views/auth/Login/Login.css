@@ -3,31 +3,32 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: var(--bg-primary);
-  font-family: sans-serif;
+  background-color: #f8fafc; /* Fondo gris claro sutil */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  width: 100%;
 }
 
 .auth-card {
   background: #ffffff;
   padding: 2.5rem;
   border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   width: 100%;
-  max-width: 400px;
-  border: 1px solid var(--border-color);
+  max-width: 420px;
+  border: 1px solid #cbd5e1;
 }
 
 .auth-title {
-  font-size: 1.8rem;
+  font-size: 2.2rem;
   font-weight: 800;
-  color: var(--text-main);
+  color: #0f172a;
   text-align: center;
   margin-bottom: 0.25rem;
 }
 
 .auth-subtitle {
-  font-size: 0.9rem;
-  color: var(--text-muted);
+  font-size: 0.95rem;
+  color: #64748b;
   text-align: center;
   margin-bottom: 2rem;
 }
@@ -36,55 +37,80 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
 }
 
 .form-group label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-main);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0f172a;
+  text-align: left;
 }
 
 .form-group input {
-  padding: 0.75rem;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  font-size: 0.95rem;
-  transition: border-color 0.2s;
+  padding: 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 1rem;
+  background-color: #f1f5f9; /* El fondo azulado/gris que se ve en tu screen */
+  color: #0f172a;
+  transition: all 0.2s ease-in-out;
+  width: 100%;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: var(--color-client);
+  border-color: #1d4ed8;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.15);
 }
 
+/* AQUÍ ESTÁ EL ARREGLO DEL BOTÓN INVISIBLE */
 .btn-primary {
   width: 100%;
-  padding: 0.75rem;
-  background-color: var(--text-main);
-  color: #ffffff;
+  padding: 0.85rem;
+  background-color: #0f172a; /* Fondo negro elegante */
+  color: #ffffff;            /* Letras blancas */
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 6px;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: background-color 0.2s;
   margin-top: 0.5rem;
+  display: block;
+  text-align: center;
 }
 
 .btn-primary:hover {
-  opacity: 0.9;
+  background-color: #1e293b;
+}
+
+.test-credentials {
+  background-color: #f8fafc;
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px dashed #cbd5e1;
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+}
+
+.test-credentials ul {
+  padding-left: 1.2rem;
+  margin-top: 0.5rem;
+  line-height: 1.5;
 }
 
 .auth-switch {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   text-align: center;
-  color: var(--text-muted);
+  color: #64748b;
   margin-top: 1.5rem;
 }
 
 .auth-switch a {
-  color: var(--color-admin);
+  color: #1d4ed8;
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 700;
 }

@@ -1,0 +1,28 @@
+:root {
+  --bg-primary: #f8fafc;
+  --border-color: #cbd5e1;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --color-error: #ef4444;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  
+  /* Colores Distintivos por Rol */
+  --color-admin: #1d4ed8;       /* Azul Administrativo */
+  --color-operator: #d97706;    /* Naranja Operador Logístico */
+  --color-company: #7c3aed;     /* Púrpura Empresa de Transporte */
+  --color-client: #059669;      /* Verde Esmeralda Cliente */
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  min-height: 100vh;
+}
