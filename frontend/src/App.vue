@@ -1,11 +1,28 @@
-<script setup></script>
-
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <!-- RouterView es el encargado de renderizar dinámicamente el componente según la ruta actual -->
+  <RouterView />
 </template>
 
-<style scoped></style>
+<script setup>
+import { RouterView } from 'vue-router';
+</script>
+
+<style>
+/* 
+  Estilos globales de reseteo para que la aplicación ocupe toda la pantalla 
+  y use las variables de diseño correctas.
+*/
+* {
+  margin: 0;
+  padding: 0;
+  box-shadow: none;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  min-height: 100vh;
+}
+</style>
