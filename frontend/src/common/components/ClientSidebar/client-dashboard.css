@@ -1,0 +1,77 @@
+.sidebar-client {
+  width: 240px;
+  background-color: #ffffff;
+  position: fixed;
+  top: 60px;
+  bottom: 0;
+  left: 0;
+  z-index: 90;
+  padding: 1.5rem 1rem;
+  border-right: 1px solid var(--border-color);
+}
+
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.menu-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  padding-left: 0.5rem;
+  font-weight: 700;
+}
+
+.menu-item {
+  color: var(--text-main);
+  text-decoration: none;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: block;
+}
+
+.menu-item:hover {
+  background-color: #f1f5f9;
+  color: var(--color-client);
+}
+
+.menu-item.active {
+  background-color: #e2e8f0;
+  color: var(--color-client);
+  font-weight: 700;
+}
+
+.dashboard-content {
+  margin-top: 60px;
+  margin-left: 240px;
+  padding: 2rem;
+  background-color: var(--bg-primary);
+  min-height: calc(100vh - 60px);
+}
+
+.dashboard-card {
+  background-color: #ffffff;
+  padding: 2rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.dashboard-card h1 {
+  font-size: 1.75rem;
+  color: var(--text-main);
+  margin-bottom: 1rem;
+}
+
+.dashboard-card p {
+  font-size: 1rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}

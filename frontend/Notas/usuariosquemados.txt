@@ -1,0 +1,26 @@
+======================================================================
+         TRACKFLOW-HUB - CREDENCIALES DE ENTORNO LOCAL (V1.0.0)
+======================================================================
+
+[ROL: ADMINISTRADOR GENERAL]
+- Correo Electrónico: admin@trackflow.com
+- Contraseña: (Cualquier valor)
+- Nota: Al presionar ingresar, se activará el Paso 2 (2FA). 
+- Código de Verificación OTP requerido: 123456
+
+[ROL: CLIENTE]
+- Correo Electrónico: cliente@trackflow.com
+- Contraseña: (Cualquier valor)
+- Nota: Redirección directa hacia el ClientDashboard.
+
+[ROL: OPERADOR LOGÍSTICO]
+- Correo Electrónico: operario@trackflow.com
+- Contraseña: (Cualquier valor)
+- Nota: Redirección directa hacia el OperatorDashboard.
+
+[ROL: EMPRESA DE TRANSPORTE]
+- Correo Electrónico: empresa@trackflow.com
+- Contraseña: (Cualquier valor)
+- Nota: Redirección directa hacia el CompanyDashboard.
+
+======================================================================
