@@ -8,11 +8,6 @@ const verifyToken = (req, res, next) => {
                 message: "Token requerido"
             });
         }
-        if (!authHeader.startsWith("Bearer ")) {
-            return res.status(401).json({
-                message: "Formato de token inválido"
-            });
-        }
         const token = authHeader.split(" ")[1];
         const decoded = jwt.verify(
                 token,
@@ -28,6 +23,31 @@ const verifyToken = (req, res, next) => {
     }
 };
 
+const requireRole = (...rolesPermitidos) => {
+    
+    return (req, res, next) => {
+        try {
+            if (!req.user) {
+                return res.status(401).json({
+                    message: "Usuario no autenticado"
+                });
+            }
+
+            if (!rolesPermitidos.includes(req.user.id_rol)) {
+                return res.status(403).json({
+                    message: "No tiene permisos para acceder a este recurso"
+                });
+            }
+            next();
+        } catch (error) {
+            return res.status(500).json({
+                message: error.message
+            });
+        }
+    };
+};
+
 module.exports = {
-    verifyToken
+    verifyToken,
+    requireRole
 };

@@ -73,6 +73,44 @@ const createClienteUser = async ({correo, passwordHash, token}) => {
     return result.recordset[0];
 };
 
+const createOperadorUser = async ({correo, passwordHash, token}) => {
+
+    const pool = await connectDB();
+    const result = await pool
+        .request()
+        .input("id_rol", 3) // OPERADOR
+        .input("id_estado", 1) // PENDIENTE
+        .input("correo", correo)
+        .input("contrasena_hash", passwordHash)
+        .input("token", token)
+        .query(`
+            INSERT INTO Usuario
+            (
+                id_rol,
+                id_estado,
+                correo,
+                contrasena_hash,
+                correo_verificado,
+                token_verificacion,
+                token_expiracion,
+                es_temporal_pwd
+            )
+            OUTPUT INSERTED.*
+            VALUES
+            (
+                @id_rol,
+                @id_estado,
+                @correo,
+                @contrasena_hash,
+                0,
+                @token,
+                DATEADD(HOUR,24,GETDATE()),
+                0
+            )
+        `);
+    return result.recordset[0];
+};
+
 const verifyEmailToken = async (token) => {
 
     const pool = await connectDB();
@@ -98,8 +136,7 @@ const activateUser = async (id_usuario) => {
             SET
                 correo_verificado = 1,
                 token_verificacion = NULL,
-                token_expiracion = NULL,
-                id_estado = 2
+                token_expiracion = NULL
             WHERE id_usuario = @id_usuario
         `);
 };
@@ -108,6 +145,7 @@ module.exports = {
     findUserByEmail,
     loginUser,
     createClienteUser,
+    createOperadorUser,
     verifyEmailToken,
     activateUser
 };
