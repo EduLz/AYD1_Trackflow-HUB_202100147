@@ -1,0 +1,215 @@
+/* gestion-usuarios.css */
+/* Vista: Gestion de Usuarios — Modulo Administrador v1.0.0 */
+
+.gestion-content {
+  margin-top: 60px;
+  margin-left: 240px;
+  padding: 2rem;
+  background-color: var(--bg-primary);
+  min-height: calc(100vh - 60px);
+}
+
+/* Encabezado */
+.page-header { margin-bottom: 1.75rem; }
+.page-header h1 { font-size: 1.6rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.3rem; }
+.page-subtitle { font-size: 0.9rem; color: var(--text-muted); }
+
+/* Barra de tabs */
+.tabs-bar {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--border-color);
+  margin-bottom: 1.75rem;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 0.75rem 1.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab-btn:hover { color: var(--text-main); }
+.tab-btn.tab-active { color: var(--color-admin); border-bottom-color: var(--color-admin); }
+
+/* Tabla */
+.tabla-wrapper {
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.tabla-usuarios {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.tabla-usuarios thead { background-color: #f1f5f9; }
+.tabla-usuarios th {
+  text-align: left;
+  padding: 0.85rem 1.1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+}
+.tabla-usuarios td {
+  padding: 1rem 1.1rem;
+  color: var(--text-main);
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+.tabla-usuarios tbody tr:last-child td { border-bottom: none; }
+.tabla-usuarios tbody tr:hover { background-color: #f8fafc; }
+
+/* Celda de nombre principal */
+.nombre-principal { font-weight: 600; color: var(--text-main); }
+.correo-secundario { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+/* Badges de estado */
+.estado-badge {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.estado-activo    { background-color: #dcfce7; color: #166534; }
+.estado-vetado    { background-color: #fee2e2; color: #991b1b; }
+.estado-pendiente { background-color: #fef9c3; color: #854d0e; }
+
+/* Botones de accion */
+.acciones-celda { display: flex; gap: 0.5rem; align-items: center; }
+.btn-editar {
+  background-color: #ffffff;
+  color: var(--color-admin);
+  border: 1px solid var(--color-admin);
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.btn-editar:hover { background-color: var(--color-admin); color: #ffffff; }
+.btn-vetar {
+  background-color: #ffffff;
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.btn-vetar:hover { background-color: var(--color-error); color: #ffffff; }
+
+/* Lista vacia */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Overlay y modales */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.modal-card {
+  background-color: #ffffff;
+  border-radius: var(--radius-md);
+  padding: 2rem;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+.modal-title { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem; }
+.modal-desc { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.5; }
+
+.modal-campo { margin-bottom: 1rem; }
+.modal-campo label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-main); margin-bottom: 0.4rem; }
+.modal-campo input,
+.modal-campo textarea {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  color: var(--text-main);
+  background-color: #f1f5f9;
+  transition: border-color 0.15s, background-color 0.15s;
+  font-family: inherit;
+}
+.modal-campo input:focus,
+.modal-campo textarea:focus {
+  outline: none;
+  border-color: var(--color-admin);
+  background-color: #ffffff;
+}
+.modal-campo textarea { resize: vertical; min-height: 90px; }
+.modal-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+.modal-acciones { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem; }
+.btn-modal-cancelar {
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.btn-modal-cancelar:hover { background-color: #f1f5f9; }
+.btn-modal-confirmar {
+  color: #ffffff;
+  border: none;
+  padding: 0.55rem 1.25rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  background-color: var(--color-admin);
+}
+.btn-modal-confirmar:hover { background-color: #1d3fae; }
+.btn-modal-confirmar.btn-peligro { background-color: var(--color-error); }
+.btn-modal-confirmar.btn-peligro:hover { background-color: #b91c1c; }
+.btn-modal-confirmar:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Toast (Nielsen #1: Visibilidad del estado del sistema) */
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 300;
+  padding: 0.85rem 1.4rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  animation: slideInToast 0.2s ease;
+  max-width: 360px;
+}
+.toast-exito { background-color: #16a34a; }
+.toast-error  { background-color: var(--color-error); }
+@keyframes slideInToast {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
