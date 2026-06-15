@@ -12,8 +12,8 @@
 
       <nav class="nav-group">
         <p class="menu-title">Usuarios</p>
-        <router-link :to="{ name: 'admin-solicitudes-registro' }" class="menu-item" active-class="active">
-          Solicitudes de Registro
+        <router-link :to="{ name: 'admin-gestion-usuarios' }" class="menu-item" active-class="active">
+          Gestion de Usuarios
         </router-link>
         <router-link :to="{ name: 'admin-crear-administrador' }" class="menu-item" active-class="active">
           Registrar Administrador

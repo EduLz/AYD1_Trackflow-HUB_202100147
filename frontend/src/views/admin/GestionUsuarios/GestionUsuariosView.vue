@@ -4,12 +4,12 @@
     <AdminSidebarComponent />
     <main class="dashboard-content">
       <div class="page-header">
-        <h1>Solicitudes de Registro</h1>
-        <p class="page-subtitle">Gestión de solicitudes pendientes de operadores y empresas de transporte.</p>
+        <h1>Gestion de Usuarios</h1>
+        <p class="page-subtitle">Panel de todos los usuarios registrados en la plataforma.</p>
       </div>
-      <!-- Vista completa implementada en el Paso 3 -->
+      <!-- Vista completa implementada en el Paso C -->
       <div class="coming-soon-placeholder">
-        <p>Cargando modulo de solicitudes...</p>
+        <p>Cargando panel de usuarios...</p>
       </div>
     </main>
   </div>
@@ -32,8 +32,7 @@ import AdminSidebarComponent from '../../../common/components/AdminSidebar/Admin
 .page-header h1 { font-size: 1.6rem; font-weight: 700; color: var(--text-main); }
 .page-subtitle { font-size: 0.9rem; color: var(--text-muted); margin-top: 0.25rem; }
 .coming-soon-placeholder {
-  display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 1rem;
-  padding: 4rem; color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center;
+  padding: 4rem; color: var(--text-muted); font-size: 0.9rem;
 }
 </style>

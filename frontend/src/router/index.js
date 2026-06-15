@@ -12,9 +12,9 @@ import OperatorDashboard from '../views/operator/OperatorDashboard.vue';
 import CompanyDashboard from '../views/company/CompanyDashboard.vue';
 import ClientDashboard from '../views/client/ClientDashboard.vue';
 
-// Vistas del Módulo Administrador
-import SolicitudesRegistroView from '../views/admin/SolicitudesRegistro/SolicitudesRegistroView.vue';
+// Vistas del Modulo Administrador (v1.0.0)
 import CrearAdministradorView from '../views/admin/CrearAdministrador/CrearAdministradorView.vue';
+import GestionUsuariosView from '../views/admin/GestionUsuarios/GestionUsuariosView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -24,10 +24,10 @@ const router = createRouter({
     { path: '/register', name: 'register', component: RegisterView },
     { path: '/auth/verify-token', name: 'verify-token', component: TokenVerificationView },
 
-    // --- Modulo Administrador ---
-    { path: '/admin/dashboard',           name: 'admin-dashboard',           component: AdminDashboard,           meta: { role: 'admin' } },
-    { path: '/admin/solicitudes-registro', name: 'admin-solicitudes-registro', component: SolicitudesRegistroView,   meta: { role: 'admin' } },
-    { path: '/admin/crear-administrador',  name: 'admin-crear-administrador',  component: CrearAdministradorView,    meta: { role: 'admin' } },
+    // --- Modulo Administrador (v1.0.0) ---
+    { path: '/admin/dashboard',          name: 'admin-dashboard',          component: AdminDashboard,         meta: { role: 'admin' } },
+    { path: '/admin/gestion-usuarios',   name: 'admin-gestion-usuarios',   component: GestionUsuariosView,    meta: { role: 'admin' } },
+    { path: '/admin/crear-administrador', name: 'admin-crear-administrador', component: CrearAdministradorView, meta: { role: 'admin' } },
 
     // --- Modulo Operador ---
     { path: '/operator/dashboard', name: 'operator-dashboard', component: OperatorDashboard, meta: { role: 'operator' } },
