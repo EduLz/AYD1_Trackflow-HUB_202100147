@@ -1,13 +1,18 @@
 <template>
   <aside class="sidebar-container admin-theme">
     <div class="sidebar-menu">
+
+      <!-- Nielsen #6: Reconocimiento antes que memorizacion - etiquetas descriptivas visibles siempre -->
       <nav class="nav-group">
-        <p class="menu-title">Gestión Global Admin</p>
-        <router-link to="/admin/dashboard" class="menu-item" active-class="active">Inicio Panel</router-link>
-        <a href="#" class="menu-item">Solicitudes de Registro</a>
-        <a href="#" class="menu-item">Vetos de Usuarios</a>
-        <a href="#" class="menu-item">Registrar Administrador</a>
+        <p class="menu-title">Usuarios</p>
+        <router-link :to="{ name: 'admin-gestion-usuarios' }" class="menu-item" active-class="active">
+          Gestion de Usuarios
+        </router-link>
+        <router-link :to="{ name: 'admin-crear-administrador' }" class="menu-item" active-class="active">
+          Registrar Administrador
+        </router-link>
       </nav>
+
     </div>
   </aside>
 </template>
