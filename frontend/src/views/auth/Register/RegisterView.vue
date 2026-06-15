@@ -69,8 +69,15 @@
           </div>
 
           <div class="form-group" v-if="selectedRole === '2'">
-            <label for="photo">Fotografía (URL o Archivo) *</label>
-            <input type="text" id="photo" v-model="form.photo" placeholder="Enlace a fotografía reciente" required />
+            <label for="photo">Fotografía (PNG o JPG) *</label>
+            <input 
+              type="file" 
+              id="photo" 
+              accept=".png, .jpg, .jpeg" 
+              @change="handlePhotoUpload" 
+              required 
+              style="padding: 0.5rem;"
+            />
           </div>
 
           <div class="form-group" v-if="selectedRole === '2'">
@@ -152,7 +159,7 @@ export default {
       phoneBackup: '',
       address: '',
       dpi: '',
-      photo: '',
+      photo: null, // Ahora almacenara un objeto de tipo File
       zone: '',
       gender: '',
       nit: '',
@@ -165,10 +172,26 @@ export default {
     watch(selectedRole, () => {
       form.name = ''; form.lastname = ''; form.companyName = '';
       form.phoneBackup = ''; form.address = ''; form.dpi = '';
-      form.photo = ''; form.zone = ''; form.gender = '';
+      form.photo = null; form.zone = ''; form.gender = '';
       form.nit = ''; form.license = '';
       errorMessage.value = '';
     });
+
+    const handlePhotoUpload = (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        // Validacion extra por seguridad en el front
+        const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+        if (!validTypes.includes(file.type)) {
+          errorMessage.value = 'Por favor, suba unicamente imagenes en formato JPG o PNG.';
+          event.target.value = ''; // Limpiar el input
+          form.photo = null;
+          return;
+        }
+        errorMessage.value = '';
+        form.photo = file;
+      }
+    };
 
     const validatePassword = (password) => {
       // Mínimo 8 caracteres, al menos 1 letra, 1 número y 1 carácter especial
@@ -179,21 +202,24 @@ export default {
     const handleRegister = () => {
       errorMessage.value = '';
 
-      // Validación de coincidencia de contraseñas
       if (form.password !== form.confirmPassword) {
         errorMessage.value = 'Las contraseñas ingresadas no coinciden.';
         return;
       }
 
-      // Validación de seguridad de la contraseña
       if (!validatePassword(form.password)) {
         errorMessage.value = 'La contraseña no cumple con los requisitos mínimos de seguridad.';
         return;
       }
 
+      if (selectedRole.value === '2' && !form.photo) {
+        errorMessage.value = 'Debe adjuntar una fotografia valida para registrarse como Operador Logistico.';
+        return;
+      }
+
       isLoading.value = true;
 
-      // Simulación de envío con la categorización numérica (1, 2 o 3)
+      // Simulacion de envio. Nota: Al enviar archivos reales se debe usar FormData en lugar de JSON
       setTimeout(() => {
         isLoading.value = false;
         
@@ -208,7 +234,8 @@ export default {
           payload = { ...payload, nombre: form.name, apellido: form.lastname, direccion: form.address };
           alert(`Registro exitoso. (Rol 1 - Cliente) Redirigiendo a verificación...`);
         } else if (selectedRole.value === '2') {
-          payload = { ...payload, nombre: form.name, apellido: form.lastname, dpi: form.dpi, telefono_respaldo: form.phoneBackup, fotografia: form.photo, zona_operacion: form.zone, genero: form.gender };
+          // Si es operador, simulamos que capturamos el nombre del archivo
+          payload = { ...payload, nombre: form.name, apellido: form.lastname, dpi: form.dpi, telefono_respaldo: form.phoneBackup, fotografia: form.photo.name, zona_operacion: form.zone, genero: form.gender };
           alert(`Solicitud enviada. (Rol 2 - Operador) Pendiente de aprobación administrativa...`);
         } else if (selectedRole.value === '3') {
           payload = { ...payload, nombre_empresa: form.companyName, telefono_respaldo: form.phoneBackup, nit: form.nit, licencia: form.license };
@@ -217,7 +244,6 @@ export default {
 
         console.log("PAYLOAD ENVIADO AL BACKEND:", payload);
         
-        // Redirigir al validador de token o al login después de un registro exitoso
         router.push({ name: 'login' });
       }, 800);
     };
@@ -227,6 +253,7 @@ export default {
       form,
       errorMessage,
       isLoading,
+      handlePhotoUpload,
       handleRegister
     };
   }
