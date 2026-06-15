@@ -15,6 +15,14 @@ app.get('/', (req, res) => {
     });
 });
 
+app.use("/uploads", express.static("src/uploads"));
+app.use("/api/auth",require("./routes/auth.routes"));
+app.use("/api/clientes", require("./routes/client.routes"));
+
+app.use((err, req, res, next) => {
+    res.status(400).json({ error: err.message });
+});
+
 const startServer = async () => {
     try {
         await connectDB();
