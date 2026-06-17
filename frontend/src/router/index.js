@@ -25,9 +25,10 @@ const router = createRouter({
     { path: '/auth/verify-token', name: 'verify-token', component: TokenVerificationView },
 
     // --- Modulo Administrador (v1.0.0) ---
-    { path: '/admin/dashboard',          name: 'admin-dashboard',          component: AdminDashboard,         meta: { role: 'admin' } },
-    { path: '/admin/gestion-usuarios',   name: 'admin-gestion-usuarios',   component: GestionUsuariosView,    meta: { role: 'admin' } },
-    { path: '/admin/crear-administrador', name: 'admin-crear-administrador', component: CrearAdministradorView, meta: { role: 'admin' } },
+    // Nota: meta.role usa mayusculas para coincidir con el valor que devuelve el backend (campo rol en la DB)
+    { path: '/admin/dashboard',           name: 'admin-dashboard',           component: AdminDashboard,         meta: { role: 'ADMIN' } },
+    { path: '/admin/gestion-usuarios',    name: 'admin-gestion-usuarios',    component: GestionUsuariosView,    meta: { role: 'ADMIN' } },
+    { path: '/admin/crear-administrador', name: 'admin-crear-administrador', component: CrearAdministradorView, meta: { role: 'ADMIN' } },
 
     // --- Modulo Operador ---
     { path: '/operator/dashboard', name: 'operator-dashboard', component: OperatorDashboard, meta: { role: 'operator' } },
