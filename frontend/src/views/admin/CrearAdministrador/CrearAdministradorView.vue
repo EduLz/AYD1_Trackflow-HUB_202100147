@@ -140,6 +140,8 @@
 
 <script>
 import { ref, reactive } from 'vue';
+import { useAuthStore } from '../../../stores/auth';
+import { API } from '../../../config/api';
 import UpperbarComponent from '../../../common/components/Upperbar/UpperbarComponent.vue';
 import AdminSidebarComponent from '../../../common/components/AdminSidebar/AdminSidebarComponent.vue';
 
@@ -148,8 +150,9 @@ export default {
   components: { UpperbarComponent, AdminSidebarComponent },
 
   setup() {
+    const authStore   = useAuthStore();
     const errorMessage = ref('');
-    const isLoading = ref(false);
+    const isLoading    = ref(false);
 
     const form = reactive({
       nombre: '',
@@ -175,40 +178,17 @@ export default {
     };
 
     /*
-      ===========================================================================
-      INSTRUCCION PARA BACKEND — Crear Administrador
-      ===========================================================================
-      Endpoint: POST /api/v1/admin/administradores
-      Headers:  Authorization: Bearer <jwt_token>
+      Endpoint: POST /api/admin/administradores
+      Headers:  Authorization: Bearer <token>
+                Content-Type: application/json
+      Body:     { nombre, apellido, correo, contrasena_temporal }
 
-      Body (JSON):
-        {
-          nombre:              string  // VARCHAR(100) -> Administrador.nombre
-          apellido:            string  // VARCHAR(100) -> Administrador.apellido
-          correo:              string  // VARCHAR(150) -> Usuario.correo (UNIQUE)
-          contrasena_temporal: string  // Se hashea con bcrypt -> Usuario.contrasena_hash
-        }
-
-      Logica esperada en el backend:
-        1. Verificar que el JWT pertenezca a un administrador activo.
-        2. Verificar que el correo no exista ya en la tabla Usuario.
-        3. Insertar en Usuario con:
-             id_rol = (id del rol ADMIN en tabla Rol)
-             id_estado = (id del estado ACTIVO en tabla EstadoUsuario)
-             correo_verificado = 1  (el admin no necesita verificar correo)
-             es_temporal_pwd = 1    (fuerza cambio de contrasena en primer ingreso)
-        4. Insertar en Administrador con nombre y apellido.
-        5. Enviar correo al nuevo administrador con sus credenciales.
-        6. Registrar en LogAuditoria la accion de creacion.
-
-      Respuestas esperadas:
-        201: { success: true,  mensaje: "Administrador creado. Credenciales enviadas al correo." }
-        409: { success: false, mensaje: "El correo ya esta registrado en el sistema." }
-        403: { success: false, mensaje: "No tienes permisos para realizar esta accion." }
-        400: { success: false, mensaje: string }
-      ===========================================================================
+      Respuestas del backend:
+        201: { message: "Administrador creado correctamente" }
+        409: { message: "El correo ya esta registrado" }  -> se muestra en el campo correo
+        400: { message: string }                          -> se muestra en el banner
     */
-    const handleRegister = () => {
+    const handleRegister = async () => {
       errorMessage.value = '';
 
       if (form.password !== form.confirmPassword) {
@@ -222,24 +202,43 @@ export default {
       }
 
       isLoading.value = true;
+      try {
+        const res = await fetch(API.admin.crearAdmin, {
+          method: 'POST',
+          headers: {
+            'Content-Type':  'application/json',
+            'Authorization': `Bearer ${authStore.token}`,
+          },
+          body: JSON.stringify({
+            nombre:              form.nombre,
+            apellido:            form.apellido,
+            correo:              form.correo,
+            contrasena_temporal: form.password,
+          }),
+        });
 
-      // Simulacion de llamada al backend. Reemplazar con fetch real al conectar el backend.
-      setTimeout(() => {
-        isLoading.value = false;
+        const data = await res.json();
 
-        // Payload que se enviara al backend cuando este disponible
-        const payload = {
-          nombre:              form.nombre,
-          apellido:            form.apellido,
-          correo:              form.correo,
-          contrasena_temporal: form.password,
-        };
+        if (res.status === 409) {
+          // El correo ya existe en el sistema
+          errorMessage.value = data.message || 'El correo ya esta registrado en el sistema.';
+          return;
+        }
 
-        console.log('PAYLOAD -> POST /api/v1/admin/administradores:', payload);
+        if (!res.ok) {
+          errorMessage.value = data.message || 'Ocurrio un error. Intenta de nuevo.';
+          return;
+        }
 
+        // Exito: limpiar formulario
         limpiarFormulario();
-        alert('Administrador registrado correctamente. Las credenciales fueron enviadas al correo indicado.');
-      }, 800);
+        alert('Administrador registrado correctamente.');
+
+      } catch (err) {
+        errorMessage.value = 'No se pudo conectar con el servidor. Verifica tu conexion.';
+      } finally {
+        isLoading.value = false;
+      }
     };
 
     return {

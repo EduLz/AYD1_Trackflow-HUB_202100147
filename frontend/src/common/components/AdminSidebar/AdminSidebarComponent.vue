@@ -5,8 +5,8 @@
       <!-- Nielsen #6: Reconocimiento antes que memorizacion - etiquetas descriptivas visibles siempre -->
       <nav class="nav-group">
         <p class="menu-title">Usuarios</p>
-        <router-link :to="{ name: 'admin-gestion-usuarios' }" class="menu-item" active-class="active">
-          Gestion de Usuarios
+        <router-link :to="{ name: 'admin-solicitudes' }" class="menu-item" active-class="active">
+          Solicitudes de Registro
         </router-link>
         <router-link :to="{ name: 'admin-crear-administrador' }" class="menu-item" active-class="active">
           Registrar Administrador

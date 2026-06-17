@@ -1,0 +1,127 @@
+/* solicitudes-registro.css */
+/* Vista: Solicitudes de Registro — Modulo Administrador v1.0.0 */
+
+.solicitudes-content {
+  margin-top: 60px;
+  margin-left: 240px;
+  padding: 2rem;
+  background-color: var(--bg-primary);
+  min-height: calc(100vh - 60px);
+}
+
+/* Encabezado */
+.page-header { margin-bottom: 1.75rem; }
+.page-header h1 { font-size: 1.6rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.3rem; }
+.page-subtitle { font-size: 0.9rem; color: var(--text-muted); }
+
+/* Tabla */
+.tabla-wrapper {
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.tabla-solicitudes {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.tabla-solicitudes thead { background-color: #f1f5f9; }
+.tabla-solicitudes th {
+  text-align: left;
+  padding: 0.85rem 1.1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+}
+.tabla-solicitudes td {
+  padding: 1rem 1.1rem;
+  color: var(--text-main);
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+.tabla-solicitudes tbody tr:last-child td { border-bottom: none; }
+.tabla-solicitudes tbody tr:hover { background-color: #f8fafc; }
+
+/* Celda de nombre */
+.nombre-principal { font-weight: 600; color: var(--text-main); }
+.correo-secundario { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+/* Badge de tipo */
+.tipo-badge {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.tipo-badge.operador { background-color: #dbeafe; color: #1e40af; }
+.tipo-badge.empresa  { background-color: #fef3c7; color: #92400e; }
+
+/* Botones de accion */
+.acciones-celda { display: flex; gap: 0.5rem; align-items: center; }
+.btn-aprobar {
+  background-color: #ffffff;
+  color: #16a34a;
+  border: 1px solid #16a34a;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.btn-aprobar:hover { background-color: #16a34a; color: #ffffff; }
+.btn-aprobar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-rechazar {
+  background-color: #ffffff;
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.btn-rechazar:hover { background-color: var(--color-error); color: #ffffff; }
+.btn-rechazar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Estado de carga y lista vacia */
+.estado-carga {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 300;
+  padding: 0.85rem 1.4rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  animation: slideInToast 0.2s ease;
+  max-width: 360px;
+}
+.toast-exito { background-color: #16a34a; }
+.toast-error  { background-color: var(--color-error); }
+@keyframes slideInToast {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
