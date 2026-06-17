@@ -8,8 +8,7 @@
       <div class="page-header">
         <h1>Solicitudes de Registro</h1>
         <p class="page-subtitle">
-          Revisa y gestiona las solicitudes de registro pendientes de Operadores Logisticos.
-          Solo los operadores pasan por proceso de aprobacion manual.
+          Revisa y gestiona las solicitudes pendientes de Operadores Logisticos y Empresas de Transporte.
         </p>
       </div>
 
@@ -24,8 +23,9 @@
         <table v-else class="tabla-solicitudes">
           <thead>
             <tr>
-              <th>Operador</th>
-              <th>DPI / CUI</th>
+              <th>Solicitante</th>
+              <th>Tipo</th>
+              <th>DPI / NIT</th>
               <th>Fecha Solicitud</th>
               <th>Acciones</th>
             </tr>
@@ -33,10 +33,18 @@
           <tbody>
             <tr v-for="solicitud in solicitudes" :key="solicitud.id_solicitud">
               <td>
-                <div class="nombre-principal">{{ solicitud.nombre }} {{ solicitud.apellido }}</div>
+                <div class="nombre-principal">{{ nombreMostrado(solicitud) }}</div>
                 <div class="correo-secundario">{{ solicitud.correo }}</div>
               </td>
-              <td>{{ solicitud.dpi_cui }}</td>
+              <td>
+                <span
+                  class="tipo-badge"
+                  :class="solicitud.tipo === 'OPERADOR' ? 'operador' : 'empresa'"
+                >
+                  {{ solicitud.tipo }}
+                </span>
+              </td>
+              <td>{{ solicitud.identificador }}</td>
               <td>{{ formatearFecha(solicitud.fecha_solicitud) }}</td>
               <td>
                 <div class="acciones-celda">
@@ -59,9 +67,9 @@
             </tr>
 
             <tr v-if="solicitudes.length === 0">
-              <td colspan="4">
+              <td colspan="5">
                 <div class="empty-state">
-                  No hay solicitudes de registro pendientes de Operadores Logisticos.
+                  No hay solicitudes de registro pendientes.
                 </div>
               </td>
             </tr>
@@ -114,13 +122,31 @@ export default {
     };
 
     /*
-      Carga la lista de solicitudes de operadores pendientes desde el backend.
-      El endpoint solo retorna solicitudes con tipo = 'OPERADOR' (filtrado en la DB).
-      Las empresas y clientes no pasan por este flujo de aprobacion manual.
+      Retorna el nombre para mostrar segun el tipo de solicitud.
+      OPERADOR: nombre + apellido
+      EMPRESA:  nombre_empresa (apellido viene vacio desde el backend)
+    */
+    const nombreMostrado = (solicitud) =>
+      `${solicitud.nombre} ${solicitud.apellido || ''}`.trim();
+
+    /*
+      Carga las solicitudes pendientes de OPERADORES y EMPRESAS desde el backend.
 
       Endpoint: GET /api/admin/solicitudes
       Headers:  Authorization: Bearer <token>
-      Respuesta: [{ id_solicitud, tipo, fecha_solicitud, nombre, apellido, dpi_cui, correo }]
+
+      Respuesta esperada (backend debe retornar ambos tipos con UNION):
+      [
+        { id_solicitud, tipo: 'OPERADOR', nombre, apellido, identificador, correo, fecha_solicitud },
+        { id_solicitud, tipo: 'EMPRESA',  nombre, apellido: '', identificador, correo, fecha_solicitud }
+      ]
+
+      El campo 'identificador' corresponde a:
+        - DPI/CUI para operadores (OperadorLogistico.dpi_cui)
+        - NIT     para empresas   (EmpresaTransporte.nit)
+
+      Los endpoints de aprobar/rechazar ya soportan ambos tipos
+      ya que operan por id_solicitud sin filtrar por tipo.
     */
     const cargarSolicitudes = async () => {
       cargando.value = true;
@@ -160,11 +186,10 @@ export default {
           const data = await res.json();
           throw new Error(data.message || 'Error al aprobar la solicitud.');
         }
-        // Retirar la solicitud de la lista local
         solicitudes.value = solicitudes.value.filter(
           (s) => s.id_solicitud !== solicitud.id_solicitud
         );
-        mostrarToast(`Solicitud de ${solicitud.nombre} ${solicitud.apellido} aprobada.`, 'exito');
+        mostrarToast(`Solicitud de ${nombreMostrado(solicitud)} (${solicitud.tipo}) aprobada.`, 'exito');
       } catch (err) {
         mostrarToast(err.message, 'error');
       } finally {
@@ -182,7 +207,7 @@ export default {
     const rechazar = async (solicitud) => {
       // Nielsen #5: Prevencion de errores — confirmacion antes de rechazar
       const confirmado = window.confirm(
-        `Rechazar la solicitud de ${solicitud.nombre} ${solicitud.apellido}?`
+        `Rechazar la solicitud de ${nombreMostrado(solicitud)} (${solicitud.tipo})?`
       );
       if (!confirmado) return;
 
@@ -201,7 +226,7 @@ export default {
         solicitudes.value = solicitudes.value.filter(
           (s) => s.id_solicitud !== solicitud.id_solicitud
         );
-        mostrarToast(`Solicitud de ${solicitud.nombre} ${solicitud.apellido} rechazada.`, 'exito');
+        mostrarToast(`Solicitud de ${nombreMostrado(solicitud)} (${solicitud.tipo}) rechazada.`, 'exito');
       } catch (err) {
         mostrarToast(err.message, 'error');
       } finally {
@@ -218,6 +243,7 @@ export default {
       solicitudes,
       toast,
       formatearFecha,
+      nombreMostrado,
       aprobar,
       rechazar,
     };
