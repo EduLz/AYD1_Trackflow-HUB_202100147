@@ -151,6 +151,43 @@ const activarCuenta = async (id_usuario) => {
             WHERE id_usuario = @id_usuario
         `);
 };
+const createEmpresaUser = async ({correo, passwordHash, token}) => {
+
+    const pool = await connectDB();
+    const result = await pool
+        .request()
+        .input("id_rol", 4) // EMPRESA
+        .input("id_estado", 1) // PENDIENTE
+        .input("correo", correo)
+        .input("contrasena_hash", passwordHash)
+        .input("token", token)
+        .query(`
+            INSERT INTO Usuario
+            (
+                id_rol,
+                id_estado,
+                correo,
+                contrasena_hash,
+                correo_verificado,
+                token_verificacion,
+                token_expiracion,
+                es_temporal_pwd
+            )
+            OUTPUT INSERTED.*
+            VALUES
+            (
+                @id_rol,
+                @id_estado,
+                @correo,
+                @contrasena_hash,
+                0,
+                @token,
+                DATEADD(HOUR,24,GETDATE()),
+                0
+            )
+        `);
+    return result.recordset[0];
+};
 module.exports = {
     findUserByEmail,
     loginUser,
@@ -158,5 +195,6 @@ module.exports = {
     createOperadorUser,
     verifyEmailToken,
     activateUser,
-    activarCuenta
+    activarCuenta,
+    createEmpresaUser
 };
