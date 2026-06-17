@@ -309,7 +309,7 @@ export default {
           },
           body: JSON.stringify({
             id_solicitud: solicitud.id_solicitud,
-            fecha_hora:   reunionFecha.value,
+            fecha_hora:   reunionFecha.value + ':00',  // datetime-local omite segundos; SQL Server los requiere
             enlace:       reunionEnlace.value,
           }),
         });

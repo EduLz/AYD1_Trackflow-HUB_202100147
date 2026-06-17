@@ -15,6 +15,7 @@ import ClientDashboard from '../views/client/ClientDashboard.vue';
 // Vistas del Modulo Administrador (v1.0.0)
 import CrearAdministradorView    from '../views/admin/CrearAdministrador/CrearAdministradorView.vue';
 import SolicitudesRegistroView   from '../views/admin/SolicitudesRegistro/SolicitudesRegistroView.vue';
+import ReunionesVirtualesView    from '../views/admin/ReunionesVirtuales/ReunionesVirtualesView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -26,9 +27,10 @@ const router = createRouter({
 
     // --- Modulo Administrador (v1.0.0) ---
     // Nota: meta.role usa mayusculas para coincidir con el valor que devuelve el backend (campo rol en la DB)
-    { path: '/admin/dashboard',           name: 'admin-dashboard',           component: AdminDashboard,         meta: { role: 'ADMIN' } },
+    { path: '/admin/dashboard',           name: 'admin-dashboard',           component: AdminDashboard,          meta: { role: 'ADMIN' } },
     { path: '/admin/solicitudes',         name: 'admin-solicitudes',         component: SolicitudesRegistroView, meta: { role: 'ADMIN' } },
     { path: '/admin/crear-administrador', name: 'admin-crear-administrador', component: CrearAdministradorView,  meta: { role: 'ADMIN' } },
+    { path: '/admin/reuniones',           name: 'admin-reuniones',           component: ReunionesVirtualesView,  meta: { role: 'ADMIN' } },
 
     // --- Modulo Operador ---
     { path: '/operator/dashboard', name: 'operator-dashboard', component: OperatorDashboard, meta: { role: 'OPERADOR' } },
