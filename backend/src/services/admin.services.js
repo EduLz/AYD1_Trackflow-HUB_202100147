@@ -96,10 +96,25 @@ const verifyOTP = async (id_usuario, codigo) => {
     return result.recordset[0];
 };
 
+const findAdminByUserId = async (id_usuario) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_usuario", id_usuario)
+        .query(`
+            SELECT *
+            FROM Administrador
+            WHERE id_usuario = @id_usuario
+        `);
+
+    return result.recordset[0];
+};
+
 module.exports = {
     approveOperador,
     rejectOperador,
     createAdmin,
     saveOTP,
-    verifyOTP
+    verifyOTP,
+    findAdminByUserId
 };

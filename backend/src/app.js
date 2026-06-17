@@ -21,6 +21,7 @@ app.use("/api/clientes", require("./routes/client.routes"));
 app.use("/api/operadores", require("./routes/operador.routes"));
 app.use("/api/admin", require("./routes/admin.routes"));
 app.use("/api/empresas", require("./routes/company.routes"));
+app.use("/api/reuniones", require("./routes/meeting.routes"));
 
 app.use((err, req, res, next) => {
     res.status(400).json({ error: err.message });
