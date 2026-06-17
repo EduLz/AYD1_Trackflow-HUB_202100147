@@ -260,16 +260,15 @@ export default {
           });
 
         } else if (selectedRole.value === '3') {
-          // Endpoint Empresa de Transporte (Pendiente de Ed)
-          /*
+          // Endpoint Empresa de Transporte
           const payloadEmpresa = {
-            nombre_empresa: form.companyName,
-            telefono: form.phone,
-            telefono_respaldo: form.phoneBackup || " ",
-            correo: form.email,
-            nit: form.nit,
-            licencia: form.license,
-            contrasena: form.password,
+            nombre_empresa:      form.companyName,
+            telefono:            form.phone,
+            telefono_respaldo:   form.phoneBackup || '',
+            correo:              form.email,
+            nit:                 form.nit,
+            licencia:            form.license,
+            contrasena:          form.password,
             confirmarContrasena: form.confirmPassword
           };
           response = await fetch('http://localhost:3000/api/empresas/register', {
@@ -277,11 +276,6 @@ export default {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payloadEmpresa)
           });
-          */
-          
-          alert('El registro para Empresas de Transporte está pendiente de ser habilitado por el administrador.');
-          isLoading.value = false;
-          return;
         }
 
         const data = await response.json();

@@ -34,7 +34,7 @@ const router = createRouter({
     { path: '/operator/dashboard', name: 'operator-dashboard', component: OperatorDashboard, meta: { role: 'OPERADOR' } },
 
     // --- Modulo Empresa de Transporte ---
-    { path: '/company/dashboard', name: 'company-dashboard', component: CompanyDashboard, meta: { role: 'company' } },
+    { path: '/company/dashboard', name: 'company-dashboard', component: CompanyDashboard, meta: { role: 'EMPRESA' } },
 
     // --- Modulo Cliente ---
     { path: '/client/dashboard', name: 'client-dashboard', component: ClientDashboard, meta: { role: 'client' } },
