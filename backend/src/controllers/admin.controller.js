@@ -1,5 +1,7 @@
 const solicitudService = require("../services/request.services");
 const adminService = require("../services/admin.services");
+const authService = require("../services/auth.services");
+const { encryptPassword } = require("../utils/password");
 
 const getSolicitudes = async (req, res) => {
 
@@ -43,9 +45,40 @@ const rejectSolicitud = async (req, res) => {
         });
     }
 };
+const registerAdmin = async (req, res) => {
+    try {
+        const { nombre, apellido, correo, contrasena_temporal } = req.body;
 
+        if (!nombre || !apellido || !correo || !contrasena_temporal) {
+            return res.status(400).json({
+                message: "Todos los campos son obligatorios"
+            });
+        }
+
+        const existingUser = await authService.findUserByEmail(correo);
+        if (existingUser) {
+            return res.status(409).json({
+                message: "El correo ya está registrado"
+            });
+        }
+
+        const passwordHash = await encryptPassword(contrasena_temporal);
+
+        await adminService.createAdmin({ nombre, apellido, correo, passwordHash });
+
+        return res.status(201).json({
+            message: "Administrador creado correctamente"
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
 module.exports = {
     getSolicitudes,
     approveSolicitud,
-    rejectSolicitud
+    rejectSolicitud,
+    registerAdmin
 };
