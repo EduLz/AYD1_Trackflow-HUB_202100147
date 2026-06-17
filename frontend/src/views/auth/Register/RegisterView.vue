@@ -52,7 +52,7 @@
             <label for="phone">Teléfono Principal *</label>
             <input type="tel" id="phone" v-model="form.phone" placeholder="Ej: 55554444" required />
           </div>
-
+          
           <div class="form-group" v-if="selectedRole === '1'">
             <label for="address">Dirección de origen predeterminada</label>
             <input type="text" id="address" v-model="form.address" placeholder="Opcional: Ciudad, Zona..." />
@@ -146,7 +146,7 @@ export default {
   name: 'RegisterView',
   setup() {
     const router = useRouter();
-    const selectedRole = ref('1'); // 1 = Cliente por defecto
+    const selectedRole = ref('1'); 
     const errorMessage = ref('');
     const isLoading = ref(false);
 
@@ -159,7 +159,7 @@ export default {
       phoneBackup: '',
       address: '',
       dpi: '',
-      photo: null, // Ahora almacenara un objeto de tipo File
+      photo: null, 
       zone: '',
       gender: '',
       nit: '',
@@ -168,7 +168,6 @@ export default {
       confirmPassword: ''
     });
 
-    // Limpiar formulario cuando cambia el rol para no enviar datos basura
     watch(selectedRole, () => {
       form.name = ''; form.lastname = ''; form.companyName = '';
       form.phoneBackup = ''; form.address = ''; form.dpi = '';
@@ -180,11 +179,10 @@ export default {
     const handlePhotoUpload = (event) => {
       const file = event.target.files[0];
       if (file) {
-        // Validacion extra por seguridad en el front
         const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
         if (!validTypes.includes(file.type)) {
-          errorMessage.value = 'Por favor, suba unicamente imagenes en formato JPG o PNG.';
-          event.target.value = ''; // Limpiar el input
+          errorMessage.value = 'Por favor, suba únicamente imágenes en formato JPG o PNG.';
+          event.target.value = '';
           form.photo = null;
           return;
         }
@@ -194,12 +192,11 @@ export default {
     };
 
     const validatePassword = (password) => {
-      // Mínimo 8 caracteres, al menos 1 letra, 1 número y 1 carácter especial
       const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&.])[A-Za-z\d@$!%*#?&.]{8,}$/;
       return regex.test(password);
     };
 
-    const handleRegister = () => {
+    const handleRegister = async () => {
       errorMessage.value = '';
 
       if (form.password !== form.confirmPassword) {
@@ -213,39 +210,93 @@ export default {
       }
 
       if (selectedRole.value === '2' && !form.photo) {
-        errorMessage.value = 'Debe adjuntar una fotografia valida para registrarse como Operador Logistico.';
+        errorMessage.value = 'Debe adjuntar una fotografía válida para registrarse como Operador Logístico.';
         return;
       }
 
       isLoading.value = true;
 
-      // Simulacion de envio. Nota: Al enviar archivos reales se debe usar FormData en lugar de JSON
-      setTimeout(() => {
-        isLoading.value = false;
-        
-        let payload = {
-          tipo_usuario_id: parseInt(selectedRole.value),
-          correo: form.email,
-          contrasena: form.password,
-          telefono: form.phone
-        };
+      try {
+        let response;
 
         if (selectedRole.value === '1') {
-          payload = { ...payload, nombre: form.name, apellido: form.lastname, direccion: form.address };
-          alert(`Registro exitoso. (Rol 1 - Cliente) Redirigiendo a verificación...`);
+          // Endpoint Cliente (JSON)
+          const payloadCliente = {
+            nombre: form.name,
+            apellido: form.lastname,
+            telefono: form.phone,
+            correo: form.email,
+            contrasena: form.password,
+            confirmarContrasena: form.confirmPassword,
+            direccion_origen: form.address || " "
+          };
+
+          response = await fetch('http://localhost:3000/api/clientes/register', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payloadCliente)
+          });
+
         } else if (selectedRole.value === '2') {
-          // Si es operador, simulamos que capturamos el nombre del archivo
-          payload = { ...payload, nombre: form.name, apellido: form.lastname, dpi: form.dpi, telefono_respaldo: form.phoneBackup, fotografia: form.photo.name, zona_operacion: form.zone, genero: form.gender };
-          alert(`Solicitud enviada. (Rol 2 - Operador) Pendiente de aprobación administrativa...`);
+          // Endpoint Operador Logístico (Multipart FormData)
+          const formData = new FormData();
+          formData.append('nombre', form.name);
+          formData.append('apellido', form.lastname);
+          formData.append('dpi_cui', form.dpi);
+          formData.append('telefono', form.phone);
+          formData.append('telefono_respaldo', form.phoneBackup || " ");
+          formData.append('correo', form.email);
+          formData.append('zona_operacion', form.zone);
+          formData.append('genero', form.gender);
+          formData.append('contrasena', form.password);
+          formData.append('confirmarContrasena', form.confirmPassword);
+          formData.append('fotografia', form.photo);
+
+          response = await fetch('http://localhost:3000/api/operadores/register', {
+            method: 'POST',
+            body: formData
+          });
+
         } else if (selectedRole.value === '3') {
-          payload = { ...payload, nombre_empresa: form.companyName, telefono_respaldo: form.phoneBackup, nit: form.nit, licencia: form.license };
-          alert(`Solicitud enviada. (Rol 3 - Empresa) El administrador lo contactará para la entrevista...`);
+          // Endpoint Empresa de Transporte (Pendiente de Ed)
+          /*
+          const payloadEmpresa = {
+            nombre_empresa: form.companyName,
+            telefono: form.phone,
+            telefono_respaldo: form.phoneBackup || " ",
+            correo: form.email,
+            nit: form.nit,
+            licencia: form.license,
+            contrasena: form.password,
+            confirmarContrasena: form.confirmPassword
+          };
+          response = await fetch('http://localhost:3000/api/empresas/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payloadEmpresa)
+          });
+          */
+          
+          alert('El registro para Empresas de Transporte está pendiente de ser habilitado por el administrador.');
+          isLoading.value = false;
+          return;
         }
 
-        console.log("PAYLOAD ENVIADO AL BACKEND:", payload);
-        
-        router.push({ name: 'login' });
-      }, 800);
+        const data = await response.json();
+        isLoading.value = false;
+
+        if (response.ok) {
+          alert('Cuenta creada exitosamente. ' + (data.message || ''));
+          router.push({ name: 'login' });
+        } else {
+          errorMessage.value = data.message || 'Ocurrió un error en el registro.';
+        }
+      } catch (error) {
+        isLoading.value = false;
+        errorMessage.value = 'Error de conexión con el servidor backend.';
+      }
     };
 
     return {
