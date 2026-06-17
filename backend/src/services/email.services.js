@@ -41,7 +41,29 @@ const sendAdminOTPEmail = async (correo, codigo) => {
     });
 };
 
+const sendMeetingEmail = async (correo, fecha_hora, enlace) => {
+
+    await transporter.sendMail({
+        to: correo,
+        subject: "Reunión programada",
+        html: `
+            <h2>Reunión Virtual Programada</h2>
+            <p>Su reunión ha sido programada.</p>
+            <p>
+                <b>Fecha:</b> ${fecha_hora}
+            </p>
+            <p>
+                <b>Enlace:</b>
+                <a href="${enlace}">
+                    ${enlace}
+                </a>
+            </p>
+        `
+    });
+};
+
 module.exports = {
     sendVerificationEmail,
-    sendAdminOTPEmail
+    sendAdminOTPEmail,
+    sendMeetingEmail
 };

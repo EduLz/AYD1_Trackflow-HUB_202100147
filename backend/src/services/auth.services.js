@@ -243,6 +243,22 @@ const findUserById = async (id_usuario) => {
     return result.recordset[0];
 };
 
+const verifyUserEmail = async (id_usuario) => {
+
+    const pool = await connectDB();
+
+    await pool.request()
+        .input("id_usuario", id_usuario)
+        .query(`
+            UPDATE Usuario
+            SET
+                correo_verificado = 1,
+                token_verificacion = NULL,
+                token_expiracion = NULL
+            WHERE id_usuario = @id_usuario
+        `);
+};
+
 module.exports = {
     findUserByEmail,
     loginUser,
@@ -253,5 +269,6 @@ module.exports = {
     activarCuenta,
     createEmpresaUser,
     createAdminUser,
-    findUserById
+    findUserById,
+    verifyUserEmail
 };
