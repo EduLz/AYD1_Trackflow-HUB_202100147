@@ -140,12 +140,23 @@ const activateUser = async (id_usuario) => {
             WHERE id_usuario = @id_usuario
         `);
 };
+const activarCuenta = async (id_usuario) => {
 
+    const pool = await connectDB();
+    await pool.request()
+        .input("id_usuario", id_usuario)
+        .query(`
+            UPDATE Usuario
+            SET id_estado = 2
+            WHERE id_usuario = @id_usuario
+        `);
+};
 module.exports = {
     findUserByEmail,
     loginUser,
     createClienteUser,
     createOperadorUser,
     verifyEmailToken,
-    activateUser
+    activateUser,
+    activarCuenta
 };
