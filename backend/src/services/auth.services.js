@@ -34,6 +34,39 @@ const loginUser = async (correo) => {
     return result.recordset[0];
 };
 
+const createAdminUser = async ({correo, passwordHash }) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_rol", 1)
+        .input("id_estado", 2)
+        .input("correo", correo)
+        .input("contrasena_hash", passwordHash)
+        .query(`
+            INSERT INTO Usuario
+            (
+                id_rol,
+                id_estado,
+                correo,
+                contrasena_hash,
+                correo_verificado,
+                es_temporal_pwd
+            )
+            OUTPUT INSERTED.*
+            VALUES
+            (
+                @id_rol,
+                @id_estado,
+                @correo,
+                @contrasena_hash,
+                1,
+                0
+            )
+        `);
+
+    return result.recordset[0];
+};
+
 const createClienteUser = async ({correo, passwordHash, token}) => {
 
     const pool = await connectDB();
@@ -188,6 +221,28 @@ const createEmpresaUser = async ({correo, passwordHash, token}) => {
         `);
     return result.recordset[0];
 };
+
+const findUserById = async (id_usuario) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_usuario", id_usuario)
+        .query(`
+            SELECT
+                u.*,
+                r.nombre AS rol,
+                eu.nombre AS estado
+            FROM Usuario u
+            INNER JOIN Rol r
+                ON r.id_rol = u.id_rol
+            INNER JOIN EstadoUsuario eu
+                ON eu.id_estado = u.id_estado
+            WHERE u.id_usuario = @id_usuario
+        `);
+
+    return result.recordset[0];
+};
+
 module.exports = {
     findUserByEmail,
     loginUser,
@@ -196,5 +251,7 @@ module.exports = {
     verifyEmailToken,
     activateUser,
     activarCuenta,
-    createEmpresaUser
+    createEmpresaUser,
+    createAdminUser,
+    findUserById
 };
