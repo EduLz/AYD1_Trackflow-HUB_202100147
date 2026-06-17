@@ -12,7 +12,7 @@ export default {
     const router = useRouter();
 
     onMounted(() => {
-      router.replace({ name: 'admin-gestion-usuarios' });
+      router.replace({ name: 'admin-solicitudes' });
     });
   },
 };

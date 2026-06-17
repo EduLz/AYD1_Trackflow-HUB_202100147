@@ -13,7 +13,8 @@ import CompanyDashboard from '../views/company/CompanyDashboard.vue';
 import ClientDashboard from '../views/client/ClientDashboard.vue';
 
 // Vistas del Modulo Administrador (v1.0.0)
-import CrearAdministradorView from '../views/admin/CrearAdministrador/CrearAdministradorView.vue';
+import CrearAdministradorView    from '../views/admin/CrearAdministrador/CrearAdministradorView.vue';
+import SolicitudesRegistroView   from '../views/admin/SolicitudesRegistro/SolicitudesRegistroView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -26,10 +27,11 @@ const router = createRouter({
     // --- Modulo Administrador (v1.0.0) ---
     // Nota: meta.role usa mayusculas para coincidir con el valor que devuelve el backend (campo rol en la DB)
     { path: '/admin/dashboard',           name: 'admin-dashboard',           component: AdminDashboard,         meta: { role: 'ADMIN' } },
-    { path: '/admin/crear-administrador', name: 'admin-crear-administrador', component: CrearAdministradorView, meta: { role: 'ADMIN' } },
+    { path: '/admin/solicitudes',         name: 'admin-solicitudes',         component: SolicitudesRegistroView, meta: { role: 'ADMIN' } },
+    { path: '/admin/crear-administrador', name: 'admin-crear-administrador', component: CrearAdministradorView,  meta: { role: 'ADMIN' } },
 
     // --- Modulo Operador ---
-    { path: '/operator/dashboard', name: 'operator-dashboard', component: OperatorDashboard, meta: { role: 'operator' } },
+    { path: '/operator/dashboard', name: 'operator-dashboard', component: OperatorDashboard, meta: { role: 'OPERADOR' } },
 
     // --- Modulo Empresa de Transporte ---
     { path: '/company/dashboard', name: 'company-dashboard', component: CompanyDashboard, meta: { role: 'company' } },

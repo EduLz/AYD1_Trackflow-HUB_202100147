@@ -8,7 +8,8 @@
       <div class="page-header">
         <h1>Solicitudes de Registro</h1>
         <p class="page-subtitle">
-          Revisa y gestiona las solicitudes de registro pendientes de aprobacion.
+          Revisa y gestiona las solicitudes de registro pendientes de Operadores Logisticos.
+          Solo los operadores pasan por proceso de aprobacion manual.
         </p>
       </div>
 
@@ -23,9 +24,8 @@
         <table v-else class="tabla-solicitudes">
           <thead>
             <tr>
-              <th>Solicitante</th>
+              <th>Operador</th>
               <th>DPI / CUI</th>
-              <th>Tipo</th>
               <th>Fecha Solicitud</th>
               <th>Acciones</th>
             </tr>
@@ -37,9 +37,6 @@
                 <div class="correo-secundario">{{ solicitud.correo }}</div>
               </td>
               <td>{{ solicitud.dpi_cui }}</td>
-              <td>
-                <span class="tipo-badge">{{ solicitud.tipo }}</span>
-              </td>
               <td>{{ formatearFecha(solicitud.fecha_solicitud) }}</td>
               <td>
                 <div class="acciones-celda">
@@ -62,9 +59,9 @@
             </tr>
 
             <tr v-if="solicitudes.length === 0">
-              <td colspan="5">
+              <td colspan="4">
                 <div class="empty-state">
-                  No hay solicitudes de registro pendientes.
+                  No hay solicitudes de registro pendientes de Operadores Logisticos.
                 </div>
               </td>
             </tr>
@@ -117,7 +114,9 @@ export default {
     };
 
     /*
-      Carga la lista de solicitudes pendientes desde el backend.
+      Carga la lista de solicitudes de operadores pendientes desde el backend.
+      El endpoint solo retorna solicitudes con tipo = 'OPERADOR' (filtrado en la DB).
+      Las empresas y clientes no pasan por este flujo de aprobacion manual.
 
       Endpoint: GET /api/admin/solicitudes
       Headers:  Authorization: Bearer <token>
