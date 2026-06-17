@@ -23,6 +23,25 @@ const sendVerificationEmail = async (correo, nombre, token) => {
     });
 };
 
+const sendAdminOTPEmail = async (correo, codigo) => {
+    await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: correo,
+        subject: "Código de verificación - TrackFlow HUB",
+        html: `
+            <h2>Autenticación de dos factores</h2>
+            <p>Tu código de acceso es:</p>
+            <h1 style="letter-spacing: 5px;">
+                ${codigo}
+            </h1>
+            <p>
+                El código expirará en 5 minutos.
+            </p>
+        `
+    });
+};
+
 module.exports = {
-    sendVerificationEmail
+    sendVerificationEmail,
+    sendAdminOTPEmail
 };

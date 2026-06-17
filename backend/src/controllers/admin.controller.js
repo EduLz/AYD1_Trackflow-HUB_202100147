@@ -2,6 +2,7 @@ const solicitudService = require("../services/request.services");
 const adminService = require("../services/admin.services");
 const authService = require("../services/auth.services");
 const { encryptPassword } = require("../utils/password");
+const { generateToken } = require("../utils/jwt");
 
 const getSolicitudes = async (req, res) => {
 
@@ -45,29 +46,66 @@ const rejectSolicitud = async (req, res) => {
         });
     }
 };
+
 const registerAdmin = async (req, res) => {
     try {
-        const { nombre, apellido, correo, contrasena_temporal } = req.body;
-
-        if (!nombre || !apellido || !correo || !contrasena_temporal) {
-            return res.status(400).json({
-                message: "Todos los campos son obligatorios"
-            });
-        }
+        const {
+            nombre,
+            apellido,
+            correo,
+            contrasena
+        } = req.body;
 
         const existingUser = await authService.findUserByEmail(correo);
         if (existingUser) {
             return res.status(409).json({
-                message: "El correo ya está registrado"
+                message: "El correo ya existe"
             });
         }
 
-        const passwordHash = await encryptPassword(contrasena_temporal);
-
-        await adminService.createAdmin({ nombre, apellido, correo, passwordHash });
-
-        return res.status(201).json({
+        const passwordHash = await encryptPassword(contrasena);
+        const user = await authService.createAdminUser({correo, passwordHash});
+        await adminService.createAdmin({
+                id_usuario: user.id_usuario,
+                nombre,
+                apellido
+            });
+        res.status(201).json({
             message: "Administrador creado correctamente"
+        });
+    } catch (error) {
+        res.status(500).json({
+            message:
+                error.message
+        });
+    }
+};
+
+const verifyAdminOTP = async (req, res) => {
+    try {
+        const {
+            id_usuario,
+            codigo
+        } = req.body;
+
+        const otp = await adminService.verifyOTP(id_usuario, codigo);
+        if (!otp) {
+            return res.status(401).json({
+                message: "Código inválido o expirado"
+            });
+        }
+        const user = await authService.findUserById(id_usuario);
+        const token = generateToken(user);
+
+        return res.status(200).json({
+            message: "Acceso concedido",
+            token,
+            user: {
+                id_usuario: user.id_usuario,
+                correo: user.correo,
+                rol: user.rol,
+                estado: user.estado
+            }
         });
     } catch (error) {
         console.error(error);
@@ -76,9 +114,11 @@ const registerAdmin = async (req, res) => {
         });
     }
 };
+
 module.exports = {
     getSolicitudes,
     approveSolicitud,
     rejectSolicitud,
-    registerAdmin
+    registerAdmin,
+    verifyAdminOTP
 };

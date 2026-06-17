@@ -1,4 +1,6 @@
 const authService = require("../services/auth.services");
+const adminService = require("../services/admin.services");
+const emailService = require("../services/email.services");
 
 const { comparePassword } = require("../utils/password");
 const { generateToken } = require("../utils/jwt");
@@ -52,6 +54,22 @@ const login = async (req, res) => {
             });
         }
 
+        if (user.rol === "ADMINISTRADOR" || user.rol === "ADMIN") {
+
+            const codigo = Math.floor(
+                100000 + Math.random() * 900000
+            ).toString();
+            console.log("Código:", codigo);
+            await adminService.saveOTP(user.id_usuario, codigo);
+            await emailService.sendAdminOTPEmail(user.correo, codigo);
+
+            return res.status(200).json({
+                requiresOTP: true,
+                id_usuario: user.id_usuario,
+                message:"Código de verificación enviado al correo"
+            });
+        }
+
         const token = generateToken(user);
         return res.status(200).json({
             message: "Login exitoso",
@@ -82,14 +100,24 @@ const verifyEmail = async (req, res) => {
                     "Token inválido o expirado"
             });
         }
-        await authService.activateUser(user.id_usuario);
-        // CLIENTE (rol 2): se activa al verificar el correo (no requiere aprobacion del admin)
-         if (user.id_rol === 2) {
+
+        await authService.verifyUserEmail(user.id_usuario);
+
+        if (user.id_rol === 2) {
             await authService.activarCuenta(user.id_usuario);
+            return res.status(200).json({
+                message:"Correo verificado correctamente. Su cuenta ya está activa."
+            });
+        }
+
+        if (user.id_rol === 3) {
+
+            return res.status(200).json({
+                message: "Correo verificado correctamente. Su solicitud será revisada por un administrador."
+            });
         }
         return res.status(200).json({
-            message:
-                "Correo verificado correctamente"
+            message: "Correo verificado correctamente"
         });
     } catch (error) {
         console.error(error);
