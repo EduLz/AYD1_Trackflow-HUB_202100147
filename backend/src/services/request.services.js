@@ -25,7 +25,31 @@ const createSolicitudOperador = async (id_usuario) => {
             )
         `);
 };
+const createSolicitudEmpresa = async (id_usuario) => {
 
+    const pool = await connectDB();
+
+    await pool.request()
+        .input("id_usuario", id_usuario)
+        .input("id_estado", 1) // PENDIENTE
+        .input("tipo", "EMPRESA")
+        .query(`
+            INSERT INTO SolicitudRegistro
+            (
+                id_usuario,
+                id_estado,
+                tipo,
+                fecha_solicitud
+            )
+            VALUES
+            (
+                @id_usuario,
+                @id_estado,
+                @tipo,
+                GETDATE()
+            )
+        `);
+};
 const getPendingSolicitudes = async () => {
 
     const pool = await connectDB();
@@ -54,5 +78,6 @@ const getPendingSolicitudes = async () => {
 
 module.exports = {
     createSolicitudOperador,
+    createSolicitudEmpresa,
     getPendingSolicitudes
 };
