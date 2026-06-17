@@ -14,7 +14,6 @@ import ClientDashboard from '../views/client/ClientDashboard.vue';
 
 // Vistas del Modulo Administrador (v1.0.0)
 import CrearAdministradorView from '../views/admin/CrearAdministrador/CrearAdministradorView.vue';
-import GestionUsuariosView from '../views/admin/GestionUsuarios/GestionUsuariosView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -27,7 +26,6 @@ const router = createRouter({
     // --- Modulo Administrador (v1.0.0) ---
     // Nota: meta.role usa mayusculas para coincidir con el valor que devuelve el backend (campo rol en la DB)
     { path: '/admin/dashboard',           name: 'admin-dashboard',           component: AdminDashboard,         meta: { role: 'ADMIN' } },
-    { path: '/admin/gestion-usuarios',    name: 'admin-gestion-usuarios',    component: GestionUsuariosView,    meta: { role: 'ADMIN' } },
     { path: '/admin/crear-administrador', name: 'admin-crear-administrador', component: CrearAdministradorView, meta: { role: 'ADMIN' } },
 
     // --- Modulo Operador ---
