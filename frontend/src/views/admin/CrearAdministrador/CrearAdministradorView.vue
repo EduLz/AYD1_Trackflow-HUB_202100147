@@ -210,10 +210,10 @@ export default {
             'Authorization': `Bearer ${authStore.token}`,
           },
           body: JSON.stringify({
-            nombre:              form.nombre,
-            apellido:            form.apellido,
-            correo:              form.correo,
-            contrasena_temporal: form.password,
+            nombre:     form.nombre,
+            apellido:   form.apellido,
+            correo:     form.correo,
+            contrasena: form.password,
           }),
         });
 

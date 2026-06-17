@@ -97,6 +97,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../../stores/auth';
+import { API } from '../../../config/api';
 import './login.css';
 
 export default {
@@ -151,18 +152,16 @@ export default {
         const data = await response.json();
         isLoading.value = false;
 
-        if (response.ok && data.token) {
-          const usuario = data.user;
-          const rol = usuario.rol.toUpperCase();
-
-          if (rol === 'ADMIN') {
-            // Retenemos los datos temporalmente y pasamos al 2FA
-            idUsuarioRetenido.value = usuario.id_usuario;
-            tokenRetenido.value = data.token;
-            correoRetenido.value = usuario.correo;
-            step.value = 2; 
-          } else {
-            // Ingreso directo para Cliente, Operador y Empresa
+        if (response.ok) {
+          if (data.requiresOTP) {
+            // Admin: el backend genero y envio el OTP por correo.
+            // Solo guardamos el id_usuario para el paso 2.
+            idUsuarioRetenido.value = data.id_usuario;
+            step.value = 2;
+          } else if (data.token) {
+            // Clientes, Operadores y Empresas: ingreso directo.
+            const usuario = data.user;
+            const rol = usuario.rol.toUpperCase();
             authStore.setSession(usuario.correo, rol, null, data.token);
             redirigirPorRol(rol);
           }
@@ -179,24 +178,31 @@ export default {
       errorMessage.value = '';
       isLoading.value = true;
 
-      /* ===================================================================
-        NOTA PARA EL EQUIPO BACKEND: 
-        Aquí irá el fetch() hacia la ruta de verificación del OTP del Admin.
-        Ejemplo: POST http://localhost:3000/api/auth/verify-otp
-        ===================================================================
-      */
-      
-      // Simulación de verificación mientras conectan la ruta del OTP
-      setTimeout(() => {
+      try {
+        const res = await fetch(API.auth.verifyOtp, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id_usuario: idUsuarioRetenido.value,
+            codigo:     otpCode.value,
+          }),
+        });
+
+        const data = await res.json();
         isLoading.value = false;
-        if (otpCode.value === '123456') {
-          // Si el código es correcto, guardamos la sesión y entra
-          authStore.setSession(correoRetenido.value, 'ADMIN', null, tokenRetenido.value);
+
+        if (res.ok && data.token) {
+          // El backend genera un nuevo token despues de verificar el OTP.
+          // Se usa data.token (no el token del paso 1) para establecer la sesion.
+          authStore.setSession(data.user.correo, 'ADMIN', null, data.token);
           redirigirPorRol('ADMIN');
         } else {
-          errorMessage.value = 'Código OTP inválido o expirado.';
+          errorMessage.value = data.message || 'Codigo OTP invalido o expirado.';
         }
-      }, 600);
+      } catch (err) {
+        isLoading.value = false;
+        errorMessage.value = 'Error de conexion con el servidor.';
+      }
     };
 
     const cancelarFlujoOTP = () => {
