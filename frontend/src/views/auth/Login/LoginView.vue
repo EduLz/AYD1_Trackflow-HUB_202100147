@@ -3,7 +3,7 @@
     <div class="login-card">
       <div class="login-header">
         <h2>TRACKFLOW-HUB</h2>
-        <p>{{ step === 1 ? 'Control de Acceso a la Práctica' : 'Segundo Factor de Autenticación' }}</p>
+        <p>{{ step === 1 ? 'Control de Acceso al Sistema Logístico' : 'Segundo Factor de Autenticación' }}</p>
       </div>
 
       <form v-if="step === 1" @submit.prevent="handleLogin" class="login-form">
@@ -97,6 +97,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../../stores/auth';
+import './login.css';
 
 export default {
   name: 'LoginView',
@@ -109,22 +110,25 @@ export default {
     const errorMessage = ref('');
     const isLoading = ref(false);
 
-    // Parámetros reactivos para la gestión dinámica del OTP
     const step = ref(1);
     const otpCode = ref('');
+    
+    // Variables para retener temporalmente los datos del Admin antes del OTP
     const idUsuarioRetenido = ref(null);
+    const tokenRetenido = ref('');
+    const correoRetenido = ref('');
 
     const redirigirPorRol = (role) => {
-      if (role === 'admin') {
+      if (role === 'ADMIN') {
         router.push({ name: 'admin-dashboard' });
-      } else if (role === 'client') {
+      } else if (role === 'CLIENTE') {
         router.push({ name: 'client-dashboard' });
-      } else if (role === 'operator') {
+      } else if (role === 'OPERADOR') {
         router.push({ name: 'operator-dashboard' });
-      } else if (role === 'company') {
+      } else if (role === 'EMPRESA') {
         router.push({ name: 'company-dashboard' });
       } else {
-        errorMessage.value = 'Error: El rol recibido no coincide con las rutas del sistema.';
+        errorMessage.value = 'Error: El rol recibido no es válido.';
       }
     };
 
@@ -132,49 +136,75 @@ export default {
       errorMessage.value = '';
       isLoading.value = true;
 
-      // Simulación de control de accesos local para TrackFlow-HUB
-      setTimeout(() => {
-        isLoading.value = false;
-        const userLower = correo.value.toLowerCase();
+      try {
+        const response = await fetch('http://localhost:3000/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            correo: correo.value,
+            contrasena: password.value
+          })
+        });
 
-        if (userLower === 'admin@trackflow.com') {
-          // El administrador exige obligatoriamente la verificación del segundo factor (2FA)
-          idUsuarioRetenido.value = 101;
-          step.value = 2; 
-        } else if (userLower === 'cliente@trackflow.com') {
-          authStore.setSession('Juan Cliente', 'client');
-          redirigirPorRol('client');
-        } else if (userLower === 'operario@trackflow.com') {
-          authStore.setSession('Asignaciones Centrales', 'operator');
-          redirigirPorRol('operator');
-        } else if (userLower === 'empresa@trackflow.com') {
-          authStore.setSession('Transportes del Norte S.A.', 'company');
-          redirigirPorRol('company');
+        const data = await response.json();
+        isLoading.value = false;
+
+        if (response.ok && data.token) {
+          const usuario = data.user;
+          const rol = usuario.rol.toUpperCase();
+
+          if (rol === 'ADMIN') {
+            // Retenemos los datos temporalmente y pasamos al 2FA
+            idUsuarioRetenido.value = usuario.id_usuario;
+            tokenRetenido.value = data.token;
+            correoRetenido.value = usuario.correo;
+            step.value = 2; 
+          } else {
+            // Ingreso directo para Cliente, Operador y Empresa
+            authStore.setSession(usuario.correo, rol, null, data.token);
+            redirigirPorRol(rol);
+          }
         } else {
-          errorMessage.value = 'Credenciales incorrectas en el entorno local de desarrollo.';
+          errorMessage.value = data.message || 'Credenciales incorrectas.';
         }
-      }, 400);
+      } catch (error) {
+        isLoading.value = false;
+        errorMessage.value = 'Error de conexión con el servidor (Puerto 3000).';
+      }
     };
 
     const handleVerifyOTP = async () => {
       errorMessage.value = '';
       isLoading.value = true;
 
+      /* ===================================================================
+        NOTA PARA EL EQUIPO BACKEND: 
+        Aquí irá el fetch() hacia la ruta de verificación del OTP del Admin.
+        Ejemplo: POST http://localhost:3000/api/auth/verify-otp
+        ===================================================================
+      */
+      
+      // Simulación de verificación mientras conectan la ruta del OTP
       setTimeout(() => {
         isLoading.value = false;
         if (otpCode.value === '123456') {
-          authStore.setSession('Billy Administrador', 'admin');
-          redirigirPorRol('admin');
+          // Si el código es correcto, guardamos la sesión y entra
+          authStore.setSession(correoRetenido.value, 'ADMIN', null, tokenRetenido.value);
+          redirigirPorRol('ADMIN');
         } else {
           errorMessage.value = 'Código OTP inválido o expirado.';
         }
-      }, 400);
+      }, 600);
     };
 
     const cancelarFlujoOTP = () => {
       step.value = 1;
       otpCode.value = '';
       idUsuarioRetenido.value = null;
+      tokenRetenido.value = '';
+      correoRetenido.value = '';
       errorMessage.value = '';
     };
 
@@ -197,5 +227,3 @@ export default {
   }
 };
 </script>
-
-<style src="./login.css" scoped></style>
