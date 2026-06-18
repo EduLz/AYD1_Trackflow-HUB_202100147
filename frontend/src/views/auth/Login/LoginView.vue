@@ -98,7 +98,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../../stores/auth';
 import { API } from '../../../config/api';
-import './login.css';
+import './Login.css';
 
 export default {
   name: 'LoginView',
