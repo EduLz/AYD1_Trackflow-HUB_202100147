@@ -1,20 +1,41 @@
-version: '3.8'
-
 services:
+
+  sqlserver:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    container_name: trackflowhub-db
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "Password123!"
+    ports:
+      - "1434:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: backend
     restart: always
-
+    depends_on:
+      - sqlserver
+    env_file:
+      - ./backend/.env
     ports:
-      - "${PORT}:${PORT}"
+      - "3000:3000"
 
-    environment:
-      - PORT=${PORT}
-      - NODE_ENV=development
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
 
-    volumes:
-      - ./backend:/usr/src/app
-      - /usr/src/app/node_modules
+volumes:
+  sqlserver_data:
