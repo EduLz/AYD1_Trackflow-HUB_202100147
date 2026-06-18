@@ -8,7 +8,7 @@
       <div class="rv-header">
         <h1>Reuniones Virtuales</h1>
         <p class="rv-subtitle">
-          Reuniones programadas con Empresas de Transporte. Se permite aprobar o rechazar a la empresa.
+          Reuniones programadas con Empresas de Transporte. Se permite aprobar o rechazar a las empresas.
         </p>
       </div>
 
