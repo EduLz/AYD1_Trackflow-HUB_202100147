@@ -19,6 +19,7 @@
         <table v-else class="rv-tabla">
           <thead>
             <tr>
+              <th>Solicitante</th>
               <th>ID Solicitud</th>
               <th>Tipo</th>
               <th>Fecha y Hora</th>
@@ -30,6 +31,10 @@
           </thead>
           <tbody>
             <tr v-for="reunion in reuniones" :key="reunion.id_reunion">
+              <td>
+                <div class="rv-nombre">{{ reunion.nombre_solicitante }}</div>
+                <div class="rv-correo">{{ reunion.correo }}</div>
+              </td>
               <td>#{{ reunion.id_solicitud }}</td>
               <td>
                 <span class="badge-tipo">{{ reunion.tipo }}</span>
@@ -76,7 +81,7 @@
             </tr>
 
             <tr v-if="reuniones.length === 0">
-              <td colspan="7" class="rv-estado">
+              <td colspan="8" class="rv-estado">
                 No hay reuniones programadas aun.
               </td>
             </tr>
@@ -270,6 +275,9 @@ export default {
   color: var(--text-muted);
   font-size: 0.9rem;
 }
+
+.rv-nombre { font-weight: 600; color: var(--text-main); }
+.rv-correo { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem; }
 
 /* Badges */
 .badge-tipo {
