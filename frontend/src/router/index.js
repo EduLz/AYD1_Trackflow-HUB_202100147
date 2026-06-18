@@ -39,7 +39,7 @@ const router = createRouter({
     { path: '/company/dashboard', name: 'company-dashboard', component: CompanyDashboard, meta: { role: 'EMPRESA' } },
 
     // --- Modulo Cliente ---
-    { path: '/client/dashboard', name: 'client-dashboard', component: ClientDashboard, meta: { role: 'client' } },
+    { path: '/client/dashboard', name: 'client-dashboard', component: ClientDashboard, meta: { role: 'CLIENTE' } },
   ]
 });
 
