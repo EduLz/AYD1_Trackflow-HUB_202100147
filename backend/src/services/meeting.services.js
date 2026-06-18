@@ -36,10 +36,14 @@ const getReuniones = async () => {
         .query(`
             SELECT
                 rv.*,
-                sr.tipo
+                sr.tipo,
+                ISNULL(et.nombre_empresa, CONCAT(ol.nombre, ' ', ol.apellido)) AS nombre_solicitante,
+                u.correo
             FROM ReunionVirtual rv
-            INNER JOIN SolicitudRegistro sr
-                ON sr.id_solicitud = rv.id_solicitud
+            INNER JOIN SolicitudRegistro  sr ON sr.id_solicitud = rv.id_solicitud
+            INNER JOIN Usuario             u  ON u.id_usuario   = sr.id_usuario
+            LEFT  JOIN EmpresaTransporte  et ON et.id_usuario   = sr.id_usuario
+            LEFT  JOIN OperadorLogistico  ol ON ol.id_usuario   = sr.id_usuario
             ORDER BY rv.fecha_hora ASC
         `);
 
