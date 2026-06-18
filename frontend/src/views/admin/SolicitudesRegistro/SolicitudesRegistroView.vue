@@ -299,6 +299,11 @@ export default {
         return;
       }
 
+      if (new Date(reunionFecha.value) <= new Date()) {
+        mostrarToast('La fecha de la reunion no debe ser anterior al dia de hoy.', 'error');
+        return;
+      }
+
       procesandoReunion.value = true;
       try {
         const res = await fetch(API.reuniones.crear, {
@@ -309,7 +314,7 @@ export default {
           },
           body: JSON.stringify({
             id_solicitud: solicitud.id_solicitud,
-            fecha_hora:   reunionFecha.value + ':00',  // datetime-local omite segundos; SQL Server los requiere
+            fecha_hora:   new Date(reunionFecha.value).toISOString().slice(0, 19),
             enlace:       reunionEnlace.value,
           }),
         });
