@@ -145,9 +145,31 @@ const saveServicePhoto = async (id_servicio, url_foto, orden) => {
         `);
 };
 
+const getServicesByOperator = async (id_operador) => {
+
+    const pool = await connectDB();
+
+    const result = await pool
+        .request()
+        .input("id_operador", id_operador)
+        .query(`
+            SELECT
+                s.*,
+                es.nombre AS estado
+            FROM ServicioEnvio s
+            INNER JOIN EstadoServicio es
+                ON es.id_estado = s.id_estado
+            WHERE s.id_operador = @id_operador
+            ORDER BY s.fecha_creacion DESC
+        `);
+
+    return result.recordset;
+};
+
 module.exports = {
     createOperator,
     getOperatorByUserId,
     createService,
-    saveServicePhoto
+    saveServicePhoto,
+    getServicesByOperator
 };
