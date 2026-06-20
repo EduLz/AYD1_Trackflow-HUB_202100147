@@ -9,7 +9,6 @@ import TokenVerificationView from '../views/auth/TokenVerification/TokenVerifica
 // Vistas de Dashboards principales
 import AdminDashboard from '../views/admin/AdminDashboard.vue';
 import OperatorDashboard from '../views/operator/OperatorDashboard.vue';
-import CompanyDashboard from '../views/company/Dashboard/CompanyDashboard.vue';
 import ClientDashboard from '../views/client/ClientDashboard.vue';
 
 // Vistas del Modulo Administrador (v1.0.0)
@@ -18,7 +17,11 @@ import SolicitudesRegistroView   from '../views/admin/SolicitudesRegistro/Solici
 import ReunionesVirtualesView    from '../views/admin/ReunionesVirtuales/ReunionesVirtualesView.vue';
 
 // Vistas del Modulo Empresa de Transporte (v2.0.0)
+// --- IMPORTACIONES DEL MODULO EMPRESA ---
+import CompanyDashboard from '../views/company/Dashboard/CompanyDashboard.vue';
 import EmpresaRutasView from '../views/company/Rutas/EmpresaRutas.vue';
+import EmpresaCuponesView from '../views/company/Cupones/EmpresaCupones.vue';
+import EmpresaPerfilView from '../views/company/Perfil/EmpresaPerfil.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -38,19 +41,13 @@ const router = createRouter({
     // --- Modulo Operador ---
     { path: '/operator/dashboard', name: 'operator-dashboard', component: OperatorDashboard, meta: { role: 'OPERADOR' } },
 
-    // --- Modulo Empresa de Transporte ---
-{ 
-      path: '/company/dashboard', 
-      name: 'company-dashboard', 
-      component: CompanyDashboard, 
-      meta: { role: 'EMPRESA' } 
-    },
-    { 
-      path: '/company/rutas',     
-      name: 'company-rutas',     
-      component: EmpresaRutasView,   
-      meta: { role: 'EMPRESA' } 
-    },
+// --- Modulo Empresa de Transporte ---
+    { path: '/company/dashboard', name: 'company-dashboard', component: CompanyDashboard, meta: { role: 'EMPRESA' } },
+    { path: '/company/rutas',     name: 'company-rutas',     component: EmpresaRutasView,   meta: { role: 'EMPRESA' } },
+    { path: '/company/cupones',   name: 'company-cupones',   component: EmpresaCuponesView, meta: { role: 'EMPRESA' } },
+    { path: '/company/perfil',    name: 'company-perfil',    component: EmpresaPerfilView,  meta: { role: 'EMPRESA' } },
+
+    
     // --- Modulo Cliente ---
     { path: '/client/dashboard', name: 'client-dashboard', component: ClientDashboard, meta: { role: 'CLIENTE' } },
   ]

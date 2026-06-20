@@ -6,47 +6,106 @@
     <main class="dashboard-content">
       <div class="dashboard-card">
         <div class="header-section">
-          <h1>Generador de Cupones</h1>
-          <p>Crea códigos de descuento promocionales para atraer más clientes a tus rutas.</p>
+          <h1>Envio y Generacion de Cupones</h1>
+          <p>Llena los datos requeridos por el sistema para registrar el cupon y enviarlo al cliente.</p>
         </div>
 
-        <div class="coupon-form-container">
-          <form @submit.prevent="generarCupon" class="form-grid">
-            <div class="form-group">
-              <label>Código del Cupón</label>
-              <input type="text" v-model="nuevoCupon.codigo" placeholder="Ej. VERANO2026" required style="text-transform: uppercase;"/>
+        <div v-if="mensajeExito" class="alert-success">
+          {{ mensajeExito }}
+        </div>
+
+        <div class="coupon-form-container fade-in">
+          <form @submit.prevent="enviarCupon" class="route-form">
+            <div class="form-grid">
+              
+              <div class="form-group full-width">
+                <label>Correo Electronico del Cliente Destino</label>
+                <input 
+                  type="email" 
+                  v-model="formCupon.correo" 
+                  placeholder="ejemplo@cliente.com" 
+                  required 
+                />
+              </div>
+
+              <div class="form-group">
+                <label>Codigo del Cupon (Unico)</label>
+                <input 
+                  type="text" 
+                  v-model="formCupon.codigo" 
+                  placeholder="Ej. VERANO2026" 
+                  required 
+                  style="text-transform: uppercase;"
+                />
+              </div>
+
+              <div class="form-group">
+                <label>Tipo de Cupon (ID)</label>
+                <select v-model="formCupon.id_tipo" required class="form-select">
+                  <option value="" disabled selected>Seleccione un tipo</option>
+                  <option value="1">1 - Descuento Estandar</option>
+                  <option value="2">2 - Promocion Especial</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Porcentaje de Descuento (%)</label>
+                <input 
+                  type="number" 
+                  step="0.01" 
+                  v-model="formCupon.porcentaje_desc" 
+                  placeholder="Ej. 15.50" 
+                  required 
+                />
+              </div>
+
+              <div class="form-group">
+                <label>Fecha y Hora de Vencimiento</label>
+                <input 
+                  type="datetime-local" 
+                  v-model="formCupon.fecha_vencimiento" 
+                  required 
+                />
+              </div>
+
+              <div class="form-group full-width">
+                <label>Descripcion del Cupon</label>
+                <input 
+                  type="text" 
+                  v-model="formCupon.descripcion" 
+                  placeholder="Ej. Descuento valido por inauguracion de rutas en Peten" 
+                  required 
+                />
+              </div>
+
             </div>
-            <div class="form-group">
-              <label>Porcentaje de Descuento (%)</label>
-              <input type="number" v-model="nuevoCupon.porcentaje" placeholder="Ej. 15" min="1" max="100" required />
-            </div>
-            <div class="form-group">
-              <label>Fecha de Expiración</label>
-              <input type="date" v-model="nuevoCupon.expiracion" required />
-            </div>
-            <div class="form-group align-bottom">
-              <button type="submit" class="btn-primary">Generar Cupón</button>
+            
+            <div class="form-actions mt-4">
+              <button type="button" @click="generarCodigoAleatorio" class="btn-secondary mr-2">Autogenerar Codigo</button>
+              <button type="submit" class="btn-primary">Registrar y Enviar Cupon</button>
             </div>
           </form>
         </div>
 
         <div class="table-section mt-4">
-          <h2>Cupones Activos</h2>
+          <h2>Historial de Cupones</h2>
           <table class="data-table">
             <thead>
               <tr>
-                <th>Código</th>
+                <th>Codigo</th>
                 <th>Descuento</th>
-                <th>Expiración</th>
+                <th>Vencimiento</th>
+                <th>Enviado a</th>
                 <th>Estado</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(cupon, index) in cuponesMock" :key="index">
-                <td style="font-weight: bold; letter-spacing: 1px;">{{ cupon.codigo }}</td>
-                <td>{{ cupon.porcentaje }}%</td>
-                <td>{{ cupon.expiracion }}</td>
-                <td><span class="status-badge activa">DISPONIBLE</span></td>
+              <tr v-for="(cupon, index) in historialCupones" :key="index">
+                <td style="font-weight: bold; letter-spacing: 1px; color: #1e293b;">{{ cupon.codigo }}</td>
+                <td>{{ cupon.porcentaje_desc }}%</td>
+                <td>{{ formatearFecha(cupon.fecha_vencimiento) }}</td>
+                <td>{{ cupon.correo }}</td>
+                <td><span class="status-badge activa">REGISTRADO</span></td>
               </tr>
             </tbody>
           </table>
@@ -61,6 +120,8 @@ import { ref } from 'vue';
 import UpperbarComponent from '../../../common/components/Upperbar/UpperbarComponent.vue';
 import CompanySidebarComponent from '../../../common/components/CompanySidebar/CompanySidebarComponent.vue';
 
+import './EmpresaCupones.css';
+
 export default {
   name: 'EmpresaCupones',
   components: {
@@ -68,49 +129,68 @@ export default {
     CompanySidebarComponent
   },
   setup() {
-    const nuevoCupon = ref({ codigo: '', porcentaje: '', expiracion: '' });
+    const mensajeExito = ref('');
     
-    // Mock Data inicial
-    const cuponesMock = ref([
-      { codigo: 'BIENVENIDA50', porcentaje: 50, expiracion: '2026-12-31' },
-      { codigo: 'RUTAPETEN10', porcentaje: 10, expiracion: '2026-07-15' }
+    // Objeto reactivo estructurado segun schema.sql
+    const formCupon = ref({
+      correo: '',
+      id_tipo: '',
+      codigo: '',
+      descripcion: '',
+      porcentaje_desc: '',
+      fecha_vencimiento: ''
+    });
+    
+    const historialCupones = ref([
+      { codigo: 'AUTO-X789', porcentaje_desc: 15.00, fecha_vencimiento: '2026-12-31T23:59', correo: 'cliente1@trackflowhub.com' }
     ]);
 
-    const generarCupon = () => {
-      // Simula enviar al backend y agregarlo a la tabla
-      cuponesMock.value.unshift({
-        codigo: nuevoCupon.value.codigo.toUpperCase(),
-        porcentaje: nuevoCupon.value.porcentaje,
-        expiracion: nuevoCupon.value.expiracion
-      });
-      alert(`Cupón ${nuevoCupon.value.codigo.toUpperCase()} generado con éxito.`);
-      nuevoCupon.value = { codigo: '', porcentaje: '', expiracion: '' };
+    const generarCodigoAleatorio = () => {
+      const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let resultado = 'PROMO-';
+      for (let i = 0; i < 6; i++) {
+        resultado += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+      }
+      formCupon.value.codigo = resultado;
     };
 
-    return { nuevoCupon, cuponesMock, generarCupon };
+    const enviarCupon = () => {
+      // TODO: Peticion POST con el Payload alineado a la BD
+      // {
+      //   id_tipo: formCupon.value.id_tipo,
+      //   codigo: formCupon.value.codigo,
+      //   descripcion: formCupon.value.descripcion,
+      //   porcentaje_desc: formCupon.value.porcentaje_desc,
+      //   fecha_vencimiento: formCupon.value.fecha_vencimiento,
+      //   correo_destino: formCupon.value.correo
+      // }
+
+      historialCupones.value.unshift({ ...formCupon.value });
+
+      mensajeExito.value = `Cupon ${formCupon.value.codigo} registrado en Base de Datos y enviado a ${formCupon.value.correo}.`;
+      
+      // Limpiar formulario
+      formCupon.value = {
+        correo: '', id_tipo: '', codigo: '', descripcion: '', porcentaje_desc: '', fecha_vencimiento: ''
+      };
+      
+      setTimeout(() => { mensajeExito.value = ''; }, 5000);
+    };
+
+    const formatearFecha = (fechaStr) => {
+      if (!fechaStr) return '';
+      const date = new Date(fechaStr);
+      return date.toLocaleDateString('es-GT', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    };
+
+    return { 
+      formCupon, 
+      historialCupones, 
+      mensajeExito,
+      generarCodigoAleatorio,
+      enviarCupon,
+      formatearFecha
+    };
   }
 };
 </script>
-
-<style scoped>
-.dashboard-content { margin-top: 60px; margin-left: 240px; padding: 2rem; background-color: var(--bg-primary); min-height: calc(100vh - 60px); }
-.dashboard-card { background-color: #ffffff; padding: 2rem; border-radius: 6px; border: 1px solid var(--border-color); }
-.header-section { margin-bottom: 2rem; }
-.header-section h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.5rem; }
-.header-section p { color: #64748b; }
-
-.coupon-form-container { background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 2rem; }
-.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
-.form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 0.5rem; }
-.form-group input { width: 100%; padding: 0.6rem 0.8rem; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; }
-.align-bottom { display: flex; align-items: flex-end; }
-.btn-primary { width: 100%; background-color: #2563eb; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; font-weight: 600; cursor: pointer; }
-.btn-primary:hover { background-color: #1d4ed8; }
-
-.mt-4 { margin-top: 2rem; }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th, .data-table td { padding: 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
-.data-table th { background-color: #f8fafc; font-weight: 600; color: #475569; font-size: 0.85rem; text-transform: uppercase; }
-.status-badge { padding: 0.3rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
-.status-badge.activa { background-color: #dcfce7; color: #16a34a; }
-</style>
