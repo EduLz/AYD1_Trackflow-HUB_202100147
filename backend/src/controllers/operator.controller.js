@@ -323,6 +323,61 @@ const getMyCoupons = async (req, res) => {
     }
 };
 
+const assignCouponToClient = async (req, res) => {
+
+    try {
+        const { id } = req.params;
+        const { correo } = req.body || {};
+        if (!correo) {
+            return res.status(400).json({
+                message: "Debe proporcionar un correo"
+            });
+        }
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        if (!operador) {
+            return res.status(404).json({
+                message: "Operador no encontrado"
+            });
+        }
+        const cupon = await operadorService.getCouponById(id, operador.id_operador);
+        if (!cupon) {
+            return res.status(404).json({
+                message: "Cupón no encontrado"
+            });
+        }
+        const cliente = await authService.getClientByEmail(correo);
+        if (!cliente) {
+            return res.status(404).json({
+                message: "Cliente no encontrado"
+            });
+        }
+
+        const existe = await operadorService.couponAlreadyAssigned(id, cliente.id_cliente);
+        if (existe) {
+            return res.status(409).json({
+                message: "Este cupón ya fue asignado a este cliente"
+            });
+        }
+        const asignacion = await operadorService.assignCouponToClient(id, cliente.id_cliente);
+        await emailService.sendCouponEmail(
+            correo,
+            cliente.nombre,
+            cupon.codigo,
+            cupon.descripcion
+        );
+
+        return res.status(201).json({
+            message: "Cupón asignado y enviado por correo",
+            asignacion
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     registerOperador,
     createService,
@@ -330,5 +385,6 @@ module.exports = {
     updateService,
     deleteService,
     createCoupon,
-    getMyCoupons    
+    getMyCoupons,
+    assignCouponToClient
 };

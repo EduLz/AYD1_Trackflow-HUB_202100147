@@ -259,6 +259,23 @@ const verifyUserEmail = async (id_usuario) => {
         `);
 };
 
+const getClientByEmail = async (correo) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("correo", correo)
+        .query(`
+            SELECT
+                c.*,
+                u.correo
+            FROM Cliente c
+            INNER JOIN Usuario u
+                ON u.id_usuario = c.id_usuario
+            WHERE u.correo = @correo
+        `);
+    return result.recordset[0];
+};
+
 module.exports = {
     findUserByEmail,
     loginUser,
@@ -270,5 +287,6 @@ module.exports = {
     createEmpresaUser,
     createAdminUser,
     findUserById,
-    verifyUserEmail
+    verifyUserEmail,
+    getClientByEmail
 };

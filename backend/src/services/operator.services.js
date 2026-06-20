@@ -295,6 +295,64 @@ const getCouponsByOperator = async (id_operador) => {
     return result.recordset;
 };
 
+const assignCouponToClient = async (id_cupon, id_cliente) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_cupon", id_cupon)
+        .input("id_cliente", id_cliente)
+        .query(`
+            INSERT INTO CuponCliente
+            (
+                id_cupon,
+                id_cliente,
+                usado,
+                fecha_uso
+            )
+            OUTPUT INSERTED.*
+            VALUES
+            (
+                @id_cupon,
+                @id_cliente,
+                0,
+                NULL
+            )
+        `);
+
+    return result.recordset[0];
+};
+
+const getCouponById = async (id_cupon, id_operador) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_cupon", id_cupon)
+        .input("id_operador", id_operador)
+        .query(`
+            SELECT *
+            FROM Cupon
+            WHERE id_cupon = @id_cupon
+            AND id_operador = @id_operador
+        `);
+    return result.recordset[0];
+};
+
+const couponAlreadyAssigned = async (id_cupon, id_cliente) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_cupon", id_cupon)
+        .input("id_cliente", id_cliente)
+        .query(`
+            SELECT *
+            FROM CuponCliente
+            WHERE id_cupon = @id_cupon
+            AND id_cliente = @id_cliente
+        `);
+
+    return result.recordset[0];
+};
+
 module.exports = {
     createOperator,
     getOperatorByUserId,
@@ -304,5 +362,8 @@ module.exports = {
     updateService,
     changeServiceStatus,
     createCoupon,
-    getCouponsByOperator
+    getCouponsByOperator,
+    assignCouponToClient,
+    getCouponById,
+    couponAlreadyAssigned
 };
