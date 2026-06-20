@@ -7,7 +7,7 @@
       <div class="dashboard-card">
         <div class="header-section">
           <h1>Gestion de Flota y Rutas</h1>
-          <p>Registra nuevas rutas manualmente, realiza cargas masivas y gestiona tu flota actual.</p>
+          <p>Registra rutas asignando vehiculos de tu flota, realiza cargas masivas y administra tus servicios activos.</p>
         </div>
 
         <div v-if="mensajeExito" class="alert-success">
@@ -34,85 +34,128 @@
             <div class="form-grid">
               
               <div class="form-group">
-                <label>Origen</label>
-                <input type="text" v-model="formManual.origen" placeholder="Ej. Ciudad de Guatemala" required />
-              </div>
-              <div class="form-group">
-                <label>Destino</label>
-                <input type="text" v-model="formManual.destino" placeholder="Ej. Quetzaltenango" required />
-              </div>
-              <div class="form-group">
-                <label>Distancia (Km)</label>
-                <input type="number" step="0.01" v-model="formManual.distancia_km" placeholder="Ej. 200.50" required />
-              </div>
-              <div class="form-group">
-                <label>Tiempo Estimado (Horas)</label>
-                <input type="number" step="0.1" v-model="formManual.tiempo_estimado_hr" placeholder="Ej. 4.5" required />
+                <label>Origen (Ciudad / Zona)</label>
+                <input type="text" v-model="formManual.origen" placeholder="Ej. Ciudad de Guatemala, Zona 10" required />
               </div>
 
               <div class="form-group">
-                <label>Capacidad (Libras)</label>
-                <input type="number" v-model="formManual.capacidad" placeholder="Ej. 1500" required />
+                <label>Destino (Ciudad / Zona)</label>
+                <input type="text" v-model="formManual.destino" placeholder="Ej. Quetzaltenango, Central" required />
               </div>
+
               <div class="form-group">
-                <label>Precio Estimado (Q)</label>
-                <input type="number" step="0.01" v-model="formManual.precio" placeholder="Ej. 350.00" required />
+                <label>Tipo de Servicio</label>
+                <select v-model="formManual.tipo_servicio" required class="form-select">
+                  <option value="" disabled selected>Seleccione una opcion</option>
+                  <option value="Estandar">Estandar (Carga General)</option>
+                  <option value="Express">Express (Entrega Rapida)</option>
+                  <option value="Refrigerado">Refrigerado (Cadena de Frio)</option>
+                </select>
               </div>
+
+              <div class="form-group">
+                <label>Hora de Inicio</label>
+                <input type="time" v-model="formManual.hora_inicio" required class="form-input-time" />
+              </div>
+
+              <div class="form-group">
+                <label>Tiempo Estimado de Entrega (Horas)</label>
+                <input type="number" step="0.1" min="0.1" v-model="formManual.tiempo_estimado_hr" placeholder="Ej. 4.5" required />
+              </div>
+
+              <div class="form-group">
+                <label>Precio del Servicio (Q)</label>
+                <input type="number" step="0.01" min="0.01" v-model="formManual.precio" placeholder="Ej. 350.00" required />
+              </div>
+
+              <div class="form-group full-width">
+                <label>Vehiculo de Flota Asignado</label>
+                <select v-model="formManual.id_flota" required class="form-select">
+                  <option value="" disabled selected>Seleccione un vehiculo de la flota disponible</option>
+                  <option v-for="flota in flotasDisponiblesMock" :key="flota.id" :value="flota.id">
+                    {{ flota.codigo_unidad }} - {{ flota.tipo_vehiculo }} (Capacidad: {{ flota.capacidad_lbs }} lbs, Placa: {{ flota.placa }})
+                  </option>
+                </select>
+              </div>
+
             </div>
             
-            <div class="form-actions mt-4">
-              <button type="submit" class="btn-primary">Registrar Ruta y Servicio</button>
+            <div class="form-actions">
+              <button type="submit" class="btn-primary">Registrar y Asignar Ruta</button>
             </div>
           </form>
         </div>
 
         <div v-if="activeTab === 'csv'" class="tab-content fade-in">
+          <div class="csv-type-selector">
+            <label class="radio-label">
+              <input type="radio" v-model="tipoCargaCSV" value="rutas" />
+              Cargar Archivo de Rutas
+            </label>
+            <label class="radio-label">
+              <input type="radio" v-model="tipoCargaCSV" value="flotas" />
+              Cargar Archivo de Flota/Vehiculos
+            </label>
+          </div>
+
           <div class="csv-upload-zone">
-            <div class="upload-icon">[CSV]</div>
-            <h3>Carga tu archivo CSV</h3>
-            <p>Arrastra y suelta tu archivo aqui, o haz clic para seleccionarlo.</p>
-            <p class="text-muted" style="font-size: 0.8rem; margin-top: 0.5rem;">
-              Formato esperado: origen, destino, distancia_km, tiempo_estimado_hr, capacidad, precio
+            <div class="upload-icon">[ ARCHIVO CSV ]</div>
+            <h3>Carga masiva de {{ tipoCargaCSV === 'rutas' ? 'Rutas de Transporte' : 'Vehiculos de Flota' }}</h3>
+            <p>Arrastra tu documento o utiliza el boton inferior para buscarlo en tu equipo física.</p>
+            <p class="text-muted-format">
+              Formato {{ tipoCargaCSV === 'rutas' ? 'rutas.csv: origen, destino, tipo_servicio, hora_inicio, tiempo_hr, precio' : 'flotas.csv: codigo_unidad, tipo_vehiculo, capacidad_lbs, placa' }}
             </p>
             
             <input type="file" id="csvFile" accept=".csv" @change="handleFileUpload" class="hidden-input" />
-            <label for="csvFile" class="btn-secondary">Seleccionar Archivo</label>
+            <label for="csvFile" class="btn-secondary">Seleccionar Documento</label>
             
             <div v-if="archivoCSV" class="file-status">
-              Archivo cargado: <strong>{{ archivoCSV.name }}</strong>
-              <button @click="procesarCSV" class="btn-primary mt-2">Procesar Rutas</button>
+              Archivo listo para procesar: <strong>{{ archivoCSV.name }}</strong>
+              <button @click="procesarCSV" class="btn-primary mt-2">Procesar Carga Masiva</button>
             </div>
           </div>
         </div>
 
         <div class="table-section mt-4">
-          <h2>Rutas Actuales</h2>
+          <h2>Monitoreo de Rutas y Servicios</h2>
           <div class="table-responsive">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Origen - Destino</th>
-                  <th>Distancia/Tiempo</th>
-                  <th>Capacidad</th>
-                  <th>Precio (Q)</th>
+                  <th>Trayecto</th>
+                  <th>Servicio / Horario</th>
+                  <th>Vehiculo Asignado</th>
+                  <th>Precio</th>
                   <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="ruta in rutasMock" :key="ruta.id">
-                  <td style="font-weight: 600; color: #1e293b;">{{ ruta.origen }} <br> <span style="font-weight: 400; color: #64748b; font-size: 0.85rem;">hacia {{ ruta.destino }}</span></td>
-                  <td>{{ ruta.distancia_km }} km <br> <span style="color: #64748b; font-size: 0.85rem;">{{ ruta.tiempo_estimado_hr }} hrs</span></td>
-                  <td>{{ ruta.capacidad }} lbs</td>
-                  <td>{{ ruta.precio }}</td>
+                  <td>
+                    <span class="font-bold-main">{{ ruta.origen }}</span>
+                    <br />
+                    <span class="text-muted-sub">hasta {{ ruta.destino }}</span>
+                  </td>
+                  <td>
+                    <span class="badge-type">{{ ruta.tipo_servicio }}</span>
+                    <br />
+                    <span class="text-muted-sub">Sale: {{ ruta.hora_inicio }} ({{ ruta.tiempo_estimado_hr }} hrs)</span>
+                  </td>
+                  <td>
+                    <span class="font-bold-main">{{ ruta.codigo_unidad }}</span>
+                    <br />
+                    <span class="text-muted-sub">{{ ruta.tipo_vehiculo }}</span>
+                  </td>
+                  <td class="font-bold-main">Q {{ ruta.precio }}</td>
                   <td>
                     <span :class="['status-badge', ruta.estado.replace(' ', '-').toLowerCase()]">
                       {{ ruta.estado }}
                     </span>
                   </td>
                   <td class="action-cells">
-                    <button @click="abrirModalEdicion(ruta)" class="btn-icon edit" title="Editar" :disabled="ruta.estado === 'SUSPENDIDA'">Editar</button>
-                    <button @click="abrirModalSuspension(ruta)" class="btn-icon cancel" title="Suspender/Cancelar" :disabled="ruta.estado === 'SUSPENDIDA'">Suspender</button>
+                    <button @click="abrirModalEdicion(ruta)" class="btn-icon edit" :disabled="ruta.estado === 'SUSPENDIDA'">Editar</button>
+                    <button @click="abrirModalSuspension(ruta)" class="btn-icon cancel" :disabled="ruta.estado === 'SUSPENDIDA'">Suspender</button>
                   </td>
                 </tr>
               </tbody>
@@ -126,13 +169,13 @@
     <div v-if="isEditModalOpen" class="modal-overlay">
       <div class="modal-content fade-in">
         <div class="modal-header">
-          <h2>Editar Ruta y Servicio</h2>
+          <h2>Modificar Ruta y Asignacion</h2>
           <button @click="cerrarModalEdicion" class="close-btn">X</button>
         </div>
         
-        <form @submit.prevent="guardarEdicionRuta" class="route-form">
+        <form @submit.prevent="guardarEdicionRuta">
           <div class="alert-warning-box">
-            Atencion: Cualquier modificacion a una ruta activa requerira la aprobacion del Administrador.
+            Atencion: Las modificaciones operativas alteran los contratos en curso y pasaran a revision por el Administrador.
           </div>
           
           <div class="form-grid mt-2">
@@ -145,26 +188,38 @@
               <input type="text" v-model="rutaEnEdicion.destino" required />
             </div>
             <div class="form-group">
-              <label>Distancia (Km)</label>
-              <input type="number" step="0.01" v-model="rutaEnEdicion.distancia_km" required />
+              <label>Tipo de Servicio</label>
+              <select v-model="rutaEnEdicion.tipo_servicio" required class="form-select">
+                <option value="Estandar">Estandar</option>
+                <option value="Express">Express</option>
+                <option value="Refrigerado">Refrigerado</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Hora Inicio</label>
+              <input type="time" v-model="rutaEnEdicion.hora_inicio" required />
             </div>
             <div class="form-group">
               <label>Tiempo (Hrs)</label>
               <input type="number" step="0.1" v-model="rutaEnEdicion.tiempo_estimado_hr" required />
             </div>
             <div class="form-group">
-              <label>Capacidad (Libras)</label>
-              <input type="number" v-model="rutaEnEdicion.capacidad" required />
-            </div>
-            <div class="form-group">
-              <label>Precio Estimado (Q)</label>
+              <label>Precio (Q)</label>
               <input type="number" step="0.01" v-model="rutaEnEdicion.precio" required />
+            </div>
+            <div class="form-group full-width">
+              <label>Cambiar Vehiculo Asignado</label>
+              <select v-model="rutaEnEdicion.id_flota" required class="form-select">
+                <option v-for="flota in flotasDisponiblesMock" :key="flota.id" :value="flota.id">
+                  {{ flota.codigo_unidad }} - {{ flota.tipo_vehiculo }}
+                </option>
+              </select>
             </div>
           </div>
           
           <div class="form-actions mt-4">
             <button type="button" @click="cerrarModalEdicion" class="btn-secondary mr-2">Cancelar</button>
-            <button type="submit" class="btn-primary">Guardar y Enviar Solicitud</button>
+            <button type="submit" class="btn-primary">Solicitar Cambios</button>
           </div>
         </form>
       </div>
@@ -173,23 +228,23 @@
     <div v-if="isSuspendModalOpen" class="modal-overlay">
       <div class="modal-content fade-in">
         <div class="modal-header">
-          <h2>Confirmar Suspension</h2>
+          <h2>Confirmar Suspension Operativa</h2>
           <button @click="cerrarModalSuspension" class="close-btn">X</button>
         </div>
         
         <div class="modal-body">
           <div class="alert-danger-box">
-            Advertencia: Al suspender esta ruta, la accion sera inmediata y se notificara automaticamente a todos los clientes con viajes programados en ella.
+            Aviso de Seguridad: Esta suspension es de ejecucion inmediata y cancelara de forma automatica las reservaciones pendientes de los clientes de la plataforma.
           </div>
-          <p style="margin-top: 1.5rem; color: #1e293b;">
-            ¿Esta completamente seguro que desea suspender la ruta <br/>
-            <strong>{{ rutaASuspender?.origen }} - {{ rutaASuspender?.destino }}</strong>?
+          <p class="modal-confirm-text">
+            ¿Confirmas la suspension de la ruta activa: <br />
+            <strong>{{ rutaASuspender?.origen }} hacia {{ rutaASuspender?.destino }}</strong>?
           </p>
         </div>
 
         <div class="form-actions mt-4">
-          <button type="button" @click="cerrarModalSuspension" class="btn-secondary mr-2">Cancelar</button>
-          <button type="button" @click="confirmarSuspension" class="btn-danger">Si, Suspender Ruta</button>
+          <button type="button" @click="cerrarModalSuspension" class="btn-secondary mr-2">Cancelar Operacion</button>
+          <button type="button" @click="confirmarSuspension" class="btn-danger">Si, Suspender de Inmediato</button>
         </div>
       </div>
     </div>
@@ -202,7 +257,6 @@ import { ref } from 'vue';
 import UpperbarComponent from '../../../common/components/Upperbar/UpperbarComponent.vue';
 import CompanySidebarComponent from '../../../common/components/CompanySidebar/CompanySidebarComponent.vue';
 
-// Importacion estricta del CSS modular
 import './EmpresaRutas.css';
 
 export default {
@@ -213,63 +267,74 @@ export default {
   },
   setup() {
     const activeTab = ref('manual');
+    const tipoCargaCSV = ref('rutas');
     const mensajeExito = ref('');
+    const archivoCSV = ref(null);
     
-    // Variables Modal Edicion
     const isEditModalOpen = ref(false);
     const rutaEnEdicion = ref({});
     const indexRutaEditando = ref(-1);
 
-    // Variables Modal Suspension
     const isSuspendModalOpen = ref(false);
     const rutaASuspender = ref(null);
 
-    // Formulario manual alineado a BD
     const formManual = ref({
-      origen: '', 
-      destino: '', 
-      distancia_km: '',
-      tiempo_estimado_hr: '',
-      capacidad: '', 
-      precio: ''
+      origen: '', destino: '', tipo_servicio: '', hora_inicio: '', tiempo_estimado_hr: '', precio: '', id_flota: ''
     });
 
-    const archivoCSV = ref(null);
-
-    // Mock de datos iniciales alineados a BD
-    const rutasMock = ref([
-      { id: 1, origen: 'Ciudad de Guatemala', destino: 'Peten', distancia_km: 500.5, tiempo_estimado_hr: 8.5, capacidad: 2000, precio: '500.00', estado: 'ACTIVA' },
-      { id: 2, origen: 'Zacapa', destino: 'Coban', distancia_km: 180.0, tiempo_estimado_hr: 4.0, capacidad: 1500, precio: '300.00', estado: 'SUSPENDIDA' },
-      { id: 3, origen: 'Escuintla', destino: 'Ciudad de Guatemala', distancia_km: 65.2, tiempo_estimado_hr: 1.5, capacidad: 5000, precio: '850.00', estado: 'ACTIVA' }
+    // Mock de Vehiculos/Flotas (Poblado segun la estructura de EmpresaTransporte de la BD)
+    const flotasDisponiblesMock = ref([
+      { id: 10, codigo_unidad: 'FLOTA-01', tipo_vehiculo: 'Camion Pesado Hino', capacidad_lbs: 12000, placa: 'C-890BBD' },
+      { id: 11, codigo_unidad: 'FLOTA-02', tipo_vehiculo: 'Panel de Distribucion', capacidad_lbs: 3500, placa: 'P-123XYZ' },
+      { id: 12, codigo_unidad: 'FLOTA-03', tipo_vehiculo: 'Cabezal Freightliner', capacidad_lbs: 40000, placa: 'TC-556ABC' }
     ]);
 
-    const mostrarNotificacion = (mensaje) => {
-      mensajeExito.value = mensaje;
-      setTimeout(() => { mensajeExito.value = ''; }, 4000);
+    // Mock de datos de monitoreo unificado (Ruta + Servicio + Flota)
+    const rutasMock = ref([
+      { id: 1, origen: 'Ciudad de Guatemala, Zona 12', destino: 'Peten, Central', tipo_servicio: 'Express', hora_inicio: '06:00', tiempo_estimado_hr: 8.5, precio: '500.00', id_flota: 10, codigo_unidad: 'FLOTA-01', tipo_vehiculo: 'Camion Pesado Hino', estado: 'ACTIVA' },
+      { id: 2, origen: 'Zacapa, Teculutan', destino: 'Coban, Alta Verapaz', tipo_servicio: 'Refrigerado', hora_inicio: '22:00', tiempo_estimado_hr: 5.2, precio: '425.00', id_flota: 11, codigo_unidad: 'FLOTA-02', tipo_vehiculo: 'Panel de Distribucion', estado: 'SUSPENDIDA' }
+    ]);
+
+    const mostrarNotificacion = (msg) => {
+      mensajeExito.value = msg;
+      setTimeout(() => { mensajeExito.value = ''; }, 4500);
     };
 
     const registrarRutaManual = () => {
-      // TODO: Peticion POST al Backend con el objeto formManual.value
-      mostrarNotificacion(`Ruta hacia ${formManual.value.destino} registrada con exito.`);
-      formManual.value = { origen: '', destino: '', distancia_km: '', tiempo_estimado_hr: '', capacidad: '', precio: '' };
+      const vehiculoSeleccionado = flotasDisponiblesMock.value.find(f => f.id === formManual.value.id_flota);
+      
+      rutasMock.value.push({
+        id: Date.now(),
+        origen: formManual.value.origen,
+        destino: formManual.value.destino,
+        tipo_servicio: formManual.value.tipo_servicio,
+        hora_inicio: formManual.value.hora_inicio,
+        tiempo_estimado_hr: formManual.value.tiempo_estimado_hr,
+        precio: parseFloat(formManual.value.precio).toFixed(2),
+        id_flota: formManual.value.id_flota,
+        codigo_unidad: vehiculoSeleccionado ? vehiculoSeleccionado.codigo_unidad : 'N/A',
+        tipo_vehiculo: vehiculoSeleccionado ? vehiculoSeleccionado.tipo_vehiculo : 'N/A',
+        estado: 'ACTIVA'
+      });
+
+      mostrarNotificacion('Nueva ruta comercial registrada con asignacion de flota exitosa.');
+      formManual.value = { origen: '', destino: '', tipo_servicio: '', hora_inicio: '', tiempo_estimado_hr: '', precio: '', id_flota: '' };
     };
 
-    const handleFileUpload = (event) => {
-      const file = event.target.files[0];
-      if (file && file.type === 'text/csv') {
+    const handleFileUpload = (e) => {
+      const file = e.target.files[0];
+      if (file && file.name.endsWith('.csv')) {
         archivoCSV.value = file;
       } else {
-        alert('Por favor, selecciona un archivo CSV valido.');
+        alert('Error: Debe ingresar un archivo de extension .csv');
       }
     };
 
     const procesarCSV = () => {
-      // TODO: Peticion POST FormData al Backend
-      mostrarNotificacion(`Archivo ${archivoCSV.value.name} procesado correctamente.`);
+      mostrarNotificacion(`Procesamiento masivo de ${tipoCargaCSV.value === 'rutas' ? 'rutas logísticas' : 'unidades de flota'} completado desde CSV.`);
       archivoCSV.value = null;
     };
 
-    // --- Logica del Modal de Edicion ---
     const abrirModalEdicion = (ruta) => {
       rutaEnEdicion.value = { ...ruta };
       indexRutaEditando.value = rutasMock.value.findIndex(r => r.id === ruta.id);
@@ -279,21 +344,22 @@ export default {
     const cerrarModalEdicion = () => {
       isEditModalOpen.value = false;
       rutaEnEdicion.value = {};
-      indexRutaEditando.value = -1;
     };
 
     const guardarEdicionRuta = () => {
       if (indexRutaEditando.value !== -1) {
-        rutasMock.value[indexRutaEditando.value] = { 
-          ...rutaEnEdicion.value, 
-          estado: 'ESPERA APROBACION' 
+        const vehiculo = flotasDisponiblesMock.value.find(f => f.id === rutaEnEdicion.value.id_flota);
+        rutasMock.value[indexRutaEditando.value] = {
+          ...rutaEnEdicion.value,
+          codigo_unidad: vehiculo ? vehiculo.codigo_unidad : rutasMock.value[indexRutaEditando.value].codigo_unidad,
+          tipo_vehiculo: vehiculo ? vehiculo.tipo_vehiculo : rutasMock.value[indexRutaEditando.value].tipo_vehiculo,
+          estado: 'ESPERA APROBACION'
         };
-        mostrarNotificacion('La ruta ha sido modificada y enviada al administrador para su aprobacion.');
+        mostrarNotificacion('Solicitud de cambio enviada. Permanecera en espera de aprobacion por el Administrador.');
       }
       cerrarModalEdicion();
     };
 
-    // --- Logica del Modal de Suspension ---
     const abrirModalSuspension = (ruta) => {
       rutaASuspender.value = ruta;
       isSuspendModalOpen.value = true;
@@ -306,34 +372,20 @@ export default {
 
     const confirmarSuspension = () => {
       if (rutaASuspender.value) {
-        const index = rutasMock.value.findIndex(r => r.id === rutaASuspender.value.id);
-        if (index !== -1) {
-          rutasMock.value[index].estado = 'SUSPENDIDA';
-          mostrarNotificacion(`La ruta ha sido suspendida. Se notificara a los clientes afectados.`);
+        const idx = rutasMock.value.findIndex(r => r.id === rutaASuspender.value.id);
+        if (idx !== -1) {
+          rutasMock.value[idx].estado = 'SUSPENDIDA';
+          mostrarNotificacion('La ruta ha sido suspendida de forma inmediata y los clientes fueron notificados.');
         }
       }
       cerrarModalSuspension();
     };
 
     return {
-      activeTab,
-      formManual,
-      archivoCSV,
-      rutasMock,
-      mensajeExito,
-      isEditModalOpen,
-      rutaEnEdicion,
-      isSuspendModalOpen,
-      rutaASuspender,
-      registrarRutaManual,
-      handleFileUpload,
-      procesarCSV,
-      abrirModalEdicion,
-      cerrarModalEdicion,
-      guardarEdicionRuta,
-      abrirModalSuspension,
-      cerrarModalSuspension,
-      confirmarSuspension
+      activeTab, tipoCargaCSV, mensajeExito, archivoCSV, isEditModalOpen,
+      rutaEnEdicion, isSuspendModalOpen, rutaASuspender, formManual, flotasDisponiblesMock,
+      rutasMock, registrarRutaManual, handleFileUpload, procesarCSV, abrirModalEdicion,
+      cerrarModalEdicion, guardarEdicionRuta, abrirModalSuspension, cerrarModalSuspension, confirmarSuspension
     };
   }
 };
