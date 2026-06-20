@@ -6,65 +6,71 @@
     <main class="dashboard-content">
       <div class="dashboard-card">
         <div class="header-section">
-          <h1>Perfil Empresarial</h1>
-          <p>Consulta tus datos actuales y solicita modificaciones de ser necesario.</p>
+          <h1>Perfil de Empresa de Transporte</h1>
+          <p class="co-subtitle">Gestiona la informacion publica de tu empresa. Las actualizaciones requieren la validacion del administrador.</p>
         </div>
 
-        <div v-if="estadoSolicitud === 'PENDIENTE'" class="alert-warning-box">
-          Tienes una solicitud de actualizacion de datos en curso. Las nuevas modificaciones estaran bloqueadas hasta que el Administrador apruebe o rechace la solicitud actual.
+        <div v-if="estado_solicitud === 'PENDIENTE'" class="alert-warning-box">
+          Atencion: Existe una solicitud de cambio de datos en espera de revision por el Administrador. Los campos permaneceran bloqueados.
         </div>
+        
         <div v-if="mensajeExito" class="alert-success">
           {{ mensajeExito }}
         </div>
 
-        <div class="profile-container">
-          <form @submit.prevent="solicitarCambios" class="route-form">
+        <div class="profile-container fade-in">
+          <form @submit.prevent="enviarSolicitudPerfil" class="route-form">
             <div class="form-grid">
+              
               <div class="form-group">
-                <label>Nombre Comercial / Razon Social</label>
+                <label>Nombre de la Empresa</label>
                 <input 
                   type="text" 
-                  v-model="perfil.nombreComercial" 
-                  :disabled="estadoSolicitud === 'PENDIENTE'"
+                  v-model="formPerfil.nombre_empresa" 
+                  :disabled="estado_solicitud === 'PENDIENTE'"
                   required 
                 />
               </div>
+
               <div class="form-group">
-                <label>Representante Legal</label>
+                <label>NIT de la Empresa</label>
                 <input 
                   type="text" 
-                  v-model="perfil.representante" 
-                  :disabled="estadoSolicitud === 'PENDIENTE'"
+                  v-model="formPerfil.nit" 
+                  :disabled="estado_solicitud === 'PENDIENTE'"
                   required 
                 />
               </div>
+
               <div class="form-group">
                 <label>Telefono de Contacto</label>
                 <input 
                   type="text" 
-                  v-model="perfil.telefono" 
-                  :disabled="estadoSolicitud === 'PENDIENTE'"
+                  v-model="formPerfil.telefono" 
+                  :disabled="estado_solicitud === 'PENDIENTE'"
                   required 
                 />
               </div>
+
               <div class="form-group">
-                <label>Direccion Fiscal</label>
+                <label>Direccion Fisica / Fiscal</label>
                 <input 
                   type="text" 
-                  v-model="perfil.direccion" 
-                  :disabled="estadoSolicitud === 'PENDIENTE'"
+                  v-model="formPerfil.direccion" 
+                  :disabled="estado_solicitud === 'PENDIENTE'"
                   required 
                 />
               </div>
+
             </div>
 
             <div class="form-actions mt-4">
               <button 
                 type="submit" 
                 class="btn-primary" 
-                :disabled="estadoSolicitud === 'PENDIENTE' || !hayCambios"
+                :disabled="estado_solicitud === 'PENDIENTE' || !comprobarCambios"
               >
-                Solicitar Modificacion al Administrador
+                Enviar Solicitud de Cambio
               </button>
             </div>
           </form>
@@ -80,7 +86,6 @@ import { ref, computed } from 'vue';
 import UpperbarComponent from '../../../common/components/Upperbar/UpperbarComponent.vue';
 import CompanySidebarComponent from '../../../common/components/CompanySidebar/CompanySidebarComponent.vue';
 
-// Importacion estricta del CSS
 import './EmpresaPerfil.css';
 
 export default {
@@ -90,48 +95,45 @@ export default {
     CompanySidebarComponent
   },
   setup() {
-    // Datos originales cargados de la base de datos (Mock)
-    const datosOriginales = {
-      nombreComercial: 'Transportes Rápidos S.A.',
-      representante: 'Carlos Méndez',
-      telefono: '+502 5555-4444',
-      direccion: 'Zona 10, Ciudad de Guatemala'
+    // Datos cargados desde la base de datos alineados a schema.sql
+    const datosBase = {
+      nombre_empresa: 'Transportes Centroamericanos S.A.',
+      nit: '8493012-4',
+      telefono: '2333-8901',
+      direccion: 'Calzada Aguilar Batres, Ciudad de Guatemala'
     };
 
-    // Datos vinculados al formulario
-    const perfil = ref({ ...datosOriginales });
-    
-    // Estado de la solicitud: NINGUNA, PENDIENTE
-    const estadoSolicitud = ref('NINGUNA');
+    const formPerfil = ref({ ...datosBase });
+    const estado_solicitud = ref('NINGUNA');
     const mensajeExito = ref('');
 
-    // UX: Solo habilitar el boton si hay cambios reales en el texto
-    const hayCambios = computed(() => {
+    // Validacion UX: Comprobar si el cliente modifico texto para activar boton
+    const comprobarCambios = computed(() => {
       return (
-        perfil.value.nombreComercial !== datosOriginales.nombreComercial ||
-        perfil.value.representante !== datosOriginales.representante ||
-        perfil.value.telefono !== datosOriginales.telefono ||
-        perfil.value.direccion !== datosOriginales.direccion
+        formPerfil.value.nombre_empresa !== datosBase.nombre_empresa ||
+        formPerfil.value.nit !== datosBase.nit ||
+        formPerfil.value.telefono !== datosBase.telefono ||
+        formPerfil.value.direccion !== datosBase.direccion
       );
     });
 
-    const solicitarCambios = () => {
-      // TODO: Enviar peticion POST al backend para insertar en la tabla de solicitudes
-      estadoSolicitud.value = 'PENDIENTE';
-      mensajeExito.value = 'Tu solicitud de modificacion fue enviada al Administrador con exito.';
+    const enviarSolicitudPerfil = () => {
+      // TODO: Peticion POST hacia la tabla SolicitudCambioPerfil
+      // Payload: { nombre_empresa, nit, telefono, direccion }
+      estado_solicitud.value = 'PENDIENTE';
+      mensajeExito.value = 'Solicitud de cambios registrada. El Administrador ha sido notificado.';
       
-      // Ocultar mensaje despues de 5 segundos
       setTimeout(() => {
         mensajeExito.value = '';
       }, 5000);
     };
 
     return {
-      perfil,
-      estadoSolicitud,
+      formPerfil,
+      estado_solicitud,
       mensajeExito,
-      hayCambios,
-      solicitarCambios
+      comprobarCambios,
+      enviarSolicitudPerfil
     };
   }
 };

@@ -32,6 +32,7 @@
         <div v-if="activeTab === 'manual'" class="tab-content fade-in">
           <form @submit.prevent="registrarRutaManual" class="route-form">
             <div class="form-grid">
+              
               <div class="form-group">
                 <label>Origen</label>
                 <input type="text" v-model="formManual.origen" placeholder="Ej. Ciudad de Guatemala" required />
@@ -41,6 +42,15 @@
                 <input type="text" v-model="formManual.destino" placeholder="Ej. Quetzaltenango" required />
               </div>
               <div class="form-group">
+                <label>Distancia (Km)</label>
+                <input type="number" step="0.01" v-model="formManual.distancia_km" placeholder="Ej. 200.50" required />
+              </div>
+              <div class="form-group">
+                <label>Tiempo Estimado (Horas)</label>
+                <input type="number" step="0.1" v-model="formManual.tiempo_estimado_hr" placeholder="Ej. 4.5" required />
+              </div>
+
+              <div class="form-group">
                 <label>Capacidad (Libras)</label>
                 <input type="number" v-model="formManual.capacidad" placeholder="Ej. 1500" required />
               </div>
@@ -49,8 +59,9 @@
                 <input type="number" step="0.01" v-model="formManual.precio" placeholder="Ej. 350.00" required />
               </div>
             </div>
-            <div class="form-actions">
-              <button type="submit" class="btn-primary">Registrar Ruta</button>
+            
+            <div class="form-actions mt-4">
+              <button type="submit" class="btn-primary">Registrar Ruta y Servicio</button>
             </div>
           </form>
         </div>
@@ -60,7 +71,9 @@
             <div class="upload-icon">[CSV]</div>
             <h3>Carga tu archivo CSV</h3>
             <p>Arrastra y suelta tu archivo aqui, o haz clic para seleccionarlo.</p>
-            <p class="text-muted" style="font-size: 0.8rem; margin-top: 0.5rem;">Formato esperado: origen, destino, capacidad, precio</p>
+            <p class="text-muted" style="font-size: 0.8rem; margin-top: 0.5rem;">
+              Formato esperado: origen, destino, distancia_km, tiempo_estimado_hr, capacidad, precio
+            </p>
             
             <input type="file" id="csvFile" accept=".csv" @change="handleFileUpload" class="hidden-input" />
             <label for="csvFile" class="btn-secondary">Seleccionar Archivo</label>
@@ -78,8 +91,8 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Origen</th>
-                  <th>Destino</th>
+                  <th>Origen - Destino</th>
+                  <th>Distancia/Tiempo</th>
                   <th>Capacidad</th>
                   <th>Precio (Q)</th>
                   <th>Estado</th>
@@ -88,8 +101,8 @@
               </thead>
               <tbody>
                 <tr v-for="ruta in rutasMock" :key="ruta.id">
-                  <td>{{ ruta.origen }}</td>
-                  <td>{{ ruta.destino }}</td>
+                  <td style="font-weight: 600; color: #1e293b;">{{ ruta.origen }} <br> <span style="font-weight: 400; color: #64748b; font-size: 0.85rem;">hacia {{ ruta.destino }}</span></td>
+                  <td>{{ ruta.distancia_km }} km <br> <span style="color: #64748b; font-size: 0.85rem;">{{ ruta.tiempo_estimado_hr }} hrs</span></td>
                   <td>{{ ruta.capacidad }} lbs</td>
                   <td>{{ ruta.precio }}</td>
                   <td>
@@ -113,7 +126,7 @@
     <div v-if="isEditModalOpen" class="modal-overlay">
       <div class="modal-content fade-in">
         <div class="modal-header">
-          <h2>Editar Ruta</h2>
+          <h2>Editar Ruta y Servicio</h2>
           <button @click="cerrarModalEdicion" class="close-btn">X</button>
         </div>
         
@@ -132,6 +145,14 @@
               <input type="text" v-model="rutaEnEdicion.destino" required />
             </div>
             <div class="form-group">
+              <label>Distancia (Km)</label>
+              <input type="number" step="0.01" v-model="rutaEnEdicion.distancia_km" required />
+            </div>
+            <div class="form-group">
+              <label>Tiempo (Hrs)</label>
+              <input type="number" step="0.1" v-model="rutaEnEdicion.tiempo_estimado_hr" required />
+            </div>
+            <div class="form-group">
               <label>Capacidad (Libras)</label>
               <input type="number" v-model="rutaEnEdicion.capacidad" required />
             </div>
@@ -140,6 +161,7 @@
               <input type="number" step="0.01" v-model="rutaEnEdicion.precio" required />
             </div>
           </div>
+          
           <div class="form-actions mt-4">
             <button type="button" @click="cerrarModalEdicion" class="btn-secondary mr-2">Cancelar</button>
             <button type="submit" class="btn-primary">Guardar y Enviar Solicitud</button>
@@ -202,18 +224,23 @@ export default {
     const isSuspendModalOpen = ref(false);
     const rutaASuspender = ref(null);
 
-    // Formulario manual
+    // Formulario manual alineado a BD
     const formManual = ref({
-      origen: '', destino: '', capacidad: '', precio: ''
+      origen: '', 
+      destino: '', 
+      distancia_km: '',
+      tiempo_estimado_hr: '',
+      capacidad: '', 
+      precio: ''
     });
 
     const archivoCSV = ref(null);
 
-    // Mock de datos iniciales
+    // Mock de datos iniciales alineados a BD
     const rutasMock = ref([
-      { id: 1, origen: 'Ciudad de Guatemala', destino: 'Peten', capacidad: 2000, precio: '500.00', estado: 'ACTIVA' },
-      { id: 2, origen: 'Zacapa', destino: 'Coban', capacidad: 1500, precio: '300.00', estado: 'SUSPENDIDA' },
-      { id: 3, origen: 'Escuintla', destino: 'Ciudad de Guatemala', capacidad: 5000, precio: '850.00', estado: 'ACTIVA' }
+      { id: 1, origen: 'Ciudad de Guatemala', destino: 'Peten', distancia_km: 500.5, tiempo_estimado_hr: 8.5, capacidad: 2000, precio: '500.00', estado: 'ACTIVA' },
+      { id: 2, origen: 'Zacapa', destino: 'Coban', distancia_km: 180.0, tiempo_estimado_hr: 4.0, capacidad: 1500, precio: '300.00', estado: 'SUSPENDIDA' },
+      { id: 3, origen: 'Escuintla', destino: 'Ciudad de Guatemala', distancia_km: 65.2, tiempo_estimado_hr: 1.5, capacidad: 5000, precio: '850.00', estado: 'ACTIVA' }
     ]);
 
     const mostrarNotificacion = (mensaje) => {
@@ -222,9 +249,9 @@ export default {
     };
 
     const registrarRutaManual = () => {
-      // TODO: Peticion POST al Backend
+      // TODO: Peticion POST al Backend con el objeto formManual.value
       mostrarNotificacion(`Ruta hacia ${formManual.value.destino} registrada con exito.`);
-      formManual.value = { origen: '', destino: '', capacidad: '', precio: '' };
+      formManual.value = { origen: '', destino: '', distancia_km: '', tiempo_estimado_hr: '', capacidad: '', precio: '' };
     };
 
     const handleFileUpload = (event) => {
@@ -281,7 +308,6 @@ export default {
       if (rutaASuspender.value) {
         const index = rutasMock.value.findIndex(r => r.id === rutaASuspender.value.id);
         if (index !== -1) {
-          // Cambio directo a SUSPENDIDA sin requerir aprobacion (Regla de negocio)
           rutasMock.value[index].estado = 'SUSPENDIDA';
           mostrarNotificacion(`La ruta ha sido suspendida. Se notificara a los clientes afectados.`);
         }
