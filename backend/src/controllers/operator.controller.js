@@ -98,6 +98,175 @@ const registerOperador = async (req, res) => {
     }
 };
 
+const createService = async (req, res) => {
+    try {
+
+        const {
+            nombre,
+            zona_cobertura,
+            capacidad_carga_kg,
+            precio_envio,
+            descripcion
+        } = req.body;
+
+        if (
+            !nombre ||
+            !zona_cobertura ||
+            !capacidad_carga_kg ||
+            !precio_envio
+        ) {
+            return res.status(400).json({
+                message: "Todos los campos obligatorios son requeridos"
+            });
+        }
+
+        if (!req.files || req.files.length < 3) {
+            return res.status(400).json({
+                message: "Debe cargar mínimo 3 fotografías"
+            });
+        }
+
+        const operador =
+            await operadorService.getOperatorByUserId(
+                req.user.id_usuario
+            );
+
+        if (!operador) {
+            return res.status(404).json({
+                message: "Operador no encontrado"
+            });
+        }
+
+        const servicio =
+            await operadorService.createService({
+                id_operador: operador.id_operador,
+                id_estado: 1,
+                nombre,
+                zona_cobertura,
+                capacidad_carga_kg,
+                precio_envio,
+                descripcion
+            });
+
+        for (let i = 0; i < req.files.length; i++) {
+
+            await operadorService.saveServicePhoto(
+                servicio.id_servicio,
+                req.files[i].filename,
+                i + 1
+            );
+        }
+
+        return res.status(201).json({
+            message: "Servicio creado correctamente",
+            servicio
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+const getMyServices = async (req, res) => {
+
+    try {
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        if (!operador) {
+            return res.status(404).json({
+                message: "Operador no encontrado"
+            });
+        }
+
+        const servicios = await operadorService.getServicesByOperator(operador.id_operador);
+        return res.status(200).json({
+            servicios
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+const updateService = async (req, res) => {
+
+    try {
+        const { id } = req.params;
+        const {
+            nombre,
+            zona_cobertura,
+            capacidad_carga_kg,
+            precio_envio,
+            descripcion
+        } = req.body;
+
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        if (!operador) {
+            return res.status(404).json({
+                message: "Operador no encontrado"
+            });
+        }
+
+        const servicioActualizado = await operadorService.updateService(
+                id, operador.id_operador,
+                {
+                    nombre,
+                    zona_cobertura,
+                    capacidad_carga_kg,
+                    precio_envio,
+                    descripcion
+                }
+            );
+
+        if (!servicioActualizado) {
+            return res.status(404).json({
+                message: "Servicio no encontrado"
+            });
+        }
+        return res.status(200).json({
+            message: "Servicio actualizado correctamente",
+            servicio: servicioActualizado
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+const deleteService = async (req, res) => {
+
+    try {
+        const { id } = req.params;
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        const servicio = await operadorService.changeServiceStatus(id, operador.id_operador, 3);
+        if (!servicio) {
+            return res.status(404).json({
+                message: "Servicio no encontrado"
+            });
+        }
+        return res.status(200).json({
+            message: "Servicio eliminado correctamente"
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
-    registerOperador
+    registerOperador,
+    createService,
+    getMyServices,
+    updateService,
+    deleteService
 };
