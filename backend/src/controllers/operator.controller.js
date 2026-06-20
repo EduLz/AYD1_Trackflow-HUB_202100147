@@ -194,8 +194,56 @@ const getMyServices = async (req, res) => {
     }
 };
 
+const updateService = async (req, res) => {
+
+    try {
+        const { id } = req.params;
+        const {
+            nombre,
+            zona_cobertura,
+            capacidad_carga_kg,
+            precio_envio,
+            descripcion
+        } = req.body;
+
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        if (!operador) {
+            return res.status(404).json({
+                message: "Operador no encontrado"
+            });
+        }
+
+        const servicioActualizado = await operadorService.updateService(
+                id, operador.id_operador,
+                {
+                    nombre,
+                    zona_cobertura,
+                    capacidad_carga_kg,
+                    precio_envio,
+                    descripcion
+                }
+            );
+
+        if (!servicioActualizado) {
+            return res.status(404).json({
+                message: "Servicio no encontrado"
+            });
+        }
+        return res.status(200).json({
+            message: "Servicio actualizado correctamente",
+            servicio: servicioActualizado
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     registerOperador,
     createService,
-    getMyServices
+    getMyServices,
+    updateService
 };

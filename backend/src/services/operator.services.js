@@ -166,10 +166,49 @@ const getServicesByOperator = async (id_operador) => {
     return result.recordset;
 };
 
+const updateService = async (id_servicio, id_operador, data) => {
+
+    const {
+        nombre,
+        zona_cobertura,
+        capacidad_carga_kg,
+        precio_envio,
+        descripcion
+    } = data;
+
+    const pool = await connectDB();
+
+    const result = await pool
+        .request()
+        .input("id_servicio", id_servicio)
+        .input("id_operador", id_operador)
+        .input("nombre", nombre)
+        .input("zona_cobertura", zona_cobertura)
+        .input("capacidad_carga_kg", capacidad_carga_kg)
+        .input("precio_envio", precio_envio)
+        .input("descripcion", descripcion)
+        .query(`
+            UPDATE ServicioEnvio
+            SET
+                nombre = @nombre,
+                zona_cobertura = @zona_cobertura,
+                capacidad_carga_kg = @capacidad_carga_kg,
+                precio_envio = @precio_envio,
+                descripcion = @descripcion,
+                fecha_actualizacion = GETDATE()
+            OUTPUT INSERTED.*
+            WHERE id_servicio = @id_servicio
+            AND id_operador = @id_operador
+        `);
+
+    return result.recordset[0];
+};
+
 module.exports = {
     createOperator,
     getOperatorByUserId,
     createService,
     saveServicePhoto,
-    getServicesByOperator
+    getServicesByOperator,
+    updateService
 };
