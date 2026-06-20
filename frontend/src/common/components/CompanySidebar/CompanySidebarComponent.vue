@@ -20,10 +20,6 @@
           Solicitud de Perfil
         </router-link>
 
-        <p class="menu-title" style="margin-top: 2rem;">Ajustes</p>
-        <button @click="cerrarSesion" class="menu-item btn-logout">
-          Cerrar Sesión
-        </button>
       </nav>
     </div>
   </aside>
