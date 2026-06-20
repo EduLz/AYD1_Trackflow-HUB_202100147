@@ -224,6 +224,77 @@ const changeServiceStatus = async (id_servicio, id_operador, id_estado) => {
     return result.recordset[0];
 };
 
+const createCoupon = async (data) => {
+
+    const {
+        id_tipo,
+        id_operador,
+        codigo,
+        descripcion,
+        valor,
+        fecha_inicio,
+        fecha_fin,
+        usos_maximos
+    } = data;
+
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_tipo", id_tipo)
+        .input("id_operador", id_operador)
+        .input("codigo", codigo)
+        .input("descripcion", descripcion)
+        .input("valor", valor)
+        .input("fecha_inicio", fecha_inicio)
+        .input("fecha_fin", fecha_fin)
+        .input("usos_maximos", usos_maximos)
+        .query(`
+            INSERT INTO Cupon
+            (
+                id_tipo,
+                id_operador,
+                codigo,
+                descripcion,
+                valor,
+                fecha_inicio,
+                fecha_fin,
+                usos_maximos
+            )
+            OUTPUT INSERTED.*
+            VALUES
+            (
+                @id_tipo,
+                @id_operador,
+                @codigo,
+                @descripcion,
+                @valor,
+                @fecha_inicio,
+                @fecha_fin,
+                @usos_maximos
+            )
+        `);
+
+    return result.recordset[0];
+};
+
+const getCouponsByOperator = async (id_operador) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_operador", id_operador)
+        .query(`
+            SELECT
+                c.*,
+                tc.nombre AS tipo_cupon
+            FROM Cupon c
+            INNER JOIN TipoCupon tc
+                ON tc.id_tipo = c.id_tipo
+            WHERE c.id_operador = @id_operador
+            ORDER BY c.fecha_creacion DESC
+        `);
+    return result.recordset;
+};
+
 module.exports = {
     createOperator,
     getOperatorByUserId,
@@ -231,5 +302,7 @@ module.exports = {
     saveServicePhoto,
     getServicesByOperator,
     updateService,
-    changeServiceStatus
+    changeServiceStatus,
+    createCoupon,
+    getCouponsByOperator
 };
