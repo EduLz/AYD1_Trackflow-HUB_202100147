@@ -204,11 +204,32 @@ const updateService = async (id_servicio, id_operador, data) => {
     return result.recordset[0];
 };
 
+const changeServiceStatus = async (id_servicio, id_operador, id_estado) => {
+
+    const pool = await connectDB();
+    const result = await pool
+        .request()
+        .input("id_servicio", id_servicio)
+        .input("id_operador", id_operador)
+        .input("id_estado", id_estado)
+        .query(`
+            UPDATE ServicioEnvio
+            SET
+                id_estado = @id_estado,
+                fecha_actualizacion = GETDATE()
+            OUTPUT INSERTED.*
+            WHERE id_servicio = @id_servicio
+            AND id_operador = @id_operador
+        `);
+    return result.recordset[0];
+};
+
 module.exports = {
     createOperator,
     getOperatorByUserId,
     createService,
     saveServicePhoto,
     getServicesByOperator,
-    updateService
+    updateService,
+    changeServiceStatus
 };

@@ -241,9 +241,32 @@ const updateService = async (req, res) => {
     }
 };
 
+const deleteService = async (req, res) => {
+
+    try {
+        const { id } = req.params;
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        const servicio = await operadorService.changeServiceStatus(id, operador.id_operador, 3);
+        if (!servicio) {
+            return res.status(404).json({
+                message: "Servicio no encontrado"
+            });
+        }
+        return res.status(200).json({
+            message: "Servicio eliminado correctamente"
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     registerOperador,
     createService,
     getMyServices,
-    updateService
+    updateService,
+    deleteService
 };
