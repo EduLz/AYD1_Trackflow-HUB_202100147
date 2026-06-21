@@ -27,7 +27,10 @@ export const API = {
     // Cupones
     cupones: `${BASE_URL}/api/operadores/coupons`,
     asignarCupon: (id) => `${BASE_URL}/api/operadores/coupons/${id}/clients`,
+    // Perfil
+    perfil:         `${BASE_URL}/api/operadores/profile`,
+    cambioPerfil:   `${BASE_URL}/api/operadores/profile-change-request`,
     // Fotos estaticas servidas por el backend
-    fotoUrl: (filename) => `${BASE_URL}/uploads/${filename}`,
+    fotoUrl:        (filename) => `${BASE_URL}/uploads/${filename}`,
   },
 };
