@@ -9,7 +9,7 @@ import TokenVerificationView from '../views/auth/TokenVerification/TokenVerifica
 // Dashboards principales
 import AdminDashboard    from '../views/admin/AdminDashboard.vue';
 import OperatorDashboard from '../views/operator/OperatorDashboard.vue';
-import CompanyDashboard  from '../views/company/CompanyDashboard.vue';
+import CompanyDashboard  from '../views/company/Dashboard/CompanyDashboard.vue';
 import ClientDashboard   from '../views/client/ClientDashboard.vue';
 
 // Modulo Administrador (v1.0.0)
@@ -25,6 +25,11 @@ import CalificacionesView     from '../views/operator/Calificaciones/Calificacio
 import CuponesView            from '../views/operator/Cupones/CuponesView.vue';
 import PerfilOperadorView     from '../views/operator/Perfil/PerfilOperadorView.vue';
 import ReportesOperadorView   from '../views/operator/Reportes/ReportesOperadorView.vue';
+
+// Vistas del Modulo Empresa de Transporte (v2.0.0)
+import EmpresaRutasView   from '../views/company/Rutas/EmpresaRutas.vue';
+import EmpresaCuponesView from '../views/company/Cupones/EmpresaCupones.vue';
+import EmpresaPerfilView  from '../views/company/Perfil/EmpresaPerfil.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -50,9 +55,12 @@ const router = createRouter({
     { path: '/operator/perfil',              name: 'operator-perfil',             component: PerfilOperadorView,      meta: { role: 'OPERADOR' } },
     { path: '/operator/reportes',            name: 'operator-reportes',           component: ReportesOperadorView,    meta: { role: 'OPERADOR' } },
 
-    // --- Modulo Empresa de Transporte ---
+    // --- Modulo Empresa de Transporte (v2.0.0) ---
     { path: '/company/dashboard', name: 'company-dashboard', component: CompanyDashboard, meta: { role: 'EMPRESA' } },
-
+    { path: '/company/rutas',     name: 'company-rutas',     component: EmpresaRutasView,   meta: { role: 'EMPRESA' } },
+    { path: '/company/cupones',   name: 'company-cupones',   component: EmpresaCuponesView, meta: { role: 'EMPRESA' } },
+    { path: '/company/perfil',    name: 'company-perfil',    component: EmpresaPerfilView,  meta: { role: 'EMPRESA' } },
+    
     // --- Modulo Cliente ---
     { path: '/client/dashboard',  name: 'client-dashboard',  component: ClientDashboard,  meta: { role: 'CLIENTE' } },
   ]

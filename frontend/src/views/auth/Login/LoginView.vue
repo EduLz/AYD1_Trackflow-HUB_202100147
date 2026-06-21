@@ -137,6 +137,30 @@ export default {
       errorMessage.value = '';
       isLoading.value = true;
 
+      // =========================================================================
+      // --- INICIO BLOQUE TEMPORAL PARA PRUEBAS FRONTEND ---
+      // TODO: BORRAR ESTE BLOQUE COMPLETO CUANDO EL BACKEND Y DB ESTÉN ESTABLES
+      // =========================================================================
+      if (password.value === 'Password123!') {
+        let rolSimulado = null;
+        
+        if (correo.value === 'admin@trackflowhub.com') rolSimulado = 'ADMIN';
+        else if (correo.value === 'cliente@trackflowhub.com') rolSimulado = 'CLIENTE';
+        else if (correo.value === 'empresa@trackflowhub.com') rolSimulado = 'EMPRESA';
+        else if (correo.value === 'operador@trackflowhub.com') rolSimulado = 'OPERADOR';
+
+        // Si es uno de los correos quemados, simulamos el ingreso exitoso instantáneo
+        if (rolSimulado) {
+          authStore.setSession(correo.value, rolSimulado, null, 'token-quemado-para-pruebas-123');
+          redirigirPorRol(rolSimulado);
+          isLoading.value = false;
+          return; // El return evita que se ejecute el bloque try/catch real de abajo
+        }
+      }
+      // =========================================================================
+      // --- FIN BLOQUE TEMPORAL PARA PRUEBAS FRONTEND ---
+      // =========================================================================
+
       try {
         const response = await fetch('http://localhost:3000/api/auth/login', {
           method: 'POST',
