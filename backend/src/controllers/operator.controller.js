@@ -263,7 +263,38 @@ const deleteService = async (req, res) => {
         });
     }
 };
+const updateServiceStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const id_estado = Number(req.body.id_estado);
 
+        // Por esta ruta solo permitimos ACTIVO (1) o SUSPENDIDO (2)
+        if (id_estado !== 1 && id_estado !== 2) {
+            return res.status(400).json({
+                message: "Estado inválido. Use 1 (ACTIVO) o 2 (SUSPENDIDO)."
+            });
+        }
+
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        if (!operador) {
+            return res.status(404).json({ message: "Operador no encontrado" });
+        }
+
+        const servicio = await operadorService.changeServiceStatus(id, operador.id_operador, id_estado);
+        if (!servicio) {
+            return res.status(404).json({ message: "Servicio no encontrado" });
+        }
+
+        const mensaje = id_estado === 2
+            ? "Servicio suspendido temporalmente"
+            : "Servicio activado nuevamente";
+
+        return res.status(200).json({ message: mensaje, servicio });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    }
+};
 const createCoupon = async (req, res) => {
 
     try {
@@ -456,5 +487,6 @@ module.exports = {
     getMyCoupons,
     assignCouponToClient,
     requestProfileChange,
-    getMyProfile
+    getMyProfile,
+    updateServiceStatus
 };

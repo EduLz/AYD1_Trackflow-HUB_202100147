@@ -3,7 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const upload = require("../middlewares/upload.middleware");
-const { registerOperador, createService, getMyServices, updateService, deleteService ,
+const { registerOperador, updateServiceStatus, createService, getMyServices, updateService, deleteService ,
         createCoupon, getMyCoupons, assignCouponToClient, requestProfileChange, 
         getMyProfile} = require("../controllers/operator.controller");
 const {verifyToken, requireRole} = require("../middlewares/auth.middleware");
@@ -13,6 +13,7 @@ router.post("/services", verifyToken, requireRole(3), upload.array("fotos", 5), 
 router.get("/services", verifyToken, requireRole(3), getMyServices);
 router.put("/services/:id", verifyToken, requireRole(3), updateService);
 router.delete("/services/:id", verifyToken, requireRole(3), deleteService);
+router.patch("/services/:id/status", verifyToken, requireRole(3), updateServiceStatus);
 router.post("/coupons", verifyToken, requireRole(3), createCoupon);
 router.get("/coupons", verifyToken, requireRole(3), getMyCoupons);
 router.post("/coupons/:id/clients", verifyToken, requireRole(3), assignCouponToClient);
