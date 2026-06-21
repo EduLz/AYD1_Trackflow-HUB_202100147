@@ -5,6 +5,7 @@ const operadorService = require("../services/operator.services");
 const solicitudService = require("../services/request.services");
 const emailService = require("../services/email.services");
 const { encryptPassword } = require("../utils/password");
+const requestService = require("../services/request.services");
 
 const registerOperador = async (req, res) => {
     try {
@@ -378,6 +379,73 @@ const assignCouponToClient = async (req, res) => {
     }
 };
 
+const requestProfileChange = async (req, res) => {
+
+    try {
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        if (!operador) {
+            return res.status(404).json({
+                message: "Operador no encontrado"
+            });
+        }
+
+        if (!req.body || Object.keys(req.body).length === 0) {
+            return res.status(400).json({
+                message: "Debe enviar al menos un cambio"
+            });
+        }
+
+        const {
+            nombre,
+            apellido,
+            telefono,
+            telefono_respaldo,
+            zona_operacion
+        } = req.body;
+
+        const datos = {
+            nombre,
+            apellido,
+            telefono,
+            telefono_respaldo,
+            zona_operacion
+        };
+
+        const solicitud = await requestService.createProfileChangeRequest(req.user.id_usuario, datos);
+        return res.status(201).json({
+            message: "Solicitud enviada correctamente", solicitud
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+const getMyProfile = async (req, res) => {
+    try {
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+
+        if (!operador) {
+            return res.status(404).json({
+                message: "Operador no encontrado"
+            });
+        }
+
+        return res.status(200).json({
+            operador
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     registerOperador,
     createService,
@@ -386,5 +454,7 @@ module.exports = {
     deleteService,
     createCoupon,
     getMyCoupons,
-    assignCouponToClient
+    assignCouponToClient,
+    requestProfileChange,
+    getMyProfile
 };
