@@ -521,6 +521,19 @@ const responderCalificacion = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+const getCalendarioEnvios = async (req, res) => {
+    try {
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        if (!operador) {
+            return res.status(404).json({ message: "Operador no encontrado" });
+        }
+        const envios = await operadorService.getEnviosProgramadosByOperator(operador.id_operador);
+        return res.status(200).json({ envios });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    }
+};
 module.exports = {
     registerOperador,
     createService,
@@ -534,5 +547,6 @@ module.exports = {
     getMyProfile,
     updateServiceStatus,
     getMyCalificaciones,
-    responderCalificacion
+    responderCalificacion,
+    getCalendarioEnvios
 };

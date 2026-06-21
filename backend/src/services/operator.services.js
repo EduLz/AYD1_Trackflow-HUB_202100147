@@ -418,6 +418,29 @@ const createRespuestaCalificacion = async (id_calificacion, respuesta) => {
         `);
     return result.recordset[0];
 };
+const getEnviosProgramadosByOperator = async (id_operador) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_operador", id_operador)
+        .query(`
+            SELECT
+                r.id_reservacion,
+                r.fecha_inicio,
+                r.fecha_fin,
+                r.tipo_servicio,
+                er.nombre   AS estado,
+                s.nombre    AS servicio_nombre,
+                cl.nombre   AS cliente_nombre,
+                cl.apellido AS cliente_apellido
+            FROM Reservacion r
+            INNER JOIN ServicioEnvio s      ON s.id_servicio = r.id_servicio_env
+            INNER JOIN EstadoReservacion er ON er.id_estado  = r.id_estado
+            INNER JOIN Cliente cl           ON cl.id_cliente = r.id_cliente
+            WHERE s.id_operador = @id_operador
+            ORDER BY r.fecha_inicio ASC
+        `);
+    return result.recordset;
+};
 module.exports = {
     createOperator,
     getOperatorByUserId,
@@ -434,5 +457,6 @@ module.exports = {
     getCalificacionesByOperator,
     getCalificacionByIdForOperator,
     respuestaExists,
-    createRespuestaCalificacion
+    createRespuestaCalificacion,
+    getEnviosProgramadosByOperator
 };

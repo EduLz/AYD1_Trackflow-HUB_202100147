@@ -6,7 +6,7 @@ const upload = require("../middlewares/upload.middleware");
 const { registerOperador, updateServiceStatus, createService, getMyServices, updateService, deleteService,
         createCoupon, getMyCoupons, assignCouponToClient, requestProfileChange,
         getMyProfile,
-        getMyCalificaciones, responderCalificacion } = require("../controllers/operator.controller");
+        getMyCalificaciones, responderCalificacion, getCalendarioEnvios } = require("../controllers/operator.controller");
 const {verifyToken, requireRole} = require("../middlewares/auth.middleware");
 
 router.post("/register", upload.single("fotografia"), registerOperador);
@@ -22,4 +22,5 @@ router.post("/profile-change-request", verifyToken, requireRole(3), requestProfi
 router.get("/profile", verifyToken, requireRole(3), getMyProfile);
 router.get("/calificaciones", verifyToken, requireRole(3), getMyCalificaciones);
 router.post("/calificaciones/:id/respuesta", verifyToken, requireRole(3), responderCalificacion);
+router.get("/calendario", verifyToken, requireRole(3), getCalendarioEnvios);
 module.exports = router;
