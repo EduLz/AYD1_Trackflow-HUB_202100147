@@ -10,17 +10,24 @@ export const API = {
     verifyOtp: `${BASE_URL}/api/admin/verify-otp`,
   },
   admin: {
-    // Registro de administradores (ruta actualizada por el backend)
-    crearAdmin: `${BASE_URL}/api/admin/register`,
-
-    // Solicitudes de registro pendientes (operadores y empresas)
+    crearAdmin:        `${BASE_URL}/api/admin/register`,
     getSolicitudes:    `${BASE_URL}/api/admin/solicitudes`,
     aprobarSolicitud:  (id) => `${BASE_URL}/api/admin/solicitudes/${id}/aprobar`,
     rechazarSolicitud: (id) => `${BASE_URL}/api/admin/solicitudes/${id}/rechazar`,
   },
   reuniones: {
-    crear:          `${BASE_URL}/api/reuniones`,
-    getAll:         `${BASE_URL}/api/reuniones`,
+    crear:           `${BASE_URL}/api/reuniones`,
+    getAll:          `${BASE_URL}/api/reuniones`,
     getPorSolicitud: (id) => `${BASE_URL}/api/reuniones/solicitud/${id}`,
+  },
+  operador: {
+    // Servicios
+    servicios:    `${BASE_URL}/api/operadores/services`,
+    servicio:     (id) => `${BASE_URL}/api/operadores/services/${id}`,
+    // Cupones
+    cupones:      `${BASE_URL}/api/operadores/coupons`,
+    asignarCupon: (id) => `${BASE_URL}/api/operadores/coupons/${id}/clients`,
+    // Fotos estaticas servidas por el backend
+    fotoUrl:      (filename) => `${BASE_URL}/uploads/${filename}`,
   },
 };
