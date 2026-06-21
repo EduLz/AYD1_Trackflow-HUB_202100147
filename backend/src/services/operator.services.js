@@ -441,6 +441,57 @@ const getEnviosProgramadosByOperator = async (id_operador) => {
         `);
     return result.recordset;
 };
+const getReporteGanancias = async (id_operador) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_operador", id_operador)
+        .query(`
+            SELECT
+                COUNT(*) AS total_envios,
+                ISNULL(SUM(r.monto_proveedor), 0) AS total_ganado
+            FROM Reservacion r
+            INNER JOIN ServicioEnvio s ON s.id_servicio = r.id_servicio_env
+            WHERE s.id_operador = @id_operador
+              AND r.id_estado = 4   -- ENTREGADO
+        `);
+    return result.recordset[0];
+};
+
+const getReporteClientes = async (id_operador) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_operador", id_operador)
+        .query(`
+            SELECT
+                cl.nombre   AS cliente_nombre,
+                cl.apellido AS cliente_apellido,
+                COUNT(*) AS total_envios,
+                ISNULL(SUM(r.precio_total), 0) AS total_gastado
+            FROM Reservacion r
+            INNER JOIN ServicioEnvio s ON s.id_servicio = r.id_servicio_env
+            INNER JOIN Cliente cl      ON cl.id_cliente = r.id_cliente
+            WHERE s.id_operador = @id_operador
+            GROUP BY cl.nombre, cl.apellido
+            ORDER BY total_envios DESC
+        `);
+    return result.recordset;
+};
+
+const getReporteCalificaciones = async (id_operador) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_operador", id_operador)
+        .query(`
+            SELECT
+                COUNT(*) AS total_calificaciones,
+                ISNULL(AVG(CAST(c.puntuacion AS DECIMAL(3,2))), 0) AS promedio
+            FROM Calificacion c
+            INNER JOIN Reservacion r   ON r.id_reservacion = c.id_reservacion
+            INNER JOIN ServicioEnvio s ON s.id_servicio    = r.id_servicio_env
+            WHERE s.id_operador = @id_operador
+        `);
+    return result.recordset[0];
+};
 module.exports = {
     createOperator,
     getOperatorByUserId,
@@ -458,5 +509,8 @@ module.exports = {
     getCalificacionByIdForOperator,
     respuestaExists,
     createRespuestaCalificacion,
-    getEnviosProgramadosByOperator
+    getEnviosProgramadosByOperator,
+    getReporteGanancias,
+    getReporteClientes,
+    getReporteCalificaciones
 };

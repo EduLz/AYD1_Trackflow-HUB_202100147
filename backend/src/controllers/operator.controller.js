@@ -534,6 +534,29 @@ const getCalendarioEnvios = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+const getReportes = async (req, res) => {
+    try {
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        if (!operador) {
+            return res.status(404).json({ message: "Operador no encontrado" });
+        }
+
+        const ganancias      = await operadorService.getReporteGanancias(operador.id_operador);
+        const clientes       = await operadorService.getReporteClientes(operador.id_operador);
+        const calificaciones = await operadorService.getReporteCalificaciones(operador.id_operador);
+
+        return res.status(200).json({
+            reportes: {
+                ganancias,
+                historial_clientes: clientes,
+                calificaciones
+            }
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    }
+};
 module.exports = {
     registerOperador,
     createService,
@@ -548,5 +571,6 @@ module.exports = {
     updateServiceStatus,
     getMyCalificaciones,
     responderCalificacion,
-    getCalendarioEnvios
+    getCalendarioEnvios,
+    getReportes
 };
