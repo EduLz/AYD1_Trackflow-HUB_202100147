@@ -94,8 +94,54 @@ const getPendingSolicitudes = async () => {
     return result.recordset;
 };
 
+const createProfileChangeRequest = async (id_usuario, datos) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_usuario", id_usuario)
+        .input("id_estado", 1)
+        .input(
+            "datos_nuevos_json",
+            JSON.stringify(datos)
+        )
+        .query(`
+            INSERT INTO SolicitudCambioPerfil
+            (
+                id_usuario,
+                id_estado,
+                datos_nuevos_json
+            )
+            OUTPUT INSERTED.id_solicitud
+            VALUES
+            (
+                @id_usuario,
+                @id_estado,
+                @datos_nuevos_json
+            )
+        `);
+
+    const solicitudId = result.recordset[0].id_solicitud;
+
+    const solicitud = await pool.request()
+        .input("id_solicitud", solicitudId)
+        .query(`
+            SELECT
+                scp.id_solicitud,
+                scp.id_usuario,
+                es.nombre AS estado,
+                scp.datos_nuevos_json,
+                scp.fecha_solicitud
+            FROM SolicitudCambioPerfil scp
+            INNER JOIN EstadoSolicitud es
+                ON es.id_estado = scp.id_estado
+            WHERE scp.id_solicitud = @id_solicitud
+        `);
+    return solicitud.recordset[0];
+};
+
 module.exports = {
     createSolicitudOperador,
     createSolicitudEmpresa,
-    getPendingSolicitudes
+    getPendingSolicitudes,
+    createProfileChangeRequest
 };
