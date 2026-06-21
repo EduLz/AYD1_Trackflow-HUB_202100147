@@ -19,7 +19,8 @@ const {
     uploadRoutesCSV,
     uploadFleetCSV,
     getRoutes,
-    getCoupons
+    getCoupons,
+    getVehicles
 } = require("../controllers/company.controller");
 
 // Registro (público)
@@ -104,6 +105,13 @@ router.get(
     verifyToken,
     requireRole(4),
     getCoupons
+);
+
+router.get(
+    "/vehicles",
+    verifyToken,
+    requireRole(4),
+    getVehicles
 );
 
 module.exports = router;

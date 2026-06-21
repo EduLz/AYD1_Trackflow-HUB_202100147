@@ -594,6 +594,28 @@ const assignCouponToClient = async (id_cupon, id_cliente) => {
     return result.recordset[0];
 };
 
+const getVehiclesByCompany = async (id_empresa) => {
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_empresa", id_empresa)
+        .query(`
+            SELECT
+                id_vehiculo,
+                placa,
+                tipo,
+                modelo,
+                anio,
+                capacidad_kg
+            FROM Vehiculo
+            WHERE id_empresa = @id_empresa
+              AND activo = 1
+            ORDER BY id_vehiculo ASC
+        `);
+
+    return result.recordset;
+};
+
 module.exports = {
     createEmpresa,
     createRoute,
@@ -611,5 +633,6 @@ module.exports = {
     getRoutesByCompany,
     getCouponsByCompany,
     findClienteByEmail,
-    assignCouponToClient
+    assignCouponToClient,
+    getVehiclesByCompany
 };

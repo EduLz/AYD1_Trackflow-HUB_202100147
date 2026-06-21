@@ -499,6 +499,31 @@ const getCoupons = async (req, res) => {
     }
 };
 
+const getVehicles = async (req, res) => {
+    try {
+        const empresa = await companyService.getEmpresaByUsuario(
+            req.user.id_usuario
+        );
+
+        if (!empresa) {
+            return res.status(404).json({
+                message: "No se encontró la empresa asociada al usuario"
+            });
+        }
+
+        const vehicles = await companyService.getVehiclesByCompany(
+            empresa.id_empresa
+        );
+
+        return res.status(200).json(vehicles);
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     registerEmpresa,
     createRoute,
@@ -512,5 +537,6 @@ module.exports = {
     uploadFleetCSV,
     assignVehicle,
     getRoutes,
-    getCoupons
+    getCoupons,
+    getVehicles
 };

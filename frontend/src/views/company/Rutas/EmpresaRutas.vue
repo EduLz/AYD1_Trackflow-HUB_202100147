@@ -74,13 +74,16 @@
               <div class="form-group full-width">
                 <label>Vehiculo de Flota Asignado</label>
                 <select v-model="formManual.id_vehiculo" required class="form-select">
-                  <option value="" disabled selected>Seleccione un vehiculo de la flota disponible</option>
-                  <option v-for="flota in flotasDisponiblesMock" :key="flota.id" :value="flota.id">
-                    {{ flota.codigo_unidad }} - {{ flota.tipo_vehiculo }} (Placa: {{ flota.placa }})
-                  </option>
+                  <option value="" disabled>Seleccione un vehiculo de la flota disponible</option>
+                  <option
+                    v-for="vehiculo in vehiculos"
+                    :key="vehiculo.id_vehiculo"
+                    :value="vehiculo.id_vehiculo"
+                  >
+                {{ vehiculo.placa }} - {{ vehiculo.tipo }} {{ vehiculo.modelo }}
+                </option>
                 </select>
               </div>
-
             </div>
             
             <div class="form-actions">
@@ -154,7 +157,7 @@
                   <td class="font-bold-main">Q {{ ruta.precio }}</td>
                   <td>
                     <span :class="['status-badge', ruta.estado ? ruta.estado.replace(' ', '-').toLowerCase() : '']">
-                      {{ ruta.estado }}
+                      {{ formatEstado(ruta.estado) }}
                     </span>
                   </td>
                   <td class="action-cells">
@@ -241,10 +244,7 @@ export default {
     });
 
     // TODO: Solicitar al backend un GET de flota para poblar esto. Por ahora se mantiene mock
-    const flotasDisponiblesMock = ref([
-      { id: 1, codigo_unidad: 'FLOTA-01', tipo_vehiculo: 'Camion Hino', placa: 'C-890BBD' },
-      { id: 2, codigo_unidad: 'FLOTA-02', tipo_vehiculo: 'Panel', placa: 'P456' }
-    ]);
+    const vehiculos = ref([]);
 
     const mostrarNotificacion = (msg, isError = false) => {
       if (isError) {
@@ -347,7 +347,7 @@ export default {
       
       // Validar hacia que endpoint enviarlo segun los radio buttons
       const endpointURL = tipoCargaCSV.value === 'rutas' 
-        ? 'http://localhost:3000/api/empresas/route/csv' 
+        ? 'http://localhost:3000/api/empresas/routes/csv' 
         : 'http://localhost:3000/api/empresas/fleet/csv';
 
       try {
@@ -394,16 +394,45 @@ export default {
       cerrarModalSuspension();
     };
 
+    const obtenerVehiculos = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/empresas/vehicles', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authStore.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        vehiculos.value = await response.json();
+      } else {
+        mostrarNotificacion('Error al cargar los vehículos.', true);
+      }
+      } catch (error) {
+      mostrarNotificacion('Error de conexión al cargar vehículos.', true);
+      }
+    };
+
+    const formatEstado = (estado) => {
+      if (!estado) return '';
+
+      return estado
+        .toLowerCase()
+        .replace(/\b\w/g, letra => letra.toUpperCase());
+    };
+
     // Ejecutar carga inicial al renderizar la vista
     onMounted(() => {
       obtenerRutas();
+      obtenerVehiculos();
     });
 
     return {
       activeTab, tipoCargaCSV, mensajeExito, mensajeError, archivoCSV,
-      isSuspendModalOpen, rutaASuspender, formManual, flotasDisponiblesMock,
+      isSuspendModalOpen, rutaASuspender, formManual, vehiculos,
       rutas, isLoading, registrarRutaManual, handleFileUpload, procesarCSV, 
-      abrirModalSuspension, cerrarModalSuspension, confirmarSuspension
+      abrirModalSuspension, cerrarModalSuspension, confirmarSuspension, formatEstado
     };
   }
 };
