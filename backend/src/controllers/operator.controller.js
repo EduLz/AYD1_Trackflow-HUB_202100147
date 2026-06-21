@@ -476,7 +476,51 @@ const getMyProfile = async (req, res) => {
         });
     }
 };
+const getMyCalificaciones = async (req, res) => {
+    try {
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        if (!operador) {
+            return res.status(404).json({ message: "Operador no encontrado" });
+        }
+        const calificaciones = await operadorService.getCalificacionesByOperator(operador.id_operador);
+        return res.status(200).json({ calificaciones });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    }
+};
 
+const responderCalificacion = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { respuesta } = req.body;
+
+        if (!respuesta || respuesta.trim() === "") {
+            return res.status(400).json({ message: "La respuesta no puede estar vacía" });
+        }
+
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        if (!operador) {
+            return res.status(404).json({ message: "Operador no encontrado" });
+        }
+
+        const calificacion = await operadorService.getCalificacionByIdForOperator(id, operador.id_operador);
+        if (!calificacion) {
+            return res.status(404).json({ message: "Calificación no encontrada" });
+        }
+
+        const yaRespondida = await operadorService.respuestaExists(id);
+        if (yaRespondida) {
+            return res.status(409).json({ message: "Esta calificación ya tiene respuesta" });
+        }
+
+        const respuestaCreada = await operadorService.createRespuestaCalificacion(id, respuesta);
+        return res.status(201).json({ message: "Respuesta enviada correctamente", respuesta: respuestaCreada });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    }
+};
 module.exports = {
     registerOperador,
     createService,
@@ -488,5 +532,7 @@ module.exports = {
     assignCouponToClient,
     requestProfileChange,
     getMyProfile,
-    updateServiceStatus
+    updateServiceStatus,
+    getMyCalificaciones,
+    responderCalificacion
 };
