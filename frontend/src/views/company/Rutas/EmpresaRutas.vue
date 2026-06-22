@@ -113,7 +113,7 @@
               <label for="csvFile" class="file-label" v-if="!archivoCSV">
                 <div class="upload-icon-box">[ ARCHIVO CSV ]</div>
                 <span class="upload-text">
-                  Arrastra tu archivo CSV aquí o haz clic para seleccionar
+                  Arrastra tu archivo CSV aqui o haz clic para seleccionar
                 </span>
               </label>
               <div v-else class="file-selected-state">
@@ -164,8 +164,11 @@
                   <button type="button" class="btn-action edit" @click="abrirModalEdicion(ruta)">
                     Editar
                   </button>
-                  <button type="button" class="btn-action delete" @click="abrirModalSuspension(ruta)">
+                  <button type="button" class="btn-action suspend" @click="abrirModalSuspension(ruta)">
                     Suspender
+                  </button>
+                  <button type="button" class="btn-action cancel" @click="abrirModalCancelacion(ruta)">
+                    Cancelar
                   </button>
                 </td>
               </tr>
@@ -181,7 +184,7 @@
     <div v-if="isEditModalOpen" class="modal-overlay" @click.self="cerrarModalEdicion">
       <div class="modal-content fade-in">
         <h2>Editar Ruta #{{ rutaAEditar?.id_ruta }}</h2>
-        <p>Actualiza la información de este trayecto.</p>
+        <p>Actualiza la informacion de este trayecto.</p>
         
         <form @submit.prevent="guardarEdicion" class="route-form" style="margin-top: 1.5rem;">
           <div class="form-grid">
@@ -199,7 +202,7 @@
             </div>
           </div>
           <div class="modal-actions">
-            <button type="button" class="btn-secondary" @click="cerrarModalEdicion">Cancelar</button>
+            <button type="button" class="btn-secondary" @click="cerrarModalEdicion">Volver</button>
             <button type="submit" class="btn-primary" :disabled="isLoading">
               {{ isLoading ? 'Guardando...' : 'Guardar Cambios' }}
             </button>
@@ -210,15 +213,28 @@
 
     <div v-if="isSuspendModalOpen" class="modal-overlay" @click.self="cerrarModalSuspension">
       <div class="modal-content fade-in">
-        <h2>Confirmar Suspensión</h2>
-        <p>¿Estás seguro que deseas suspender la ruta <strong>{{ rutaASuspender?.origen }} - {{ rutaASuspender?.destino }}</strong>?</p>
-        <p class="warning-text">Esta acción ocultará la ruta temporalmente a los clientes.</p>
+        <h2>Confirmar Suspension</h2>
+        <p>¿Estas seguro que deseas suspender la ruta <strong>{{ rutaASuspender?.origen }} - {{ rutaASuspender?.destino }}</strong>?</p>
+        <p class="warning-text">Esta accion ocultara la ruta temporalmente a los clientes.</p>
         <div class="modal-actions">
-          <button type="button" class="btn-secondary" @click="cerrarModalSuspension">Cancelar</button>
-          <button type="button" class="btn-danger" @click="confirmarSuspension">Si, Suspender</button>
+          <button type="button" class="btn-secondary" @click="cerrarModalSuspension">Volver</button>
+          <button type="button" class="btn-warning" @click="confirmarSuspension">Si, Suspender</button>
         </div>
       </div>
     </div>
+
+    <div v-if="isCancelModalOpen" class="modal-overlay" @click.self="cerrarModalCancelacion">
+      <div class="modal-content fade-in">
+        <h2>Confirmar Cancelacion</h2>
+        <p>¿Estas seguro que deseas cancelar definitivamente la ruta <strong>{{ rutaACancelar?.origen }} - {{ rutaACancelar?.destino }}</strong>?</p>
+        <p class="danger-text" style="color: #991b1b; font-weight: bold; margin-top: 1rem;">Esta accion es irreversible y la ruta no podra reactivarse en el futuro.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" @click="cerrarModalCancelacion">Volver</button>
+          <button type="button" class="btn-danger" @click="confirmarCancelacion">Si, Cancelar Definitivamente</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -250,6 +266,9 @@ export default {
 
     const isSuspendModalOpen = ref(false);
     const rutaASuspender = ref(null);
+
+    const isCancelModalOpen = ref(false);
+    const rutaACancelar = ref(null);
     
     const isEditModalOpen = ref(false);
     const rutaAEditar = ref(null);
@@ -310,7 +329,7 @@ export default {
           mostrarNotificacion('No se pudo registrar la ruta. Verifica los datos.', true);
         }
       } catch (error) {
-        mostrarNotificacion('Error de conexión con el servidor.', true);
+        mostrarNotificacion('Error de conexion con el servidor.', true);
       } finally {
         isLoading.value = false;
       }
@@ -338,14 +357,13 @@ export default {
     const procesarCSV = async () => {
       if (!archivoCSV.value) return;
 
-      // SEGURO ANTI-CRUCES
       const fileName = archivoCSV.value.name.toLowerCase();
       if (tipoCargaCSV.value === 'flota' && fileName.includes('ruta')) {
-        mostrarNotificacion('¡Aviso! Estás intentando subir un archivo de Rutas seleccionando Vehículos. Cambia la opción.', true);
+        mostrarNotificacion('Aviso: Estas intentando subir un archivo de Rutas seleccionando Vehiculos.', true);
         return;
       }
       if (tipoCargaCSV.value === 'rutas' && fileName.includes('vehiculo')) {
-        mostrarNotificacion('¡Aviso! Estás intentando subir un archivo de Vehículos seleccionando Rutas. Cambia la opción.', true);
+        mostrarNotificacion('Aviso: Estas intentando subir un archivo de Vehiculos seleccionando Rutas.', true);
         return;
       }
 
@@ -373,7 +391,7 @@ export default {
           if (tipoCargaCSV.value === 'rutas') obtenerRutas();
           if (tipoCargaCSV.value === 'flota') obtenerVehiculos();
         } else {
-          mostrarNotificacion('El servidor rechazó el formato del documento.', true);
+          mostrarNotificacion('El servidor rechazo el formato del documento.', true);
         }
       } catch (error) {
         mostrarNotificacion('Error de red al subir el archivo.', true);
@@ -405,14 +423,14 @@ export default {
         });
 
         if (response.ok) {
-          mostrarNotificacion('Modificación aplicada exitosamente.');
+          mostrarNotificacion('Modificacion aplicada exitosamente.');
           cerrarModalEdicion();
           obtenerRutas();
         } else {
-          mostrarNotificacion('No se pudo aplicar la modificación.', true);
+          mostrarNotificacion('No se pudo aplicar la modificacion.', true);
         }
       } catch (error) {
-        mostrarNotificacion('Error de conexión al guardar cambios.', true);
+        mostrarNotificacion('Error de conexion al guardar cambios.', true);
       } finally {
         isLoading.value = false;
       }
@@ -448,6 +466,36 @@ export default {
       }
     };
 
+    const abrirModalCancelacion = (ruta) => {
+      rutaACancelar.value = ruta;
+      isCancelModalOpen.value = true;
+    };
+
+    const cerrarModalCancelacion = () => {
+      isCancelModalOpen.value = false;
+      rutaACancelar.value = null;
+    };
+
+    const confirmarCancelacion = async () => {
+      try {
+        const response = await fetch(`http://localhost:3000/api/empresas/routes/${rutaACancelar.value.id_ruta}/cancel`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`
+          }
+        });
+        if (response.ok) {
+          mostrarNotificacion('Ruta cancelada de forma permanente.');
+          cerrarModalCancelacion();
+          obtenerRutas();
+        } else {
+           mostrarNotificacion('No se pudo cancelar la ruta.', true);
+        }
+      } catch (error) {
+        mostrarNotificacion('Error de red al intentar cancelar la ruta.', true);
+      }
+    };
+
     const obtenerVehiculos = async () => {
       try {
         const response = await fetch('http://localhost:3000/api/empresas/vehicles', {
@@ -462,7 +510,7 @@ export default {
           vehiculos.value = await response.json();
         }
       } catch (error) {
-        console.error('Error al cargar vehículos.');
+        console.error('Error al cargar vehiculos.');
       }
     };
 
@@ -478,11 +526,12 @@ export default {
 
     return {
       activeTab, tipoCargaCSV, mensajeExito, mensajeError, archivoCSV, isLoading, dragover,
-      isSuspendModalOpen, rutaASuspender, formManual, vehiculos, rutas,
+      isSuspendModalOpen, rutaASuspender, isCancelModalOpen, rutaACancelar, formManual, vehiculos, rutas,
       isEditModalOpen, rutaAEditar, 
       obtenerRutas, registrarRutaManual, manejarArchivo, removerArchivo, manejarDrop, procesarCSV, formatEstado,
       abrirModalEdicion, cerrarModalEdicion, guardarEdicion,
-      abrirModalSuspension, cerrarModalSuspension, confirmarSuspension
+      abrirModalSuspension, cerrarModalSuspension, confirmarSuspension,
+      abrirModalCancelacion, cerrarModalCancelacion, confirmarCancelacion
     };
   }
 }
@@ -510,7 +559,6 @@ export default {
 .radio-group { display: flex; gap: 2rem; margin-bottom: 2rem; }
 .radio-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #475569; font-weight: 500; }
 
-/* Caja Drag and Drop Limpia */
 .file-upload-wrapper { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 3rem; text-align: center; margin-bottom: 1rem; background-color: #f8fafc; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .file-upload-wrapper.is-dragover { background-color: #e0f2fe; border-color: #0284c7; }
 .file-input { display: none; }
@@ -520,7 +568,6 @@ export default {
 .file-selected-state { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
 .file-name-highlight { font-weight: bold; color: #0f172a; font-size: 1.1rem; }
 
-/* Tabla y Botones de Accion */
 .table-responsive { overflow-x: auto; }
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th, .data-table td { padding: 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
@@ -536,12 +583,13 @@ export default {
 .status-indicator.suspendido { color: #ea580c; }
 .actions-cell { display: flex; gap: 0.5rem; }
 
-/* ESTILOS DE BOTONES EN LA TABLA */
 .btn-action { padding: 0.5rem 1rem; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
 .btn-action.edit { background-color: #f1f5f9; color: #0284c7; border: 1px solid #bae6fd; }
 .btn-action.edit:hover { background-color: #e0f2fe; }
-.btn-action.delete { background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-.btn-action.delete:hover { background-color: #fee2e2; }
+.btn-action.suspend { background-color: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; }
+.btn-action.suspend:hover { background-color: #ffedd5; }
+.btn-action.cancel { background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.btn-action.cancel:hover { background-color: #fee2e2; }
 
 .alert-success { background-color: #ecfdf5; color: #16a34a; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #10b981; }
 .alert-danger-box { background-color: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 8px; border-left: 4px solid #ef4444; margin-bottom: 1.5rem; }
@@ -550,7 +598,6 @@ export default {
 .fade-in { animation: fadeIn 0.3s ease-in-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Estilos de Modales */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
 .modal-content { background: white; padding: 2rem; border-radius: 12px; width: 100%; max-width: 500px; }
 .modal-content h2 { margin-top: 0; color: #0f172a; }
@@ -558,4 +605,6 @@ export default {
 .modal-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem; }
 .btn-danger { background-color: #ef4444; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
 .btn-danger:hover { background-color: #dc2626; }
+.btn-warning { background-color: #f97316; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+.btn-warning:hover { background-color: #ea580c; }
 </style>

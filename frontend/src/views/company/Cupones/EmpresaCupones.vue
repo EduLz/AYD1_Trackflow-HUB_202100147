@@ -87,7 +87,11 @@
                   <td>{{ cupon.porcentaje_desc || cupon.valor }}%</td>
                   <td>{{ formatearFecha(cupon.fecha_vencimiento || cupon.fecha_fin) }}</td>
                   <td>{{ cupon.correo_destino || cupon.enviado_a || 'N/A' }}</td>
-                  <td><span class="status-badge activo">Registrado</span></td>
+                  <td>
+                    <span :class="['status-badge', (cupon.estado || 'PENDIENTE').toLowerCase()]">
+                      {{ cupon.estado || 'PENDIENTE' }}
+                    </span>
+                  </td>
                 </tr>
                 <tr v-if="historialCupones.length === 0 && !isLoading">
                   <td colspan="5" class="text-center empty-state">No hay cupones registrados.</td>
@@ -151,18 +155,21 @@ export default {
           headers: { 'Authorization': `Bearer ${authStore.token}` }
         });
         if (response.ok) {
-          historialCupones.value = await response.json();
+          const data = await response.json();
+          console.log("=== DEBUG FRONTEND: HISTORIAL CUPONES RECIBIDO ===", data);
+          // ESCUDO: Si el backend lo manda dentro de "data", lo extraemos, sino tomamos el arreglo directo.
+          historialCupones.value = Array.isArray(data) ? data : (data.data || data.coupons || []);
+        } else {
+          console.error("Error al obtener cupones. Status:", response.status);
         }
       } catch (error) {
-        console.error('Error de red al cargar historial.');
+        console.error('Error de red al cargar historial:', error);
       } finally {
         isLoading.value = false;
       }
     };
 
     const enviarCupon = async () => {
-      console.log("[Cupones] Enviando datos al backend");
-
       if (!formCupon.value.correo || !formCupon.value.id_tipo || !formCupon.value.codigo || !formCupon.value.descripcion || !formCupon.value.porcentaje_desc || !formCupon.value.fecha_vencimiento) {
         mostrarNotificacion('Por favor, completa todos los campos del formulario.', true);
         return;
@@ -171,12 +178,11 @@ export default {
       isLoading.value = true;
       mensajeError.value = '';
       
-      // TRANSFORMACIÓN: Forzamos la fecha a String ISO 8601 para evitar el error del Backend
       let fechaFinFormateada = '';
       try {
         fechaFinFormateada = new Date(formCupon.value.fecha_vencimiento).toISOString();
       } catch (e) {
-        fechaFinFormateada = formCupon.value.fecha_vencimiento; // Fallback
+        fechaFinFormateada = formCupon.value.fecha_vencimiento;
       }
 
       const payload = {
@@ -253,8 +259,10 @@ export default {
 .data-table th, .data-table td { padding: 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
 .data-table th { background-color: #f8fafc; color: #475569; font-weight: 600; font-size: 0.875rem; }
 .font-bold-code { font-weight: bold; letter-spacing: 1px; color: #1e293b; font-family: monospace; font-size: 1rem; }
-.status-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
-.status-badge.activo { background-color: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
+.status-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+.status-badge.activo, .status-badge.registrado { background-color: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
+.status-badge.pendiente { background-color: #fef08a; color: #c2410c; border: 1px solid #fde047; }
+.status-badge.vencido { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
 .alert-success { background-color: #ecfdf5; color: #16a34a; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #10b981; }
 .alert-danger-box { background-color: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 8px; border-left: 4px solid #ef4444; margin-bottom: 1.5rem; }
 .text-center { text-align: center; }
