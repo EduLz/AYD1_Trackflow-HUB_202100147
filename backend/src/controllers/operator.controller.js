@@ -557,6 +557,18 @@ const getReportes = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+const getMyProfileRequests = async (req, res) => {
+    
+    try {
+        const solicitudes = await requestService.getProfileRequestsByUser(req.user.id_usuario);
+        return res.status(200).json(solicitudes);
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     registerOperador,
     createService,
@@ -572,5 +584,6 @@ module.exports = {
     getMyCalificaciones,
     responderCalificacion,
     getCalendarioEnvios,
-    getReportes
+    getReportes,
+    getMyProfileRequests
 };

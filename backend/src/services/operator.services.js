@@ -378,6 +378,7 @@ const getCalificacionesByOperator = async (id_operador) => {
     return result.recordset;
 };
 
+
 const getCalificacionByIdForOperator = async (id_calificacion, id_operador) => {
     const pool = await connectDB();
     const result = await pool.request()
@@ -492,6 +493,54 @@ const getReporteCalificaciones = async (id_operador) => {
         `);
     return result.recordset[0];
 };
+
+const updateOperatorProfile = async (id_usuario, datos) => {
+
+    const campos = [];
+    const request = (await connectDB()).request();
+
+    request.input("id_usuario", id_usuario);
+    if (datos.nombre) {
+        campos.push("nombre = @nombre");
+        request.input("nombre", datos.nombre);
+    }
+    if (datos.apellido) {
+        campos.push("apellido = @apellido");
+        request.input("apellido", datos.apellido);
+    }
+    if (datos.telefono) {
+        campos.push("telefono = @telefono");
+        request.input("telefono", datos.telefono);
+    }
+    if (datos.telefono_respaldo) {
+        campos.push(
+            "telefono_respaldo = @telefono_respaldo"
+        );
+        request.input(
+            "telefono_respaldo",
+            datos.telefono_respaldo
+        );
+    }
+    if (datos.zona_operacion) {
+        campos.push(
+            "zona_operacion = @zona_operacion"
+        );
+        request.input(
+            "zona_operacion",
+            datos.zona_operacion
+        );
+    }
+    if (campos.length === 0) {
+        return;
+    }
+    await request.query(`
+        UPDATE OperadorLogistico
+        SET ${campos.join(", ")}
+        WHERE id_usuario = @id_usuario
+    `);
+};
+
+
 module.exports = {
     createOperator,
     getOperatorByUserId,
@@ -505,6 +554,7 @@ module.exports = {
     assignCouponToClient,
     getCouponById,
     couponAlreadyAssigned,
+
     getCalificacionesByOperator,
     getCalificacionByIdForOperator,
     respuestaExists,
@@ -512,5 +562,7 @@ module.exports = {
     getEnviosProgramadosByOperator,
     getReporteGanancias,
     getReporteClientes,
-    getReporteCalificaciones
+    getReporteCalificaciones,
+    updateOperatorProfile
+
 };

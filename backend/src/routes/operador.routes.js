@@ -5,7 +5,7 @@ const router = express.Router();
 const upload = require("../middlewares/upload.middleware");
 const { registerOperador, updateServiceStatus, createService, getMyServices, updateService, deleteService,
         createCoupon, getMyCoupons, assignCouponToClient, requestProfileChange,
-        getMyProfile,
+        getMyProfile, getMyProfileRequests,
         getMyCalificaciones, responderCalificacion, getCalendarioEnvios, getReportes } = require("../controllers/operator.controller");
 const {verifyToken, requireRole} = require("../middlewares/auth.middleware");
 
@@ -24,4 +24,6 @@ router.get("/calificaciones", verifyToken, requireRole(3), getMyCalificaciones);
 router.post("/calificaciones/:id/respuesta", verifyToken, requireRole(3), responderCalificacion);
 router.get("/calendario", verifyToken, requireRole(3), getCalendarioEnvios);
 router.get("/reportes", verifyToken, requireRole(3), getReportes);
+router.get("/profile-change-requests", verifyToken, requireRole(3), getMyProfileRequests);
+
 module.exports = router;

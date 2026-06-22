@@ -139,9 +139,93 @@ const createProfileChangeRequest = async (id_usuario, datos) => {
     return solicitud.recordset[0];
 };
 
+const getProfileRequestsByUser = async (id_usuario) => {
+
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_usuario", id_usuario)
+        .query(`
+            SELECT
+                scp.id_solicitud,
+                es.nombre AS estado,
+                scp.datos_nuevos_json,
+                scp.notas_admin,
+                scp.fecha_solicitud,
+                scp.fecha_resolucion
+            FROM SolicitudCambioPerfil scp
+            INNER JOIN EstadoSolicitud es
+                ON es.id_estado = scp.id_estado
+            WHERE scp.id_usuario = @id_usuario
+            ORDER BY scp.fecha_solicitud DESC
+        `);
+    return result.recordset;
+};
+
+const getPendingProfileRequests = async () => {
+
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .query(`
+            SELECT
+                scp.id_solicitud,
+                u.correo,
+                es.nombre AS estado,
+                scp.datos_nuevos_json,
+                scp.fecha_solicitud
+            FROM SolicitudCambioPerfil scp
+            INNER JOIN Usuario u
+                ON u.id_usuario = scp.id_usuario
+            INNER JOIN EstadoSolicitud es
+                ON es.id_estado = scp.id_estado
+            WHERE scp.id_estado = 1
+            ORDER BY scp.fecha_solicitud DESC
+        `);
+    return result.recordset;
+};
+
+const getProfileRequestById = async (id_solicitud) => {
+
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_solicitud", id_solicitud)
+        .query(`
+            SELECT *
+            FROM SolicitudCambioPerfil
+            WHERE id_solicitud = @id_solicitud
+        `);
+
+    return result.recordset[0];
+};
+
+const resolveProfileRequest = async (id_solicitud, id_estado, id_admin, notas_admin) => {
+
+    const pool = await connectDB();
+    await pool.request()
+        .input("id_solicitud", id_solicitud)
+        .input("id_estado", id_estado)
+        .input("id_admin", id_admin)
+        .input("notas_admin", notas_admin)
+        .query(`
+            UPDATE SolicitudCambioPerfil
+            SET
+                id_estado = @id_estado,
+                id_admin_gestor = @id_admin,
+                notas_admin = @notas_admin,
+                fecha_resolucion = GETDATE()
+            WHERE id_solicitud = @id_solicitud
+        `);
+};
+
 module.exports = {
     createSolicitudOperador,
     createSolicitudEmpresa,
     getPendingSolicitudes,
-    createProfileChangeRequest
+    createProfileChangeRequest,
+    getProfileRequestsByUser,
+    getPendingProfileRequests,
+    getProfileRequestById,
+    resolveProfileRequest
 };
