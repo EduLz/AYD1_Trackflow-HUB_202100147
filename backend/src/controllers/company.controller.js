@@ -523,7 +523,28 @@ const getVehicles = async (req, res) => {
         });
     }
 };
-
+const getReportesEmpresa = async (req, res) => {
+    try {
+        const empresa = await companyService.getEmpresaByUsuario(req.user.id_usuario);
+        if (!empresa) {
+            return res.status(404).json({ message: "Empresa no encontrada" });
+        }
+        const resumen        = await companyService.getResumenEmpresa(empresa.id_empresa);
+        const calificaciones = await companyService.getReporteCalificacionesEmpresa(empresa.id_empresa);
+        const estado_rutas   = await companyService.getReporteEstadoRutas(empresa.id_empresa);
+        return res.status(200).json({
+            reportes: {
+                ganancias: { total_ganado: resumen.total_ganado },
+                servicios_contratados: resumen.servicios_contratados,
+                calificaciones,
+                estado_rutas
+            }
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    }
+};
 module.exports = {
     registerEmpresa,
     createRoute,
@@ -538,5 +559,6 @@ module.exports = {
     assignVehicle,
     getRoutes,
     getCoupons,
-    getVehicles
+    getVehicles,
+    getReportesEmpresa
 };

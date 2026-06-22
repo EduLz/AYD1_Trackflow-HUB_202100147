@@ -20,7 +20,8 @@ const {
     uploadFleetCSV,
     getRoutes,
     getCoupons,
-    getVehicles
+    getVehicles,
+    getReportesEmpresa  
 } = require("../controllers/company.controller");
 
 // Registro (público)
@@ -28,7 +29,7 @@ router.post(
     "/register",
     registerEmpresa
 );
-
+router.get("/reportes", verifyToken, requireRole(4), getReportesEmpresa);
 // Rutas
 router.post(
     "/routes",

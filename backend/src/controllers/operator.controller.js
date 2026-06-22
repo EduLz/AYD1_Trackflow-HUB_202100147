@@ -263,7 +263,38 @@ const deleteService = async (req, res) => {
         });
     }
 };
+const updateServiceStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const id_estado = Number(req.body.id_estado);
 
+        // Por esta ruta solo permitimos ACTIVO (1) o SUSPENDIDO (2)
+        if (id_estado !== 1 && id_estado !== 2) {
+            return res.status(400).json({
+                message: "Estado inválido. Use 1 (ACTIVO) o 2 (SUSPENDIDO)."
+            });
+        }
+
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        if (!operador) {
+            return res.status(404).json({ message: "Operador no encontrado" });
+        }
+
+        const servicio = await operadorService.changeServiceStatus(id, operador.id_operador, id_estado);
+        if (!servicio) {
+            return res.status(404).json({ message: "Servicio no encontrado" });
+        }
+
+        const mensaje = id_estado === 2
+            ? "Servicio suspendido temporalmente"
+            : "Servicio activado nuevamente";
+
+        return res.status(200).json({ message: mensaje, servicio });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    }
+};
 const createCoupon = async (req, res) => {
 
     try {
@@ -445,6 +476,98 @@ const getMyProfile = async (req, res) => {
         });
     }
 };
+const getMyCalificaciones = async (req, res) => {
+    try {
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        if (!operador) {
+            return res.status(404).json({ message: "Operador no encontrado" });
+        }
+        const calificaciones = await operadorService.getCalificacionesByOperator(operador.id_operador);
+        return res.status(200).json({ calificaciones });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+const responderCalificacion = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { respuesta } = req.body;
+
+        if (!respuesta || respuesta.trim() === "") {
+            return res.status(400).json({ message: "La respuesta no puede estar vacía" });
+        }
+
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        if (!operador) {
+            return res.status(404).json({ message: "Operador no encontrado" });
+        }
+
+        const calificacion = await operadorService.getCalificacionByIdForOperator(id, operador.id_operador);
+        if (!calificacion) {
+            return res.status(404).json({ message: "Calificación no encontrada" });
+        }
+
+        const yaRespondida = await operadorService.respuestaExists(id);
+        if (yaRespondida) {
+            return res.status(409).json({ message: "Esta calificación ya tiene respuesta" });
+        }
+
+        const respuestaCreada = await operadorService.createRespuestaCalificacion(id, respuesta);
+        return res.status(201).json({ message: "Respuesta enviada correctamente", respuesta: respuestaCreada });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    }
+};
+const getCalendarioEnvios = async (req, res) => {
+    try {
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        if (!operador) {
+            return res.status(404).json({ message: "Operador no encontrado" });
+        }
+        const envios = await operadorService.getEnviosProgramadosByOperator(operador.id_operador);
+        return res.status(200).json({ envios });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    }
+};
+const getReportes = async (req, res) => {
+    try {
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        if (!operador) {
+            return res.status(404).json({ message: "Operador no encontrado" });
+        }
+
+        const ganancias      = await operadorService.getReporteGanancias(operador.id_operador);
+        const clientes       = await operadorService.getReporteClientes(operador.id_operador);
+        const calificaciones = await operadorService.getReporteCalificaciones(operador.id_operador);
+
+        return res.status(200).json({
+            reportes: {
+                ganancias,
+                historial_clientes: clientes,
+                calificaciones
+            }
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    }
+};
+const getMyProfileRequests = async (req, res) => {
+    
+    try {
+        const solicitudes = await requestService.getProfileRequestsByUser(req.user.id_usuario);
+        return res.status(200).json(solicitudes);
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
 
 module.exports = {
     registerOperador,
@@ -456,5 +579,11 @@ module.exports = {
     getMyCoupons,
     assignCouponToClient,
     requestProfileChange,
-    getMyProfile
+    getMyProfile,
+    updateServiceStatus,
+    getMyCalificaciones,
+    responderCalificacion,
+    getCalendarioEnvios,
+    getReportes,
+    getMyProfileRequests
 };
