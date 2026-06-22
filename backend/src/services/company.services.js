@@ -615,7 +615,52 @@ const getVehiclesByCompany = async (id_empresa) => {
 
     return result.recordset;
 };
+const getResumenEmpresa = async (id_empresa) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_empresa", id_empresa)
+        .query(`
+            SELECT
+                COUNT(*) AS servicios_contratados,
+                ISNULL(SUM(CASE WHEN r.id_estado = 4 THEN r.monto_proveedor ELSE 0 END), 0) AS total_ganado
+            FROM Reservacion r
+            INNER JOIN Ruta rt ON rt.id_ruta = r.id_ruta
+            WHERE rt.id_empresa = @id_empresa
+        `);
+    return result.recordset[0];
+};
 
+const getReporteCalificacionesEmpresa = async (id_empresa) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_empresa", id_empresa)
+        .query(`
+            SELECT
+                COUNT(*) AS total_calificaciones,
+                ISNULL(AVG(CAST(c.puntuacion AS DECIMAL(3,2))), 0) AS promedio
+            FROM Calificacion c
+            INNER JOIN Reservacion r ON r.id_reservacion = c.id_reservacion
+            INNER JOIN Ruta rt       ON rt.id_ruta       = r.id_ruta
+            WHERE rt.id_empresa = @id_empresa
+        `);
+    return result.recordset[0];
+};
+
+const getReporteEstadoRutas = async (id_empresa) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_empresa", id_empresa)
+        .query(`
+            SELECT
+                es.nombre AS estado,
+                COUNT(*) AS total
+            FROM Ruta rt
+            INNER JOIN EstadoServicio es ON es.id_estado = rt.id_estado
+            WHERE rt.id_empresa = @id_empresa
+            GROUP BY es.nombre
+        `);
+    return result.recordset;
+};
 module.exports = {
     createEmpresa,
     createRoute,
@@ -634,5 +679,8 @@ module.exports = {
     getCouponsByCompany,
     findClienteByEmail,
     assignCouponToClient,
-    getVehiclesByCompany
+    getVehiclesByCompany,
+    getResumenEmpresa,
+    getReporteCalificacionesEmpresa,
+    getReporteEstadoRutas
 };

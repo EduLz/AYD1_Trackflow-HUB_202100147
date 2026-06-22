@@ -352,6 +352,147 @@ const couponAlreadyAssigned = async (id_cupon, id_cliente) => {
 
     return result.recordset[0];
 };
+const getCalificacionesByOperator = async (id_operador) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_operador", id_operador)
+        .query(`
+            SELECT
+                c.id_calificacion,
+                c.puntuacion,
+                c.comentario,
+                c.fecha_calificacion,
+                cl.nombre   AS cliente_nombre,
+                cl.apellido AS cliente_apellido,
+                s.nombre    AS servicio_nombre,
+                rc.respuesta,
+                rc.fecha_respuesta
+            FROM Calificacion c
+            INNER JOIN Reservacion r     ON r.id_reservacion = c.id_reservacion
+            INNER JOIN ServicioEnvio s   ON s.id_servicio    = r.id_servicio_env
+            INNER JOIN Cliente cl        ON cl.id_cliente    = c.id_cliente
+            LEFT JOIN RespuestaCalificacion rc ON rc.id_calificacion = c.id_calificacion
+            WHERE s.id_operador = @id_operador
+            ORDER BY c.fecha_calificacion DESC
+        `);
+    return result.recordset;
+};
+
+
+const getCalificacionByIdForOperator = async (id_calificacion, id_operador) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_calificacion", id_calificacion)
+        .input("id_operador", id_operador)
+        .query(`
+            SELECT c.id_calificacion
+            FROM Calificacion c
+            INNER JOIN Reservacion r   ON r.id_reservacion = c.id_reservacion
+            INNER JOIN ServicioEnvio s ON s.id_servicio    = r.id_servicio_env
+            WHERE c.id_calificacion = @id_calificacion
+              AND s.id_operador = @id_operador
+        `);
+    return result.recordset[0];
+};
+
+const respuestaExists = async (id_calificacion) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_calificacion", id_calificacion)
+        .query(`
+            SELECT id_respuesta
+            FROM RespuestaCalificacion
+            WHERE id_calificacion = @id_calificacion
+        `);
+    return result.recordset[0];
+};
+
+const createRespuestaCalificacion = async (id_calificacion, respuesta) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_calificacion", id_calificacion)
+        .input("respuesta", respuesta)
+        .query(`
+            INSERT INTO RespuestaCalificacion (id_calificacion, respuesta)
+            OUTPUT INSERTED.*
+            VALUES (@id_calificacion, @respuesta)
+        `);
+    return result.recordset[0];
+};
+const getEnviosProgramadosByOperator = async (id_operador) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_operador", id_operador)
+        .query(`
+            SELECT
+                r.id_reservacion,
+                r.fecha_inicio,
+                r.fecha_fin,
+                r.tipo_servicio,
+                er.nombre   AS estado,
+                s.nombre    AS servicio_nombre,
+                cl.nombre   AS cliente_nombre,
+                cl.apellido AS cliente_apellido
+            FROM Reservacion r
+            INNER JOIN ServicioEnvio s      ON s.id_servicio = r.id_servicio_env
+            INNER JOIN EstadoReservacion er ON er.id_estado  = r.id_estado
+            INNER JOIN Cliente cl           ON cl.id_cliente = r.id_cliente
+            WHERE s.id_operador = @id_operador
+            ORDER BY r.fecha_inicio ASC
+        `);
+    return result.recordset;
+};
+const getReporteGanancias = async (id_operador) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_operador", id_operador)
+        .query(`
+            SELECT
+                COUNT(*) AS total_envios,
+                ISNULL(SUM(r.monto_proveedor), 0) AS total_ganado
+            FROM Reservacion r
+            INNER JOIN ServicioEnvio s ON s.id_servicio = r.id_servicio_env
+            WHERE s.id_operador = @id_operador
+              AND r.id_estado = 4   -- ENTREGADO
+        `);
+    return result.recordset[0];
+};
+
+const getReporteClientes = async (id_operador) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_operador", id_operador)
+        .query(`
+            SELECT
+                cl.nombre   AS cliente_nombre,
+                cl.apellido AS cliente_apellido,
+                COUNT(*) AS total_envios,
+                ISNULL(SUM(r.precio_total), 0) AS total_gastado
+            FROM Reservacion r
+            INNER JOIN ServicioEnvio s ON s.id_servicio = r.id_servicio_env
+            INNER JOIN Cliente cl      ON cl.id_cliente = r.id_cliente
+            WHERE s.id_operador = @id_operador
+            GROUP BY cl.nombre, cl.apellido
+            ORDER BY total_envios DESC
+        `);
+    return result.recordset;
+};
+
+const getReporteCalificaciones = async (id_operador) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_operador", id_operador)
+        .query(`
+            SELECT
+                COUNT(*) AS total_calificaciones,
+                ISNULL(AVG(CAST(c.puntuacion AS DECIMAL(3,2))), 0) AS promedio
+            FROM Calificacion c
+            INNER JOIN Reservacion r   ON r.id_reservacion = c.id_reservacion
+            INNER JOIN ServicioEnvio s ON s.id_servicio    = r.id_servicio_env
+            WHERE s.id_operador = @id_operador
+        `);
+    return result.recordset[0];
+};
 
 const updateOperatorProfile = async (id_usuario, datos) => {
 
@@ -399,6 +540,7 @@ const updateOperatorProfile = async (id_usuario, datos) => {
     `);
 };
 
+
 module.exports = {
     createOperator,
     getOperatorByUserId,
@@ -412,5 +554,15 @@ module.exports = {
     assignCouponToClient,
     getCouponById,
     couponAlreadyAssigned,
+
+    getCalificacionesByOperator,
+    getCalificacionByIdForOperator,
+    respuestaExists,
+    createRespuestaCalificacion,
+    getEnviosProgramadosByOperator,
+    getReporteGanancias,
+    getReporteClientes,
+    getReporteCalificaciones,
     updateOperatorProfile
+
 };
