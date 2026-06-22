@@ -80,25 +80,65 @@ const registerEmpresa = async (req, res) => {
 
 const createRoute = async (req, res) => {
     try {
-
         const {
-            id_vehiculo
+            id_empresa,
+            id_vehiculo,
+            origen,
+            destino,
+            tipo_servicio,
+            hora_inicio,
+            tiempo_estimado_hrs,
+            precio
         } = req.body;
 
-        const route = await companyService.createRoute(req.body);
-
-        if (id_vehiculo) {
-
-            await companyService.assignVehicleToRoute(
-                route.id_ruta,
-                id_vehiculo
-            );
+        if (
+            !id_empresa ||
+            !id_vehiculo ||
+            !origen ||
+            !destino ||
+            !tipo_servicio ||
+            !hora_inicio ||
+            !tiempo_estimado_hrs ||
+            !precio
+        ) {
+            return res.status(400).json({
+                message: "Todos los campos obligatorios deben completarse"
+            });
         }
 
-        return res.status(201).json(route);
+        const conflict = await companyService.vehicleHasScheduleConflict(
+            id_vehiculo,
+            hora_inicio,
+            tiempo_estimado_hrs
+        );
+
+        if (conflict) {
+            return res.status(409).json({
+                message: `El vehículo ya está asignado a una ruta activa en ese horario: ${conflict.origen} - ${conflict.destino}`
+            });
+        }
+
+        const route = await companyService.createRoute({
+            id_empresa,
+            origen,
+            destino,
+            tipo_servicio,
+            hora_inicio,
+            tiempo_estimado_hrs,
+            precio
+        });
+
+        await companyService.assignVehicleToRoute(
+            route.id_ruta,
+            id_vehiculo
+        );
+
+        return res.status(201).json({
+            message: "Ruta creada correctamente",
+            route
+        });
 
     } catch (error) {
-
         console.error(error);
 
         return res.status(500).json({
@@ -110,19 +150,66 @@ const createRoute = async (req, res) => {
 const updateRoute = async (req, res) => {
     try {
         const { id } = req.params;
-        const { id_vehiculo } = req.body;
+
+        const {
+            id_vehiculo,
+            origen,
+            destino,
+            tipo_servicio,
+            hora_inicio,
+            tiempo_estimado_hrs,
+            precio
+        } = req.body;
+
+        if (
+            !id_vehiculo ||
+            !origen ||
+            !destino ||
+            !tipo_servicio ||
+            !hora_inicio ||
+            !tiempo_estimado_hrs ||
+            !precio
+        ) {
+            return res.status(400).json({
+                message: "Todos los campos obligatorios deben completarse"
+            });
+        }
+
+        const conflict = await companyService.vehicleHasScheduleConflict(
+            id_vehiculo,
+            hora_inicio,
+            tiempo_estimado_hrs,
+            id
+        );
+
+        if (conflict) {
+            return res.status(409).json({
+                message: `El vehículo ya está asignado a una ruta activa en ese horario: ${conflict.origen} - ${conflict.destino}`
+            });
+        }
 
         const route = await companyService.updateRoute(
             id,
-            req.body
+            {
+                origen,
+                destino,
+                tipo_servicio,
+                hora_inicio,
+                tiempo_estimado_hrs,
+                precio
+            }
         );
 
-        if (id_vehiculo) {
-            await companyService.updateVehicleRoute(
-                id,
-                id_vehiculo
-            );
+        if (!route) {
+            return res.status(404).json({
+                message: "Ruta no encontrada"
+            });
         }
+
+        await companyService.updateVehicleRoute(
+            id,
+            id_vehiculo
+        );
 
         return res.status(200).json({
             message: "Ruta actualizada correctamente",
@@ -130,6 +217,8 @@ const updateRoute = async (req, res) => {
         });
 
     } catch (error) {
+        console.error(error);
+
         return res.status(500).json({
             message: error.message
         });
@@ -192,16 +281,15 @@ const createCoupon = async (req, res) => {
             clientes
         } = req.body;
 
-        if (
-            !id_tipo ||
-            !codigo ||
-            !descripcion ||
-            !valor ||
-            !fecha_inicio ||
-            !fecha_fin
-        ) {
+        if (!id_tipo || !codigo || !descripcion || !valor || !fecha_inicio || !fecha_fin) {
             return res.status(400).json({
                 message: "Todos los campos obligatorios deben completarse"
+            });
+        }
+
+        if (!clientes || clientes.length === 0) {
+            return res.status(400).json({
+                message: "Debe seleccionar al menos un cliente"
             });
         }
 
@@ -215,6 +303,23 @@ const createCoupon = async (req, res) => {
             });
         }
 
+        const clientesEncontrados = [];
+
+        for (const correo of clientes) {
+            const cliente = await companyService.findClienteByEmail(correo);
+
+            if (!cliente) {
+                return res.status(404).json({
+                    message: `No existe un cliente registrado con el correo ${correo}`
+                });
+            }
+
+            clientesEncontrados.push({
+                correo,
+                id_cliente: cliente.id_cliente
+            });
+        }
+
         const coupon = await companyService.createCoupon({
             id_tipo,
             id_empresa: empresa.id_empresa,
@@ -225,41 +330,28 @@ const createCoupon = async (req, res) => {
             fecha_fin
         });
 
-        const clientesAsignados = [];
-        const clientesNoEncontrados = [];
+        for (const cliente of clientesEncontrados) {
+            await companyService.assignCouponToClient(
+                coupon.id_cupon,
+                cliente.id_cliente
+            );
 
-        if (clientes && clientes.length > 0) {
-            for (const correo of clientes) {
-                const cliente = await companyService.findClienteByEmail(correo);
-
-                if (!cliente) {
-                    clientesNoEncontrados.push(correo);
-                    continue;
-                }
-
-                await companyService.assignCouponToClient(
-                    coupon.id_cupon,
-                    cliente.id_cliente
-                );
-
-                await emailService.sendCompanyCouponEmail(
-                    correo,
-                    "Cliente",
-                    empresa.nombre_empresa,
-                    codigo,
-                    descripcion,
-                    valor
-                );
-
-                clientesAsignados.push(correo);
-            }
+            emailService.sendCompanyCouponEmail(
+                cliente.correo,
+                "Cliente",
+                empresa.nombre_empresa,
+                codigo,
+                descripcion,
+                valor
+            ).catch(error => {
+                console.error("Error enviando cupón por correo:", error.message);
+            });
         }
 
         return res.status(201).json({
             message: "Cupón creado correctamente",
             coupon,
-            clientesAsignados,
-            clientesNoEncontrados
+            clientesAsignados: clientesEncontrados.map(c => c.correo)
         });
 
     } catch (error) {
@@ -353,13 +445,33 @@ const uploadFleetCSV = async (req, res) => {
             })
             .on("end", async () => {
 
-                await companyService.createVehiclesBulk(
-                    rows
-                );
+                const placasCSV = new Set();
+
+                for (const vehicle of rows) {
+
+                    if (placasCSV.has(vehicle.placa)) {
+                        return res.status(400).json({
+                            message: `La placa ${vehicle.placa} está repetida dentro del archivo CSV`
+                        });
+                    }
+
+                    placasCSV.add(vehicle.placa);
+
+                    const exists = await companyService.vehiclePlateExists(
+                        vehicle.placa
+                    );
+
+                    if (exists) {
+                        return res.status(409).json({
+                            message: `La placa ${vehicle.placa} ya existe en la base de datos`
+                        });
+                    }
+                }
+
+                await companyService.createVehiclesBulk(rows);
 
                 return res.status(201).json({
-                    message:
-                        `${rows.length} vehículos cargados`
+                    message: `${rows.length} vehículos cargados`
                 });
 
             });
@@ -387,31 +499,58 @@ const uploadRoutesCSV = async (req, res) => {
         const rows = [];
 
         Readable
-    .from(req.file.buffer)
-    .pipe(csv())
-    .on("data", (data) => {
+            .from(req.file.buffer)
+            .pipe(csv())
+            .on("data", (data) => {
 
-        rows.push({
-            id_empresa: data.id_empresa,
-            id_vehiculo: data.id_vehiculo,
-            origen: data.origen,
-            destino: data.destino,
-            tipo_servicio: data.tipo_servicio,
-            hora_inicio: data.hora_inicio,
-            tiempo_estimado_hrs: data.tiempo_estimado_hrs,
-            precio: data.precio
-        });
+                rows.push({
+                    id_empresa: data.id_empresa,
+                    id_vehiculo: data.id_vehiculo,
+                    origen: data.origen,
+                    destino: data.destino,
+                    tipo_servicio: data.tipo_servicio,
+                    hora_inicio: data.hora_inicio,
+                    tiempo_estimado_hrs: data.tiempo_estimado_hrs,
+                    precio: data.precio
+                });
 
-    })
+            })
             .on("end", async () => {
 
-                await companyService.createRoutesBulk(
-                    rows
-                );
+                for (const route of rows) {
+
+                    if (
+                        !route.id_empresa ||
+                        !route.id_vehiculo ||
+                        !route.origen ||
+                        !route.destino ||
+                        !route.tipo_servicio ||
+                        !route.hora_inicio ||
+                        !route.tiempo_estimado_hrs ||
+                        !route.precio
+                    ) {
+                        return res.status(400).json({
+                            message: "Todas las columnas del CSV de rutas son obligatorias"
+                        });
+                    }
+
+                    const conflict = await companyService.vehicleHasScheduleConflict(
+                        route.id_vehiculo,
+                        route.hora_inicio,
+                        route.tiempo_estimado_hrs
+                    );
+
+                    if (conflict) {
+                        return res.status(409).json({
+                            message: `El vehículo ${route.id_vehiculo} ya está asignado a una ruta activa en ese horario: ${conflict.origen} - ${conflict.destino}`
+                        });
+                    }
+                }
+
+                await companyService.createRoutesBulk(rows);
 
                 return res.status(201).json({
-                    message:
-                        `${rows.length} rutas cargadas`
+                    message: `${rows.length} rutas cargadas`
                 });
 
             });
@@ -523,6 +662,7 @@ const getVehicles = async (req, res) => {
         });
     }
 };
+
 const getReportesEmpresa = async (req, res) => {
     try {
         const empresa = await companyService.getEmpresaByUsuario(req.user.id_usuario);
@@ -545,6 +685,7 @@ const getReportesEmpresa = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+
 module.exports = {
     registerEmpresa,
     createRoute,

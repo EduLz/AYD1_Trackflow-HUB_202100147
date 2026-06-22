@@ -661,6 +661,67 @@ const getReporteEstadoRutas = async (id_empresa) => {
         `);
     return result.recordset;
 };
+
+const vehicleHasScheduleConflict = async (
+    id_vehiculo,
+    hora_inicio,
+    tiempo_estimado_hrs,
+    id_ruta_excluir = null
+) => {
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_vehiculo", id_vehiculo)
+        .input("hora_inicio", hora_inicio)
+        .input("tiempo_estimado_hrs", tiempo_estimado_hrs)
+        .input("id_ruta_excluir", id_ruta_excluir)
+        .query(`
+            DECLARE @nuevo_inicio TIME = @hora_inicio;
+            DECLARE @nuevo_fin TIME = DATEADD(
+                MINUTE,
+                CAST(@tiempo_estimado_hrs * 60 AS INT),
+                CAST(@hora_inicio AS DATETIME)
+            );
+
+            SELECT
+                r.id_ruta,
+                r.origen,
+                r.destino,
+                r.hora_inicio,
+                r.tiempo_estimado_hrs
+            FROM RutaVehiculo rv
+            INNER JOIN Ruta r
+                ON rv.id_ruta = r.id_ruta
+            INNER JOIN EstadoServicio es
+                ON r.id_estado = es.id_estado
+            WHERE rv.id_vehiculo = @id_vehiculo
+              AND es.nombre = 'ACTIVO'
+              AND (@id_ruta_excluir IS NULL OR r.id_ruta <> @id_ruta_excluir)
+              AND CAST(@nuevo_inicio AS TIME) < CAST(DATEADD(
+                    MINUTE,
+                    CAST(r.tiempo_estimado_hrs * 60 AS INT),
+                    CAST(r.hora_inicio AS DATETIME)
+                  ) AS TIME)
+              AND CAST(@nuevo_fin AS TIME) > r.hora_inicio
+        `);
+
+    return result.recordset[0];
+};
+
+const vehiclePlateExists = async (placa) => {
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("placa", placa)
+        .query(`
+            SELECT id_vehiculo
+            FROM Vehiculo
+            WHERE placa = @placa
+        `);
+
+    return result.recordset[0];
+};
+
 module.exports = {
     createEmpresa,
     createRoute,
@@ -682,5 +743,7 @@ module.exports = {
     getVehiclesByCompany,
     getResumenEmpresa,
     getReporteCalificacionesEmpresa,
-    getReporteEstadoRutas
+    getReporteEstadoRutas,
+    vehicleHasScheduleConflict,
+    vehiclePlateExists
 };
