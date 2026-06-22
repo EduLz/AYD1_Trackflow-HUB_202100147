@@ -45,7 +45,7 @@
 
           <div class="cal-header">
             <div class="cal-meta">
-              <span class="cal-cliente">{{ c.nombre_cliente }} {{ c.apellido_cliente }}</span>
+              <span class="cal-cliente">{{ c.cliente_nombre }} {{ c.cliente_apellido }}</span>
               <span class="cal-servicio">{{ c.nombre_servicio }}</span>
             </div>
             <div class="cal-derecha">

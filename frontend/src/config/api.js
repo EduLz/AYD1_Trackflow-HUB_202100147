@@ -14,6 +14,9 @@ export const API = {
     getSolicitudes: `${BASE_URL}/api/admin/solicitudes`,
     aprobarSolicitud: (id) => `${BASE_URL}/api/admin/solicitudes/${id}/aprobar`,
     rechazarSolicitud: (id) => `${BASE_URL}/api/admin/solicitudes/${id}/rechazar`,
+    // Solicitudes de Cambio de Perfil
+    getSolicitudesPerfil: `${BASE_URL}/api/admin/profile-change-requests`,
+    resolverSolicitudPerfil: (id) => `${BASE_URL}/api/admin/profile-change-requests/${id}`,
   },
   reuniones: {
     crear: `${BASE_URL}/api/reuniones`,
@@ -33,6 +36,7 @@ export const API = {
     // Perfil
     perfil:         `${BASE_URL}/api/operadores/profile`,
     cambioPerfil:   `${BASE_URL}/api/operadores/profile-change-request`,
+    historialCambiosPerfil: `${BASE_URL}/api/operadores/profile-change-requests`,
     // Reportes
     reportes:       `${BASE_URL}/api/operadores/reportes`,
     enviarReporte:  `${BASE_URL}/api/operadores/reportar-cliente`, // Pendiente
