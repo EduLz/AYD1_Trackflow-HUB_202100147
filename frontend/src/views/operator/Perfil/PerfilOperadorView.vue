@@ -64,6 +64,43 @@
           </form>
         </div>
 
+        <!-- Historial de Solicitudes -->
+        <div class="card-perfil mt-4">
+          <h3 class="seccion-titulo">Historial de Solicitudes</h3>
+          <p class="op-subtitle mb-3">Revisa el estado de tus solicitudes de cambio de perfil.</p>
+
+          <div v-if="historialSolicitudes.length === 0" class="empty-state">
+            No tienes solicitudes de cambio registradas.
+          </div>
+          
+          <table v-else class="history-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Datos Propuestos</th>
+                <th>Estado</th>
+                <th>Notas del Administrador</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="sol in historialSolicitudes" :key="sol.id_solicitud">
+                <td>{{ new Date(sol.fecha_solicitud).toLocaleDateString() }}</td>
+                <td>
+                  <ul class="datos-list">
+                    <li v-for="(val, key) in parseDatos(sol.datos_nuevos_json)" :key="key">
+                      <strong>{{ key }}:</strong> {{ val }}
+                    </li>
+                  </ul>
+                </td>
+                <td>
+                  <span :class="'badge-estado estado-' + sol.estado.toLowerCase()">{{ sol.estado }}</span>
+                </td>
+                <td class="nota-admin-td">{{ sol.notas_admin || 'Sin observaciones' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
       </div>
 
     </main>
@@ -91,6 +128,7 @@ export default {
     const cargando  = ref(false);
     const enviando  = ref(false);
     const perfil    = ref(null);
+    const historialSolicitudes = ref([]);
     
     const form = reactive({
       nombre: '',
@@ -125,6 +163,8 @@ export default {
         form.telefono_respaldo = perfil.value.telefono_respaldo || '';
         form.zona_operacion = perfil.value.zona_operacion;
 
+        // Cargar historial
+        await cargarHistorial();
       } catch (error) {
         mostrarToast(error.message, 'error');
       } finally {
@@ -132,10 +172,24 @@ export default {
       }
     };
 
+    const cargarHistorial = async () => {
+      try {
+        const res = await fetch(API.operador.historialCambiosPerfil, {
+          headers: { Authorization: `Bearer ${authStore.token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          // El backend devuelve un array directamente
+          historialSolicitudes.value = Array.isArray(data) ? data : [];
+        }
+      } catch (error) {
+        console.error("No se pudo cargar el historial", error);
+      }
+    };
+
     const solicitarCambio = async () => {
       enviando.value = true;
       try {
-        // Enviar solo los campos que el backend espera
         const payload = {
           nombre: form.nombre,
           apellido: form.apellido,
@@ -157,6 +211,7 @@ export default {
         if (!res.ok) throw new Error(data.message || 'Error al enviar solicitud');
 
         mostrarToast(data.message || 'Solicitud enviada al administrador', 'exito');
+        await cargarHistorial(); // Refrescar tabla
       } catch (error) {
         mostrarToast(error.message, 'error');
       } finally {
@@ -164,11 +219,19 @@ export default {
       }
     };
 
+    const parseDatos = (jsonStr) => {
+      try {
+        return JSON.parse(jsonStr);
+      } catch (e) {
+        return { Error: 'No se pudieron leer los datos' };
+      }
+    };
+
     onMounted(cargarPerfil);
 
     return {
-      cargando, enviando, perfil, form, toast,
-      solicitarCambio,
+      cargando, enviando, perfil, form, toast, historialSolicitudes,
+      solicitarCambio, parseDatos,
       fotoUrl: API.operador.fotoUrl
     };
   }
@@ -350,4 +413,57 @@ export default {
 @keyframes slideIn { from { transform: translateY(12px); opacity: 0; } 
                      to { transform: translateY(0); opacity: 1; } 
                     }
+
+/* Historial de Solicitudes */
+.empty-state { text-align: center; 
+               padding: 2rem; 
+               color: var(--text-muted); 
+               font-style: italic; 
+               background: #f8fafc; 
+               border-radius: var(--radius-sm); 
+            }
+.history-table { width: 100%; 
+                 border-collapse: collapse; 
+                 margin-top: 1rem; 
+            }
+.history-table th { text-align: left; 
+                     padding: 0.85rem 1rem; 
+                     font-size: 0.75rem; 
+                     text-transform: uppercase; 
+                     color: var(--text-muted); 
+                     border-bottom: 2px solid var(--border-color); 
+                     font-weight: 700; 
+                    }
+.history-table td { padding: 1rem; 
+                    border-bottom: 1px solid var(--border-color); 
+                    font-size: 0.85rem; 
+                    color: var(--text-main); 
+                    vertical-align: top; 
+                }
+.datos-list { list-style: none; 
+               padding: 0; 
+               margin: 0; 
+               display: flex; 
+               flex-direction: column; 
+               gap: 0.2rem; 
+            }
+.badge-estado { display: inline-block; 
+                padding: 0.2rem 0.6rem; 
+                border-radius: 20px; 
+                font-weight: 700; 
+                font-size: 0.75rem; 
+            }
+.estado-pendiente { background-color: #fef9c3; 
+                    color: #a16207; 
+                }
+.estado-aprobada { background-color: #dcfce7; 
+                   color: #15803d; 
+                }
+.estado-rechazada { background-color: #fee2e2; 
+                    color: #b91c1c; 
+                }
+.nota-admin-td { font-style: italic; 
+                 color: #475569; 
+                 max-width: 250px; 
+                }
 </style>
