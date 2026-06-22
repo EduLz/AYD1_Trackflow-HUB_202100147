@@ -13,7 +13,7 @@
         <div v-if="mensajeExito" class="alert-success">
           {{ mensajeExito }}
         </div>
-        <div v-if="mensajeError" class="alert-danger-box" style="margin-bottom: 1.5rem;">
+        <div v-if="mensajeError" class="alert-danger-box">
           {{ mensajeError }}
         </div>
 
@@ -37,20 +37,29 @@
             <div class="form-grid">
               
               <div class="form-group">
-                <label>Origen (Ciudad / Zona)</label>
-                <input type="text" v-model="formManual.origen" placeholder="Ej. Guatemala" required />
+                <label>Vehiculo Asignado</label>
+                <select v-model="formManual.id_vehiculo" required class="form-select">
+                  <option value="" disabled>Selecciona una unidad</option>
+                  <option v-for="vehiculo in vehiculos" :key="vehiculo.id_vehiculo" :value="vehiculo.id_vehiculo">
+                    {{ vehiculo.placa }} - {{ vehiculo.tipo }}
+                  </option>
+                </select>
               </div>
 
               <div class="form-group">
-                <label>Destino (Ciudad / Zona)</label>
-                <input type="text" v-model="formManual.destino" placeholder="Ej. Escuintla" required />
+                <label>Origen</label>
+                <input type="text" v-model="formManual.origen" placeholder="Ej. Ciudad de Guatemala" required />
+              </div>
+
+              <div class="form-group">
+                <label>Destino</label>
+                <input type="text" v-model="formManual.destino" placeholder="Ej. Quetzaltenango" required />
               </div>
 
               <div class="form-group">
                 <label>Tipo de Servicio</label>
                 <select v-model="formManual.tipo_servicio" required class="form-select">
-                  <option value="" disabled selected>Seleccione una opcion</option>
-                  <option value="NORMAL">Normal</option>
+                  <option value="ESTANDAR">Estandar</option>
                   <option value="EXPRESS">Express</option>
                   <option value="REFRIGERADO">Refrigerado</option>
                 </select>
@@ -58,144 +67,170 @@
 
               <div class="form-group">
                 <label>Hora de Inicio</label>
-                <input type="time" v-model="formManual.hora_inicio" required class="form-input-time" />
+                <input type="time" v-model="formManual.hora_inicio" required />
               </div>
 
               <div class="form-group">
-                <label>Tiempo Estimado de Entrega (Horas)</label>
-                <input type="number" step="0.1" min="0.1" v-model="formManual.tiempo_estimado_hrs" placeholder="Ej. 2" required />
+                <label>Tiempo Estimado (Horas)</label>
+                <input type="number" step="0.5" v-model="formManual.tiempo_estimado_hrs" placeholder="Ej. 4.5" required />
               </div>
 
               <div class="form-group">
-                <label>Precio del Servicio (Q)</label>
-                <input type="number" step="0.01" min="0.01" v-model="formManual.precio" placeholder="Ej. 150.00" required />
-              </div>
-
-              <div class="form-group full-width">
-                <label>Vehiculo de Flota Asignado</label>
-                <select v-model="formManual.id_vehiculo" required class="form-select">
-                  <option value="" disabled>Seleccione un vehiculo de la flota disponible</option>
-                  <option
-                    v-for="vehiculo in vehiculos"
-                    :key="vehiculo.id_vehiculo"
-                    :value="vehiculo.id_vehiculo"
-                  >
-                {{ vehiculo.placa }} - {{ vehiculo.tipo }} {{ vehiculo.modelo }}
-                </option>
-                </select>
+                <label>Precio Base (Q)</label>
+                <input type="number" step="0.01" v-model="formManual.precio" placeholder="Ej. 1500.00" required />
               </div>
             </div>
-            
+
             <div class="form-actions">
               <button type="submit" class="btn-primary" :disabled="isLoading">
-                {{ isLoading ? 'Registrando...' : 'Registrar y Asignar Ruta' }}
+                {{ isLoading ? 'Procesando...' : 'Registrar Ruta' }}
               </button>
             </div>
           </form>
         </div>
 
         <div v-if="activeTab === 'csv'" class="tab-content fade-in">
-          <div class="csv-type-selector">
-            <label class="radio-label">
-              <input type="radio" v-model="tipoCargaCSV" value="rutas" />
-              Cargar Archivo de Rutas
-            </label>
-            <label class="radio-label">
-              <input type="radio" v-model="tipoCargaCSV" value="flotas" />
-              Cargar Archivo de Flota/Vehiculos
-            </label>
-          </div>
+          <form @submit.prevent="procesarCSV" class="csv-form">
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" v-model="tipoCargaCSV" value="flota" />
+                <span>Cargar Flota / Vehiculos</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" v-model="tipoCargaCSV" value="rutas" />
+                <span>Cargar Rutas</span>
+              </label>
+            </div>
 
-          <div class="csv-upload-zone">
-            <div class="upload-icon">[ ARCHIVO CSV ]</div>
-            <h3>Carga masiva de {{ tipoCargaCSV === 'rutas' ? 'Rutas de Transporte' : 'Vehiculos de Flota' }}</h3>
-            <p>Arrastra tu documento o utiliza el boton inferior para buscarlo en tu equipo fisico.</p>
-            
-            <input type="file" id="csvFile" accept=".csv" @change="handleFileUpload" class="hidden-input" />
-            <label for="csvFile" class="btn-secondary">Seleccionar Documento</label>
-            
-            <div v-if="archivoCSV" class="file-status">
-              Archivo listo para procesar: <strong>{{ archivoCSV.name }}</strong>
-              <button @click="procesarCSV" class="btn-primary mt-2" :disabled="isLoading">
-                {{ isLoading ? 'Procesando archivo...' : 'Procesar Carga Masiva' }}
+            <div 
+              class="file-upload-wrapper"
+              @dragover.prevent="dragover = true"
+              @dragleave.prevent="dragover = false"
+              @drop.prevent="manejarDrop"
+              :class="{ 'is-dragover': dragover }"
+            >
+              <input type="file" accept=".csv" @change="manejarArchivo" required id="csvFile" class="file-input" />
+              <label for="csvFile" class="file-label" v-if="!archivoCSV">
+                <div class="upload-icon-box">[ ARCHIVO CSV ]</div>
+                <span class="upload-text">
+                  Arrastra tu archivo CSV aqui o haz clic para seleccionar
+                </span>
+              </label>
+              <div v-else class="file-selected-state">
+                <span class="file-name-highlight">{{ archivoCSV.name }}</span>
+                <button type="button" class="btn-secondary small" @click.stop="removerArchivo">Remover Archivo</button>
+              </div>
+            </div>
+
+            <div class="form-actions" v-if="archivoCSV">
+              <button type="submit" class="btn-primary" :disabled="isLoading">
+                {{ isLoading ? 'Procesando archivo...' : 'Cargar Archivo Masivo' }}
               </button>
             </div>
-          </div>
+          </form>
         </div>
+      </div>
 
-        <div class="table-section mt-4">
-          <h2>Monitoreo de Rutas y Servicios Activos</h2>
-          <div class="table-responsive">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Trayecto</th>
-                  <th>Servicio / Tiempo</th>
-                  <th>Vehiculo Placa</th>
-                  <th>Precio</th>
-                  <th>Estado</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="ruta in rutas" :key="ruta.id_ruta">
-                  <td>
-                    <span class="font-bold-main">{{ ruta.origen }}</span>
-                    <br />
-                    <span class="text-muted-sub">hasta {{ ruta.destino }}</span>
-                  </td>
-                  <td>
-                    <span class="badge-type">{{ ruta.tipo_servicio }}</span>
-                    <br />
-                    <span class="text-muted-sub">{{ ruta.tiempo_estimado_hrs }} hrs estimadas</span>
-                  </td>
-                  <td>
-                    <span class="font-bold-main">ID Vehiculo: {{ ruta.id_vehiculo }}</span>
-                    <br />
-                    <span class="text-muted-sub">{{ ruta.placa || 'Sin placa' }}</span>
-                  </td>
-                  <td class="font-bold-main">Q {{ ruta.precio }}</td>
-                  <td>
-                    <span :class="['status-badge', ruta.estado ? ruta.estado.replace(' ', '-').toLowerCase() : '']">
-                      {{ formatEstado(ruta.estado) }}
-                    </span>
-                  </td>
-                  <td class="action-cells">
-                    <button class="btn-icon edit" :disabled="ruta.estado === 'SUSPENDIDO'">Editar</button>
-                    <button @click="abrirModalSuspension(ruta)" class="btn-icon cancel" :disabled="ruta.estado === 'SUSPENDIDO'">Suspender</button>
-                  </td>
-                </tr>
-                <tr v-if="rutas.length === 0 && !isLoading">
-                  <td colspan="6" style="text-align: center; color: #64748b; padding: 2rem;">No hay rutas registradas actualmente.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+      <div class="dashboard-card" style="margin-top: 2rem;">
+        <div class="header-section">
+          <h2>Tus Rutas Activas</h2>
         </div>
-
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Trayecto</th>
+                <th>Servicio</th>
+                <th>Unidad (Placa)</th>
+                <th>Precio</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="ruta in rutas" :key="ruta.id_ruta">
+                <td class="font-bold-code">#{{ ruta.id_ruta }}</td>
+                <td><strong>{{ ruta.origen }}</strong> a <strong>{{ ruta.destino }}</strong></td>
+                <td><span class="badge" :class="ruta.tipo_servicio?.toLowerCase() || 'estandar'">{{ ruta.tipo_servicio }}</span></td>
+                <td>{{ ruta.placa }}</td>
+                <td>Q{{ ruta.precio }}</td>
+                <td>
+                  <span :class="['status-indicator', ruta.estado?.toLowerCase() || 'activo']">
+                    {{ formatEstado(ruta.estado) }}
+                  </span>
+                </td>
+                <td class="actions-cell">
+                  <button type="button" class="btn-action edit" @click="abrirModalEdicion(ruta)">
+                    Editar
+                  </button>
+                  <button type="button" class="btn-action suspend" @click="abrirModalSuspension(ruta)">
+                    Suspender
+                  </button>
+                  <button type="button" class="btn-action cancel" @click="abrirModalCancelacion(ruta)">
+                    Cancelar
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="rutas.length === 0">
+                <td colspan="7" class="text-center empty-state">No hay rutas registradas actualmente.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </main>
 
-    <div v-if="isSuspendModalOpen" class="modal-overlay">
+    <div v-if="isEditModalOpen" class="modal-overlay" @click.self="cerrarModalEdicion">
       <div class="modal-content fade-in">
-        <div class="modal-header">
-          <h2>Confirmar Suspension Operativa</h2>
-          <button @click="cerrarModalSuspension" class="close-btn">X</button>
-        </div>
+        <h2>Editar Ruta #{{ rutaAEditar?.id_ruta }}</h2>
+        <p>Actualiza la informacion de este trayecto.</p>
         
-        <div class="modal-body">
-          <div class="alert-danger-box">
-            Aviso de Seguridad: Esta suspension es de ejecucion inmediata y cancelara de forma automatica las reservaciones pendientes de los clientes de la plataforma.
+        <form @submit.prevent="guardarEdicion" class="route-form" style="margin-top: 1.5rem;">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Origen</label>
+              <input type="text" v-model="rutaAEditar.origen" required />
+            </div>
+            <div class="form-group">
+              <label>Destino</label>
+              <input type="text" v-model="rutaAEditar.destino" required />
+            </div>
+            <div class="form-group">
+              <label>Precio (Q)</label>
+              <input type="number" step="0.01" v-model="rutaAEditar.precio" required />
+            </div>
           </div>
-          <p class="modal-confirm-text">
-            ¿Confirmas la suspension de la ruta activa: <br />
-            <strong>{{ rutaASuspender?.origen }} hacia {{ rutaASuspender?.destino }}</strong>?
-          </p>
-        </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" @click="cerrarModalEdicion">Volver</button>
+            <button type="submit" class="btn-primary" :disabled="isLoading">
+              {{ isLoading ? 'Guardando...' : 'Guardar Cambios' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
 
-        <div class="form-actions mt-4">
-          <button type="button" @click="cerrarModalSuspension" class="btn-secondary mr-2">Cancelar Operacion</button>
-          <button type="button" @click="confirmarSuspension" class="btn-danger" :disabled="isLoading">Si, Suspender de Inmediato</button>
+    <div v-if="isSuspendModalOpen" class="modal-overlay" @click.self="cerrarModalSuspension">
+      <div class="modal-content fade-in">
+        <h2>Confirmar Suspension</h2>
+        <p>¿Estas seguro que deseas suspender la ruta <strong>{{ rutaASuspender?.origen }} - {{ rutaASuspender?.destino }}</strong>?</p>
+        <p class="warning-text">Esta accion ocultara la ruta temporalmente a los clientes.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" @click="cerrarModalSuspension">Volver</button>
+          <button type="button" class="btn-warning" @click="confirmarSuspension">Si, Suspender</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="isCancelModalOpen" class="modal-overlay" @click.self="cerrarModalCancelacion">
+      <div class="modal-content fade-in">
+        <h2>Confirmar Cancelacion</h2>
+        <p>¿Estas seguro que deseas cancelar definitivamente la ruta <strong>{{ rutaACancelar?.origen }} - {{ rutaACancelar?.destino }}</strong>?</p>
+        <p class="danger-text" style="color: #991b1b; font-weight: bold; margin-top: 1rem;">Esta accion es irreversible y la ruta no podra reactivarse en el futuro.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" @click="cerrarModalCancelacion">Volver</button>
+          <button type="button" class="btn-danger" @click="confirmarCancelacion">Si, Cancelar Definitivamente</button>
         </div>
       </div>
     </div>
@@ -209,8 +244,6 @@ import { useAuthStore } from '../../../stores/auth';
 import UpperbarComponent from '../../../common/components/Upperbar/UpperbarComponent.vue';
 import CompanySidebarComponent from '../../../common/components/CompanySidebar/CompanySidebarComponent.vue';
 
-import './EmpresaRutas.css';
-
 export default {
   name: 'EmpresaRutas',
   components: {
@@ -219,48 +252,42 @@ export default {
   },
   setup() {
     const authStore = useAuthStore();
-    
     const activeTab = ref('manual');
-    const tipoCargaCSV = ref('rutas');
-    const mensajeExito = ref('');
-    const mensajeError = ref('');
+    const tipoCargaCSV = ref('flota');
     const archivoCSV = ref(null);
     const isLoading = ref(false);
+    const dragover = ref(false);
     
+    const mensajeExito = ref('');
+    const mensajeError = ref('');
+    
+    const vehiculos = ref([]);
+    const rutas = ref([]);
+
     const isSuspendModalOpen = ref(false);
     const rutaASuspender = ref(null);
 
-    // Arreglo real que consumira la API
-    const rutas = ref([]);
+    const isCancelModalOpen = ref(false);
+    const rutaACancelar = ref(null);
+    
+    const isEditModalOpen = ref(false);
+    const rutaAEditar = ref(null);
 
     const formManual = ref({
-      origen: '', 
-      destino: '', 
-      tipo_servicio: '', 
-      hora_inicio: '', 
-      tiempo_estimado_hrs: '', 
-      precio: '', 
-      id_vehiculo: ''
+      id_vehiculo: '', origen: '', destino: '', tipo_servicio: 'ESTANDAR', hora_inicio: '', tiempo_estimado_hrs: '', precio: ''
     });
-
-    // TODO: Solicitar al backend un GET de flota para poblar esto. Por ahora se mantiene mock
-    const vehiculos = ref([]);
 
     const mostrarNotificacion = (msg, isError = false) => {
       if (isError) {
         mensajeError.value = msg;
-        setTimeout(() => { mensajeError.value = ''; }, 5000);
+        setTimeout(() => mensajeError.value = '', 5000);
       } else {
         mensajeExito.value = msg;
-        setTimeout(() => { mensajeExito.value = ''; }, 5000);
+        setTimeout(() => mensajeExito.value = '', 5000);
       }
     };
 
-    // ==========================================
-    // INTEGRACION API: Obtener Rutas (GET)
-    // ==========================================
     const obtenerRutas = async () => {
-      isLoading.value = true;
       try {
         const response = await fetch('http://localhost:3000/api/empresas/routes', {
           method: 'GET',
@@ -269,36 +296,19 @@ export default {
             'Content-Type': 'application/json'
           }
         });
-        
         if (response.ok) {
-          const data = await response.json();
-          rutas.value = data;
-        } else {
-          mostrarNotificacion('Error al cargar las rutas desde el servidor.', true);
+          rutas.value = await response.json();
         }
       } catch (error) {
-        mostrarNotificacion('Error de conexion con el Backend en el puerto 3000.', true);
-      } finally {
-        isLoading.value = false;
+        console.error('Error al cargar rutas.');
       }
     };
 
-    // ==========================================
-    // INTEGRACION API: Registrar Ruta (POST)
-    // ==========================================
     const registrarRutaManual = async () => {
       isLoading.value = true;
-      mensajeError.value = '';
-
       const payload = {
-        id_empresa: 1, // Dato quemado segun txt, puedes cambiarlo si viene en authStore.user.id
-        id_vehiculo: parseInt(formManual.value.id_vehiculo),
-        origen: formManual.value.origen,
-        destino: formManual.value.destino,
-        tipo_servicio: formManual.value.tipo_servicio,
-        hora_inicio: formManual.value.hora_inicio,
-        tiempo_estimado_hrs: parseFloat(formManual.value.tiempo_estimado_hrs),
-        precio: parseFloat(formManual.value.precio)
+        ...formManual.value,
+        id_empresa: authStore.user?.id_empresa || 1 
       };
 
       try {
@@ -312,71 +322,120 @@ export default {
         });
 
         if (response.ok) {
-          mostrarNotificacion('Ruta comercial registrada con exito en la base de datos.');
-          formManual.value = { origen: '', destino: '', tipo_servicio: '', hora_inicio: '', tiempo_estimado_hrs: '', precio: '', id_vehiculo: '' };
-          obtenerRutas(); // Refrescar la tabla
+          mostrarNotificacion('Ruta registrada correctamente.');
+          formManual.value = { id_vehiculo: '', origen: '', destino: '', tipo_servicio: 'ESTANDAR', hora_inicio: '', tiempo_estimado_hrs: '', precio: '' };
+          obtenerRutas();
         } else {
-          const errData = await response.json();
-          mostrarNotificacion(`Error del servidor: ${errData.message || 'No se pudo crear la ruta'}`, true);
+          mostrarNotificacion('No se pudo registrar la ruta. Verifica los datos.', true);
         }
       } catch (error) {
-        mostrarNotificacion('Error de comunicacion con la API.', true);
+        mostrarNotificacion('Error de conexion con el servidor.', true);
       } finally {
         isLoading.value = false;
       }
     };
 
-    // ==========================================
-    // INTEGRACION API: Carga Masiva (POST CSV)
-    // ==========================================
-    const handleFileUpload = (e) => {
-      const file = e.target.files[0];
+    const manejarArchivo = (event) => {
+      archivoCSV.value = event.target.files[0];
+    };
+
+    const removerArchivo = () => {
+      archivoCSV.value = null;
+      document.getElementById('csvFile').value = '';
+    };
+
+    const manejarDrop = (event) => {
+      dragover.value = false;
+      const file = event.dataTransfer.files[0];
       if (file && file.name.endsWith('.csv')) {
         archivoCSV.value = file;
       } else {
-        mostrarNotificacion('Error: Debe ingresar un archivo de extension .csv', true);
+        mostrarNotificacion('Solo se permiten archivos con formato CSV.', true);
       }
     };
 
     const procesarCSV = async () => {
       if (!archivoCSV.value) return;
-      
+
+      const fileName = archivoCSV.value.name.toLowerCase();
+      if (tipoCargaCSV.value === 'flota' && fileName.includes('ruta')) {
+        mostrarNotificacion('Aviso: Estas intentando subir un archivo de Rutas seleccionando Vehiculos.', true);
+        return;
+      }
+      if (tipoCargaCSV.value === 'rutas' && fileName.includes('vehiculo')) {
+        mostrarNotificacion('Aviso: Estas intentando subir un archivo de Vehiculos seleccionando Rutas.', true);
+        return;
+      }
+
       isLoading.value = true;
+
       const formData = new FormData();
       formData.append('file', archivoCSV.value);
-      
-      // Validar hacia que endpoint enviarlo segun los radio buttons
-      const endpointURL = tipoCargaCSV.value === 'rutas' 
-        ? 'http://localhost:3000/api/empresas/routes/csv' 
-        : 'http://localhost:3000/api/empresas/fleet/csv';
+
+      const endpoint = tipoCargaCSV.value === 'flota' 
+        ? 'http://localhost:3000/api/empresas/fleet/csv' 
+        : 'http://localhost:3000/api/empresas/routes/csv';
 
       try {
-        const response = await fetch(endpointURL, {
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${authStore.token}`
-            // NOTA: No se envia 'Content-Type': 'application/json' cuando se usa FormData
           },
           body: formData
         });
 
         if (response.ok) {
-          mostrarNotificacion(`Archivo procesado correctamente. Datos almacenados en BD.`);
-          archivoCSV.value = null;
+          mostrarNotificacion(`Archivo procesado correctamente.`);
+          removerArchivo();
           if (tipoCargaCSV.value === 'rutas') obtenerRutas();
+          if (tipoCargaCSV.value === 'flota') obtenerVehiculos();
         } else {
-          mostrarNotificacion('Error al procesar el archivo en el servidor.', true);
+          mostrarNotificacion('El servidor rechazo el formato del documento.', true);
         }
       } catch (error) {
-        mostrarNotificacion('Error subiendo el archivo al Backend.', true);
+        mostrarNotificacion('Error de red al subir el archivo.', true);
       } finally {
         isLoading.value = false;
       }
     };
 
-    // ==========================================
-    // LOGICA DE MODALES DE ESTADO
-    // ==========================================
+    const abrirModalEdicion = (ruta) => {
+      rutaAEditar.value = { ...ruta };
+      isEditModalOpen.value = true;
+    };
+
+    const cerrarModalEdicion = () => {
+      isEditModalOpen.value = false;
+      rutaAEditar.value = null;
+    };
+
+    const guardarEdicion = async () => {
+      isLoading.value = true;
+      try {
+        const response = await fetch(`http://localhost:3000/api/empresas/routes/${rutaAEditar.value.id_ruta}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(rutaAEditar.value)
+        });
+
+        if (response.ok) {
+          mostrarNotificacion('Modificacion aplicada exitosamente.');
+          cerrarModalEdicion();
+          obtenerRutas();
+        } else {
+          mostrarNotificacion('No se pudo aplicar la modificacion.', true);
+        }
+      } catch (error) {
+        mostrarNotificacion('Error de conexion al guardar cambios.', true);
+      } finally {
+        isLoading.value = false;
+      }
+    };
+
     const abrirModalSuspension = (ruta) => {
       rutaASuspender.value = ruta;
       isSuspendModalOpen.value = true;
@@ -388,52 +447,164 @@ export default {
     };
 
     const confirmarSuspension = async () => {
-      // TODO: Cuando Ed te brinde el endpoint PUT/PATCH para suspender rutas, inyectalo aqui.
-      // Por ahora solo es cierre de front.
-      mostrarNotificacion('La ruta ha sido marcada como SUSPENDIDA.');
-      cerrarModalSuspension();
+      try {
+        const response = await fetch(`http://localhost:3000/api/empresas/routes/${rutaASuspender.value.id_ruta}/suspend`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`
+          }
+        });
+        if (response.ok) {
+          mostrarNotificacion('Ruta suspendida correctamente.');
+          cerrarModalSuspension();
+          obtenerRutas();
+        } else {
+           mostrarNotificacion('No se pudo suspender la ruta.', true);
+        }
+      } catch (error) {
+        mostrarNotificacion('Error de red al suspender la ruta.', true);
+      }
+    };
+
+    const abrirModalCancelacion = (ruta) => {
+      rutaACancelar.value = ruta;
+      isCancelModalOpen.value = true;
+    };
+
+    const cerrarModalCancelacion = () => {
+      isCancelModalOpen.value = false;
+      rutaACancelar.value = null;
+    };
+
+    const confirmarCancelacion = async () => {
+      try {
+        const response = await fetch(`http://localhost:3000/api/empresas/routes/${rutaACancelar.value.id_ruta}/cancel`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`
+          }
+        });
+        if (response.ok) {
+          mostrarNotificacion('Ruta cancelada de forma permanente.');
+          cerrarModalCancelacion();
+          obtenerRutas();
+        } else {
+           mostrarNotificacion('No se pudo cancelar la ruta.', true);
+        }
+      } catch (error) {
+        mostrarNotificacion('Error de red al intentar cancelar la ruta.', true);
+      }
     };
 
     const obtenerVehiculos = async () => {
       try {
         const response = await fetch('http://localhost:3000/api/empresas/vehicles', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${authStore.token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`,
+            'Content-Type': 'application/json'
+          }
+        });
 
-      if (response.ok) {
-        vehiculos.value = await response.json();
-      } else {
-        mostrarNotificacion('Error al cargar los vehículos.', true);
-      }
+        if (response.ok) {
+          vehiculos.value = await response.json();
+        }
       } catch (error) {
-      mostrarNotificacion('Error de conexión al cargar vehículos.', true);
+        console.error('Error al cargar vehiculos.');
       }
     };
 
     const formatEstado = (estado) => {
       if (!estado) return '';
-
-      return estado
-        .toLowerCase()
-        .replace(/\b\w/g, letra => letra.toUpperCase());
+      return estado.toLowerCase().replace(/\b\w/g, letra => letra.toUpperCase());
     };
 
-    // Ejecutar carga inicial al renderizar la vista
     onMounted(() => {
       obtenerRutas();
       obtenerVehiculos();
     });
 
     return {
-      activeTab, tipoCargaCSV, mensajeExito, mensajeError, archivoCSV,
-      isSuspendModalOpen, rutaASuspender, formManual, vehiculos,
-      rutas, isLoading, registrarRutaManual, handleFileUpload, procesarCSV, 
-      abrirModalSuspension, cerrarModalSuspension, confirmarSuspension, formatEstado
+      activeTab, tipoCargaCSV, mensajeExito, mensajeError, archivoCSV, isLoading, dragover,
+      isSuspendModalOpen, rutaASuspender, isCancelModalOpen, rutaACancelar, formManual, vehiculos, rutas,
+      isEditModalOpen, rutaAEditar, 
+      obtenerRutas, registrarRutaManual, manejarArchivo, removerArchivo, manejarDrop, procesarCSV, formatEstado,
+      abrirModalEdicion, cerrarModalEdicion, guardarEdicion,
+      abrirModalSuspension, cerrarModalSuspension, confirmarSuspension,
+      abrirModalCancelacion, cerrarModalCancelacion, confirmarCancelacion
     };
   }
-};
+}
 </script>
+
+<style scoped>
+.dashboard-content { padding: 2rem; background-color: #f8fafc; min-height: 100vh; margin-left: 250px; margin-top: 60px; }
+.dashboard-card { background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+.header-section h1 { color: #1e293b; font-size: 1.5rem; margin-bottom: 0.5rem; }
+.header-section p { color: #64748b; margin-bottom: 2rem; }
+.tabs-container { display: flex; gap: 1rem; border-bottom: 2px solid #e2e8f0; margin-bottom: 2rem; }
+.tab-button { padding: 0.75rem 1.5rem; border: none; background: none; color: #64748b; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+.tab-button.active { color: #0284c7; border-bottom-color: #0284c7; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+.form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.form-group label { font-size: 0.875rem; font-weight: 600; color: #475569; }
+.form-group input, .form-select { padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; width: 100%; background-color: white; font-family: inherit; }
+.form-actions { display: flex; justify-content: flex-end; margin-top: 1rem; }
+.btn-primary { background-color: #0284c7; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+.btn-primary:hover { background-color: #0369a1; }
+.btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
+.btn-secondary { background-color: #e2e8f0; color: #475569; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+.btn-secondary:hover { background-color: #cbd5e1; }
+.btn-secondary.small { padding: 0.4rem 1rem; font-size: 0.875rem; }
+.radio-group { display: flex; gap: 2rem; margin-bottom: 2rem; }
+.radio-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #475569; font-weight: 500; }
+
+.file-upload-wrapper { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 3rem; text-align: center; margin-bottom: 1rem; background-color: #f8fafc; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.file-upload-wrapper.is-dragover { background-color: #e0f2fe; border-color: #0284c7; }
+.file-input { display: none; }
+.file-label { cursor: pointer; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; }
+.upload-icon-box { background-color: #e2e8f0; color: #475569; font-weight: 800; padding: 0.5rem 1rem; border-radius: 6px; letter-spacing: 1px; margin-bottom: 1rem; display: inline-block; }
+.upload-text { color: #64748b; font-weight: 600; }
+.file-selected-state { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+.file-name-highlight { font-weight: bold; color: #0f172a; font-size: 1.1rem; }
+
+.table-responsive { overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th, .data-table td { padding: 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
+.data-table th { background-color: #f8fafc; color: #475569; font-weight: 600; font-size: 0.875rem; }
+.font-bold-code { font-weight: bold; color: #1e293b; }
+.badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+.badge.express { background-color: #fef3c7; color: #b45309; }
+.badge.estandar, .badge.normal { background-color: #e0f2fe; color: #0369a1; }
+.badge.refrigerado { background-color: #dbeafe; color: #0284c7; }
+.status-indicator { font-weight: 600; font-size: 0.875rem; }
+.status-indicator.activo { color: #16a34a; }
+.status-indicator.eliminado { color: #dc2626; }
+.status-indicator.suspendido { color: #ea580c; }
+.actions-cell { display: flex; gap: 0.5rem; }
+
+.btn-action { padding: 0.5rem 1rem; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.btn-action.edit { background-color: #f1f5f9; color: #0284c7; border: 1px solid #bae6fd; }
+.btn-action.edit:hover { background-color: #e0f2fe; }
+.btn-action.suspend { background-color: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; }
+.btn-action.suspend:hover { background-color: #ffedd5; }
+.btn-action.cancel { background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.btn-action.cancel:hover { background-color: #fee2e2; }
+
+.alert-success { background-color: #ecfdf5; color: #16a34a; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #10b981; }
+.alert-danger-box { background-color: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 8px; border-left: 4px solid #ef4444; margin-bottom: 1.5rem; }
+.text-center { text-align: center; }
+.empty-state { color: #64748b; padding: 2rem; }
+.fade-in { animation: fadeIn 0.3s ease-in-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal-content { background: white; padding: 2rem; border-radius: 12px; width: 100%; max-width: 500px; }
+.modal-content h2 { margin-top: 0; color: #0f172a; }
+.warning-text { color: #b45309; font-weight: 500; margin-top: 1rem; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem; }
+.btn-danger { background-color: #ef4444; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+.btn-danger:hover { background-color: #dc2626; }
+.btn-warning { background-color: #f97316; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+.btn-warning:hover { background-color: #ea580c; }
+</style>
