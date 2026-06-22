@@ -27,9 +27,14 @@ export const API = {
     // Cupones
     cupones: `${BASE_URL}/api/operadores/coupons`,
     asignarCupon: (id) => `${BASE_URL}/api/operadores/coupons/${id}/clients`,
+    // Calificaciones
+    calificaciones: `${BASE_URL}/api/operadores/calificaciones`,
+    responderCal: (id) => `${BASE_URL}/api/operadores/calificaciones/${id}/respuesta`,
     // Perfil
     perfil:         `${BASE_URL}/api/operadores/profile`,
     cambioPerfil:   `${BASE_URL}/api/operadores/profile-change-request`,
+    // Reservaciones (Calendario) - Pendiente
+    reservaciones:  `${BASE_URL}/api/operadores/reservaciones`,
     // Fotos estaticas servidas por el backend
     fotoUrl:        (filename) => `${BASE_URL}/uploads/${filename}`,
   },
