@@ -35,6 +35,7 @@
         <div v-if="activeTab === 'manual'" class="tab-content fade-in">
           <form @submit.prevent="registrarRutaManual" class="route-form">
             <div class="form-grid">
+              
               <div class="form-group">
                 <label>Vehiculo Asignado</label>
                 <select v-model="formManual.id_vehiculo" required>
@@ -139,19 +140,19 @@
               <tr v-for="ruta in rutas" :key="ruta.id_ruta">
                 <td>#{{ ruta.id_ruta }}</td>
                 <td><strong>{{ ruta.origen }}</strong> a <strong>{{ ruta.destino }}</strong></td>
-                <td><span class="badge" :class="ruta.tipo_servicio.toLowerCase()">{{ ruta.tipo_servicio }}</span></td>
+                <td><span class="badge" :class="ruta.tipo_servicio?.toLowerCase() || 'estandar'">{{ ruta.tipo_servicio }}</span></td>
                 <td>{{ ruta.placa }}</td>
                 <td>Q{{ ruta.precio }}</td>
                 <td>
-                  <span :class="['status-indicator', ruta.estado.toLowerCase()]">
+                  <span :class="['status-indicator', ruta.estado?.toLowerCase()]">
                     {{ formatEstado(ruta.estado) }}
                   </span>
                 </td>
                 <td class="actions-cell">
-                  <button class="btn-action edit" @click="abrirModalEdicion(ruta)">
+                  <button type="button" class="btn-action edit" @click="abrirModalEdicion(ruta)">
                     <i class="fas fa-edit"></i> Editar
                   </button>
-                  <button class="btn-action delete" @click="abrirModalSuspension(ruta)">
+                  <button type="button" class="btn-action delete" @click="abrirModalSuspension(ruta)">
                     <i class="fas fa-ban"></i> Suspender
                   </button>
                 </td>
@@ -199,9 +200,10 @@
       <div class="modal-content fade-in">
         <h2>Confirmar Suspensión</h2>
         <p>¿Estás seguro que deseas suspender la ruta <strong>{{ rutaASuspender?.origen }} - {{ rutaASuspender?.destino }}</strong>?</p>
+        <p class="warning-text">Esta acción ocultará la ruta temporalmente a los clientes.</p>
         <div class="modal-actions">
-          <button class="btn-secondary" @click="cerrarModalSuspension">Cancelar</button>
-          <button class="btn-danger" @click="confirmarSuspension">Si, Suspender</button>
+          <button type="button" class="btn-secondary" @click="cerrarModalSuspension">Cancelar</button>
+          <button type="button" class="btn-danger" @click="confirmarSuspension">Si, Suspender</button>
         </div>
       </div>
     </div>
@@ -210,9 +212,9 @@
 
 <script>
 import { ref, onMounted } from 'vue';
-import { useAuthStore } from '../stores/auth';
-import UpperbarComponent from '../components/UpperbarComponent.vue';
-import CompanySidebarComponent from '../components/CompanySidebarComponent.vue';
+import { useAuthStore } from '../../../stores/auth';
+import UpperbarComponent from '../../../common/components/Upperbar/UpperbarComponent.vue';
+import CompanySidebarComponent from '../../../common/components/CompanySidebar/CompanySidebarComponent.vue';
 
 export default {
   name: 'EmpresaRutas',
@@ -241,13 +243,7 @@ export default {
     const rutaAEditar = ref(null);
 
     const formManual = ref({
-      id_vehiculo: '',
-      origen: '',
-      destino: '',
-      tipo_servicio: 'ESTANDAR',
-      hora_inicio: '',
-      tiempo_estimado_hrs: '',
-      precio: ''
+      id_vehiculo: '', origen: '', destino: '', tipo_servicio: 'ESTANDAR', hora_inicio: '', tiempo_estimado_hrs: '', precio: ''
     });
 
     const mostrarNotificacion = (msg, isError = false) => {
@@ -313,19 +309,19 @@ export default {
     };
 
     const procesarCSV = async () => {
-      console.log("--- PRUEBA CSV: ENVIANDO ARCHIVO A BACKEND ---");
       if (!archivoCSV.value) return;
       isLoading.value = true;
+      
+      console.log("=== INICIANDO CARGA MASIVA ===");
 
       const formData = new FormData();
       formData.append('file', archivoCSV.value);
 
-      // Corregida la ruta a /routes/csv
       const endpoint = tipoCargaCSV.value === 'flota' 
         ? 'http://localhost:3000/api/empresas/fleet/csv' 
         : 'http://localhost:3000/api/empresas/routes/csv';
 
-      console.log("Enviando a endpoint:", endpoint);
+      console.log("Endpoint objetivo:", endpoint);
 
       try {
         const response = await fetch(endpoint, {
@@ -337,7 +333,7 @@ export default {
         });
 
         if (response.ok) {
-          mostrarNotificacion(`Archivo procesado exitosamente.`);
+          mostrarNotificacion(`Archivo CSV de ${tipoCargaCSV.value} procesado exitosamente.`);
           archivoCSV.value = null;
           document.getElementById('csvFile').value = '';
           if (tipoCargaCSV.value === 'rutas') obtenerRutas();
@@ -345,22 +341,19 @@ export default {
         } else {
           const errData = await response.json();
           console.error("ERROR DEL BACKEND EN CSV:", errData);
-          mostrarNotificacion(`Fallo en servidor: ${errData.message || response.statusText}`, true);
+          mostrarNotificacion(`Error procesando archivo. Revisa consola F12.`, true);
         }
       } catch (error) {
         console.error("ERROR DE RED O EJECUCIÓN EN CSV:", error);
-        mostrarNotificacion(`Error subiendo CSV: ${error.message}`, true);
+        mostrarNotificacion('Error subiendo el archivo al Backend.', true);
       } finally {
         isLoading.value = false;
       }
     };
 
-    // ==========================================
-    // LOGICA DE MODAL DE EDICIÓN
-    // ==========================================
     const abrirModalEdicion = (ruta) => {
-      console.log("--- PRUEBA 1: VERSIÓN DEBUG BOTÓN EDITAR V2.0 ---");
-      console.log("Datos de la ruta seleccionada:", ruta);
+      console.log("--- BOTON EDITAR PRESIONADO ---");
+      console.log("Ruta capturada:", ruta);
       rutaAEditar.value = { ...ruta };
       isEditModalOpen.value = true;
     };
@@ -396,9 +389,6 @@ export default {
       }
     };
 
-    // ==========================================
-    // LOGICA DE MODAL DE SUSPENSION
-    // ==========================================
     const abrirModalSuspension = (ruta) => {
       rutaASuspender.value = ruta;
       isSuspendModalOpen.value = true;
@@ -410,21 +400,8 @@ export default {
     };
 
     const confirmarSuspension = async () => {
-      try {
-        const response = await fetch(`http://localhost:3000/api/empresas/routes/${rutaASuspender.value.id_ruta}/suspend`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${authStore.token}`
-          }
-        });
-        if (response.ok) {
-          mostrarNotificacion('La ruta ha sido marcada como SUSPENDIDA.');
-          cerrarModalSuspension();
-          obtenerRutas();
-        }
-      } catch (error) {
-        mostrarNotificacion('Error al suspender la ruta.', true);
-      }
+      mostrarNotificacion('Acción en desarrollo.');
+      cerrarModalSuspension();
     };
 
     const obtenerVehiculos = async () => {
@@ -439,10 +416,14 @@ export default {
 
         if (response.ok) {
           vehiculos.value = await response.json();
-          console.log("Vehículos cargados dinámicamente:", vehiculos.value);
+          // LOG DE AUDITORÍA F12
+          console.log("=== VEHÍCULOS CARGADOS DINÁMICAMENTE DESDE BD ===");
+          console.log(vehiculos.value);
+        } else {
+          mostrarNotificacion('Error al cargar los vehículos.', true);
         }
       } catch (error) {
-        console.error('No se pudieron cargar los vehículos');
+        mostrarNotificacion('Error de conexión al cargar vehículos.', true);
       }
     };
 
@@ -456,7 +437,7 @@ export default {
       obtenerVehiculos();
     });
 
-    // AQUI RETORNAMOS TODO INCLUYENDO abrirModalEdicion PARA QUE EL HTML LO VEA
+    // TODO LO EXPORTADO A LA VISTA
     return {
       activeTab, tipoCargaCSV, mensajeExito, mensajeError, archivoCSV, isLoading,
       isSuspendModalOpen, rutaASuspender, formManual, vehiculos, rutas,
@@ -509,6 +490,7 @@ export default {
 .alert-success { background-color: #ecfdf5; color: #16a34a; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #10b981; }
 .fade-in { animation: fadeIn 0.3s ease-in-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.alert-danger-box { background-color: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 8px; border-left: 4px solid #ef4444; }
 
 /* Estilos de Modales */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
