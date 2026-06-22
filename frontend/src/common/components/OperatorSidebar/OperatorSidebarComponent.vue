@@ -30,8 +30,11 @@
         <router-link :to="{ name: 'operator-perfil' }" class="menu-item" active-class="active">
           Mi Perfil
         </router-link>
+        <router-link :to="{ name: 'operator-gestion-reportes' }" class="menu-item" active-class="active">
+          Gestión de Reportes
+        </router-link>
         <router-link :to="{ name: 'operator-reportes' }" class="menu-item" active-class="active">
-          Reportes
+          Reportes y Estadísticas
         </router-link>
       </nav>
 
