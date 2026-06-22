@@ -33,6 +33,8 @@ export const API = {
     // Perfil
     perfil:         `${BASE_URL}/api/operadores/profile`,
     cambioPerfil:   `${BASE_URL}/api/operadores/profile-change-request`,
+    // Reportes
+    reportes:       `${BASE_URL}/api/operadores/reportes`,
     // Reservaciones (Calendario) - Pendiente
     reservaciones:  `${BASE_URL}/api/operadores/reservaciones`,
     // Fotos estaticas servidas por el backend
