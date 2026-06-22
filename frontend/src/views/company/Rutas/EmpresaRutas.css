@@ -278,9 +278,25 @@
   font-weight: 700;
 }
 
-.status-badge.activa { background-color: #dcfce7; color: #16a34a; }
-.status-badge.suspendida { background-color: #fee2e2; color: #dc2626; }
-.status-badge.espera-aprobacion { background-color: #fef08a; color: #b45309; }
+.status-badge.activo {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.status-badge.suspendido {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.status-badge.eliminado {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.status-badge.espera-aprobacion {
+  background-color: #fef08a;
+  color: #b45309;
+}
 
 .action-cells { display: flex; gap: 0.5rem; }
 

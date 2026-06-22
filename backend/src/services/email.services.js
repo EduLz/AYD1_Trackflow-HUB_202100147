@@ -99,9 +99,65 @@ const sendCouponEmail = async (correo, nombre, codigo, descripcion) => {
     });
 };
 
+const sendCompanyCouponEmail = async (
+    correo,
+    nombre,
+    empresa,
+    codigo,
+    descripcion,
+    valor
+) => {
+
+    await transporter.sendMail({
+        from: `"TrackFlowHub" <${process.env.EMAIL_USER}>`,
+        to: correo,
+        subject: "Cupón de descuento disponible",
+        html: `
+            <div style="font-family: Arial">
+                <h2>¡Tienes un nuevo cupón!</h2>
+
+                <p>Hola ${nombre},</p>
+
+                <p>
+                    La empresa de transporte
+                    <strong>${empresa}</strong>
+                    te ha enviado un cupón promocional.
+                </p>
+
+                <div
+                    style="
+                        padding:15px;
+                        border:1px solid #ccc;
+                        border-radius:8px;
+                        margin:10px 0;
+                    "
+                >
+                    <h3>Código:</h3>
+                    <h2>${codigo}</h2>
+
+                    <p>
+                        <strong>Descripción:</strong>
+                        ${descripcion}
+                    </p>
+
+                    <p>
+                        <strong>Descuento:</strong>
+                        ${valor}
+                    </p>
+                </div>
+
+                <p>
+                    Gracias por utilizar TrackFlowHub.
+                </p>
+            </div>
+        `
+    });
+};
+
 module.exports = {
     sendVerificationEmail,
     sendAdminOTPEmail,
     sendMeetingEmail,
-    sendCouponEmail
+    sendCouponEmail,
+    sendCompanyCouponEmail
 };

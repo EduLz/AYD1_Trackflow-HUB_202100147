@@ -15,6 +15,19 @@ const storage = multer.diskStorage({
     }
 });
 
+// Filtro basico para imagenes
+const fileFilter = (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+    } else {
+        cb(new Error('Solo se permiten archivos de imagen (JPEG, PNG, WEBP)'), false);
+    }
+};
+
 module.exports = multer({
-    storage
+    storage,
+    fileFilter,
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5 MB
+    }
 });

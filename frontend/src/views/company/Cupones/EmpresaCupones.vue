@@ -13,6 +13,9 @@
         <div v-if="mensajeExito" class="alert-success">
           {{ mensajeExito }}
         </div>
+        <div v-if="mensajeError" class="alert-danger-box" style="margin-bottom: 1.5rem; background-color: #fef2f2; color: #991b1b; padding: 1rem; border-left: 4px solid #ef4444;">
+          {{ mensajeError }}
+        </div>
 
         <div class="coupon-form-container fade-in">
           <form @submit.prevent="enviarCupon" class="route-form">
@@ -82,33 +85,40 @@
             
             <div class="form-actions mt-4">
               <button type="button" @click="generarCodigoAleatorio" class="btn-secondary mr-2">Autogenerar Codigo</button>
-              <button type="submit" class="btn-primary">Registrar y Enviar Cupon</button>
+              <button type="submit" class="btn-primary" :disabled="isLoading">
+                {{ isLoading ? 'Procesando...' : 'Registrar y Enviar Cupon' }}
+              </button>
             </div>
           </form>
         </div>
 
         <div class="table-section mt-4">
           <h2>Historial de Cupones</h2>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Codigo</th>
-                <th>Descuento</th>
-                <th>Vencimiento</th>
-                <th>Enviado a</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(cupon, index) in historialCupones" :key="index">
-                <td style="font-weight: bold; letter-spacing: 1px; color: #1e293b;">{{ cupon.codigo }}</td>
-                <td>{{ cupon.porcentaje_desc }}%</td>
-                <td>{{ formatearFecha(cupon.fecha_vencimiento) }}</td>
-                <td>{{ cupon.correo }}</td>
-                <td><span class="status-badge activa">REGISTRADO</span></td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Codigo</th>
+                  <th>Descuento</th>
+                  <th>Vencimiento</th>
+                  <th>Enviado a</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(cupon, index) in historialCupones" :key="index">
+                  <td style="font-weight: bold; letter-spacing: 1px; color: #1e293b;">{{ cupon.codigo }}</td>
+                  <td>{{ cupon.porcentaje_desc }}%</td>
+                  <td>{{ formatearFecha(cupon.fecha_vencimiento) }}</td>
+                  <td>{{ cupon.correo_destino || cupon.correo || 'N/A' }}</td>
+                  <td><span class="status-badge activa">REGISTRADO</span></td>
+                </tr>
+                <tr v-if="historialCupones.length === 0 && !isLoading">
+                  <td colspan="5" style="text-align: center; color: #64748b; padding: 2rem;">No hay cupones registrados.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </main>
@@ -116,10 +126,10 @@
 </template>
 
 <script>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import { useAuthStore } from '../../../stores/auth';
 import UpperbarComponent from '../../../common/components/Upperbar/UpperbarComponent.vue';
 import CompanySidebarComponent from '../../../common/components/CompanySidebar/CompanySidebarComponent.vue';
-
 import './EmpresaCupones.css';
 
 export default {
@@ -129,21 +139,26 @@ export default {
     CompanySidebarComponent
   },
   setup() {
+    const authStore = useAuthStore();
+    const isLoading = ref(false);
     const mensajeExito = ref('');
+    const mensajeError = ref('');
     
-    // Objeto reactivo estructurado segun schema.sql
     const formCupon = ref({
-      correo: '',
-      id_tipo: '',
-      codigo: '',
-      descripcion: '',
-      porcentaje_desc: '',
-      fecha_vencimiento: ''
+      correo: '', id_tipo: '', codigo: '', descripcion: '', porcentaje_desc: '', fecha_vencimiento: ''
     });
     
-    const historialCupones = ref([
-      { codigo: 'AUTO-X789', porcentaje_desc: 15.00, fecha_vencimiento: '2026-12-31T23:59', correo: 'cliente1@trackflowhub.com' }
-    ]);
+    const historialCupones = ref([]);
+
+    const mostrarNotificacion = (msg, isError = false) => {
+      if (isError) {
+        mensajeError.value = msg;
+        setTimeout(() => { mensajeError.value = ''; }, 5000);
+      } else {
+        mensajeExito.value = msg;
+        setTimeout(() => { mensajeExito.value = ''; }, 5000);
+      }
+    };
 
     const generarCodigoAleatorio = () => {
       const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -154,27 +169,58 @@ export default {
       formCupon.value.codigo = resultado;
     };
 
-    const enviarCupon = () => {
-      // TODO: Peticion POST con el Payload alineado a la BD
-      // {
-      //   id_tipo: formCupon.value.id_tipo,
-      //   codigo: formCupon.value.codigo,
-      //   descripcion: formCupon.value.descripcion,
-      //   porcentaje_desc: formCupon.value.porcentaje_desc,
-      //   fecha_vencimiento: formCupon.value.fecha_vencimiento,
-      //   correo_destino: formCupon.value.correo
-      // }
+    const obtenerHistorial = async () => {
+      isLoading.value = true;
+      try {
+        const response = await fetch('http://localhost:3000/api/empresas/coupons', {
+          headers: { 'Authorization': `Bearer ${authStore.token}` }
+        });
+        if (response.ok) {
+          historialCupones.value = await response.json();
+        }
+      } catch (error) {
+        console.error('Error cargando historial:', error);
+      } finally {
+        isLoading.value = false;
+      }
+    };
 
-      historialCupones.value.unshift({ ...formCupon.value });
-
-      mensajeExito.value = `Cupon ${formCupon.value.codigo} registrado en Base de Datos y enviado a ${formCupon.value.correo}.`;
+    const enviarCupon = async () => {
+      isLoading.value = true;
+      mensajeError.value = '';
       
-      // Limpiar formulario
-      formCupon.value = {
-        correo: '', id_tipo: '', codigo: '', descripcion: '', porcentaje_desc: '', fecha_vencimiento: ''
+      const payload = {
+        id_tipo: parseInt(formCupon.value.id_tipo),
+        codigo: formCupon.value.codigo,
+        descripcion: formCupon.value.descripcion,
+        porcentaje_desc: parseFloat(formCupon.value.porcentaje_desc),
+        fecha_vencimiento: formCupon.value.fecha_vencimiento,
+        correo_destino: formCupon.value.correo
       };
-      
-      setTimeout(() => { mensajeExito.value = ''; }, 5000);
+
+      try {
+        const response = await fetch('http://localhost:3000/api/empresas/coupons', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          mostrarNotificacion(`Cupon ${formCupon.value.codigo} registrado y enviado a ${formCupon.value.correo}.`);
+          formCupon.value = { correo: '', id_tipo: '', codigo: '', descripcion: '', porcentaje_desc: '', fecha_vencimiento: '' };
+          obtenerHistorial();
+        } else {
+          const errData = await response.json();
+          mostrarNotificacion(`Error: ${errData.message || 'No se pudo crear el cupon'}`, true);
+        }
+      } catch (error) {
+        mostrarNotificacion('Error de conexion con el Backend.', true);
+      } finally {
+        isLoading.value = false;
+      }
     };
 
     const formatearFecha = (fechaStr) => {
@@ -183,13 +229,13 @@ export default {
       return date.toLocaleDateString('es-GT', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     };
 
+    onMounted(() => {
+      obtenerHistorial();
+    });
+
     return { 
-      formCupon, 
-      historialCupones, 
-      mensajeExito,
-      generarCodigoAleatorio,
-      enviarCupon,
-      formatearFecha
+      formCupon, historialCupones, mensajeExito, mensajeError, isLoading,
+      generarCodigoAleatorio, enviarCupon, formatearFecha
     };
   }
 };
