@@ -539,7 +539,28 @@ const updateOperatorProfile = async (id_usuario, datos) => {
         WHERE id_usuario = @id_usuario
     `);
 };
-
+const getReservacionesByOperator = async (id_operador) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_operador", id_operador)
+        .query(`
+            SELECT
+                r.id_reservacion,
+                CONVERT(varchar(10), r.fecha_inicio, 23) AS fecha_inicio,
+                er.nombre AS estado,
+                s.nombre  AS nombre_servicio,
+                (cl.nombre + ' ' + cl.apellido) AS nombre_cliente,
+                cl.telefono,
+                cl.direccion_origen
+            FROM Reservacion r
+            INNER JOIN ServicioEnvio s      ON s.id_servicio = r.id_servicio_env
+            INNER JOIN EstadoReservacion er ON er.id_estado  = r.id_estado
+            INNER JOIN Cliente cl           ON cl.id_cliente = r.id_cliente
+            WHERE s.id_operador = @id_operador
+            ORDER BY r.fecha_inicio ASC
+        `);
+    return result.recordset;
+};
 
 module.exports = {
     createOperator,
@@ -554,7 +575,6 @@ module.exports = {
     assignCouponToClient,
     getCouponById,
     couponAlreadyAssigned,
-
     getCalificacionesByOperator,
     getCalificacionByIdForOperator,
     respuestaExists,
@@ -563,6 +583,6 @@ module.exports = {
     getReporteGanancias,
     getReporteClientes,
     getReporteCalificaciones,
-    updateOperatorProfile
-
+    updateOperatorProfile,
+    getReservacionesByOperator
 };

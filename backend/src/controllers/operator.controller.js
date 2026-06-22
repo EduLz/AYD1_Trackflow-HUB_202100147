@@ -568,7 +568,19 @@ const getMyProfileRequests = async (req, res) => {
         });
     }
 };
-
+const getReservaciones = async (req, res) => {
+    try {
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        if (!operador) {
+            return res.status(404).json({ message: "Operador no encontrado" });
+        }
+        const reservaciones = await operadorService.getReservacionesByOperator(operador.id_operador);
+        return res.status(200).json({ reservaciones });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    }
+};
 module.exports = {
     registerOperador,
     createService,
@@ -585,5 +597,6 @@ module.exports = {
     responderCalificacion,
     getCalendarioEnvios,
     getReportes,
-    getMyProfileRequests
+    getMyProfileRequests,
+    getReservaciones
 };
