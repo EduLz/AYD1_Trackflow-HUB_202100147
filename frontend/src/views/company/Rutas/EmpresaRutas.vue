@@ -13,7 +13,7 @@
         <div v-if="mensajeExito" class="alert-success">
           {{ mensajeExito }}
         </div>
-        <div v-if="mensajeError" class="alert-danger-box" style="margin-bottom: 1.5rem;">
+        <div v-if="mensajeError" class="alert-danger-box">
           {{ mensajeError }}
         </div>
 
@@ -38,7 +38,7 @@
               
               <div class="form-group">
                 <label>Vehiculo Asignado</label>
-                <select v-model="formManual.id_vehiculo" required>
+                <select v-model="formManual.id_vehiculo" required class="form-select">
                   <option value="" disabled>Selecciona una unidad</option>
                   <option v-for="vehiculo in vehiculos" :key="vehiculo.id_vehiculo" :value="vehiculo.id_vehiculo">
                     {{ vehiculo.placa }} - {{ vehiculo.tipo }}
@@ -58,7 +58,7 @@
 
               <div class="form-group">
                 <label>Tipo de Servicio</label>
-                <select v-model="formManual.tipo_servicio" required>
+                <select v-model="formManual.tipo_servicio" required class="form-select">
                   <option value="ESTANDAR">Estandar</option>
                   <option value="EXPRESS">Express</option>
                   <option value="REFRIGERADO">Refrigerado</option>
@@ -102,17 +102,29 @@
               </label>
             </div>
 
-            <div class="file-upload-wrapper">
+            <div 
+              class="file-upload-wrapper"
+              @dragover.prevent="dragover = true"
+              @dragleave.prevent="dragover = false"
+              @drop.prevent="manejarDrop"
+              :class="{ 'is-dragover': dragover }"
+            >
               <input type="file" accept=".csv" @change="manejarArchivo" required id="csvFile" class="file-input" />
-              <label for="csvFile" class="file-label">
-                <i class="fas fa-cloud-upload-alt"></i>
-                <span>{{ archivoCSV ? archivoCSV.name : 'Seleccionar archivo CSV' }}</span>
+              <label for="csvFile" class="file-label" v-if="!archivoCSV">
+                <div class="upload-icon-box">[ ARCHIVO CSV ]</div>
+                <span class="upload-text">
+                  Arrastra tu archivo CSV aquí o haz clic para seleccionar
+                </span>
               </label>
+              <div v-else class="file-selected-state">
+                <span class="file-name-highlight">{{ archivoCSV.name }}</span>
+                <button type="button" class="btn-secondary small" @click.stop="removerArchivo">Remover Archivo</button>
+              </div>
             </div>
 
-            <div class="form-actions">
-              <button type="submit" class="btn-primary" :disabled="isLoading || !archivoCSV">
-                {{ isLoading ? 'Subiendo...' : 'Procesar Carga Masiva' }}
+            <div class="form-actions" v-if="archivoCSV">
+              <button type="submit" class="btn-primary" :disabled="isLoading">
+                {{ isLoading ? 'Procesando archivo...' : 'Cargar Archivo Masivo' }}
               </button>
             </div>
           </form>
@@ -138,22 +150,22 @@
             </thead>
             <tbody>
               <tr v-for="ruta in rutas" :key="ruta.id_ruta">
-                <td>#{{ ruta.id_ruta }}</td>
+                <td class="font-bold-code">#{{ ruta.id_ruta }}</td>
                 <td><strong>{{ ruta.origen }}</strong> a <strong>{{ ruta.destino }}</strong></td>
                 <td><span class="badge" :class="ruta.tipo_servicio?.toLowerCase() || 'estandar'">{{ ruta.tipo_servicio }}</span></td>
                 <td>{{ ruta.placa }}</td>
                 <td>Q{{ ruta.precio }}</td>
                 <td>
-                  <span :class="['status-indicator', ruta.estado?.toLowerCase()]">
+                  <span :class="['status-indicator', ruta.estado?.toLowerCase() || 'activo']">
                     {{ formatEstado(ruta.estado) }}
                   </span>
                 </td>
                 <td class="actions-cell">
                   <button type="button" class="btn-action edit" @click="abrirModalEdicion(ruta)">
-                    <i class="fas fa-edit"></i> Editar
+                    Editar
                   </button>
                   <button type="button" class="btn-action delete" @click="abrirModalSuspension(ruta)">
-                    <i class="fas fa-ban"></i> Suspender
+                    Suspender
                   </button>
                 </td>
               </tr>
@@ -188,7 +200,7 @@
           </div>
           <div class="modal-actions">
             <button type="button" class="btn-secondary" @click="cerrarModalEdicion">Cancelar</button>
-            <button type="submit" class="btn-danger" :disabled="isLoading">
+            <button type="submit" class="btn-primary" :disabled="isLoading">
               {{ isLoading ? 'Guardando...' : 'Guardar Cambios' }}
             </button>
           </div>
@@ -228,6 +240,7 @@ export default {
     const tipoCargaCSV = ref('flota');
     const archivoCSV = ref(null);
     const isLoading = ref(false);
+    const dragover = ref(false);
     
     const mensajeExito = ref('');
     const mensajeError = ref('');
@@ -235,7 +248,6 @@ export default {
     const vehiculos = ref([]);
     const rutas = ref([]);
 
-    // Estados para Modales
     const isSuspendModalOpen = ref(false);
     const rutaASuspender = ref(null);
     
@@ -269,7 +281,7 @@ export default {
           rutas.value = await response.json();
         }
       } catch (error) {
-        mostrarNotificacion('Error de conexión al cargar rutas.', true);
+        console.error('Error al cargar rutas.');
       }
     };
 
@@ -295,7 +307,7 @@ export default {
           formManual.value = { id_vehiculo: '', origen: '', destino: '', tipo_servicio: 'ESTANDAR', hora_inicio: '', tiempo_estimado_hrs: '', precio: '' };
           obtenerRutas();
         } else {
-          mostrarNotificacion('Ocurrió un error al registrar la ruta.', true);
+          mostrarNotificacion('No se pudo registrar la ruta. Verifica los datos.', true);
         }
       } catch (error) {
         mostrarNotificacion('Error de conexión con el servidor.', true);
@@ -308,11 +320,36 @@ export default {
       archivoCSV.value = event.target.files[0];
     };
 
+    const removerArchivo = () => {
+      archivoCSV.value = null;
+      document.getElementById('csvFile').value = '';
+    };
+
+    const manejarDrop = (event) => {
+      dragover.value = false;
+      const file = event.dataTransfer.files[0];
+      if (file && file.name.endsWith('.csv')) {
+        archivoCSV.value = file;
+      } else {
+        mostrarNotificacion('Solo se permiten archivos con formato CSV.', true);
+      }
+    };
+
     const procesarCSV = async () => {
       if (!archivoCSV.value) return;
+
+      // SEGURO ANTI-CRUCES
+      const fileName = archivoCSV.value.name.toLowerCase();
+      if (tipoCargaCSV.value === 'flota' && fileName.includes('ruta')) {
+        mostrarNotificacion('¡Aviso! Estás intentando subir un archivo de Rutas seleccionando Vehículos. Cambia la opción.', true);
+        return;
+      }
+      if (tipoCargaCSV.value === 'rutas' && fileName.includes('vehiculo')) {
+        mostrarNotificacion('¡Aviso! Estás intentando subir un archivo de Vehículos seleccionando Rutas. Cambia la opción.', true);
+        return;
+      }
+
       isLoading.value = true;
-      
-      console.log("=== INICIANDO CARGA MASIVA ===");
 
       const formData = new FormData();
       formData.append('file', archivoCSV.value);
@@ -320,8 +357,6 @@ export default {
       const endpoint = tipoCargaCSV.value === 'flota' 
         ? 'http://localhost:3000/api/empresas/fleet/csv' 
         : 'http://localhost:3000/api/empresas/routes/csv';
-
-      console.log("Endpoint objetivo:", endpoint);
 
       try {
         const response = await fetch(endpoint, {
@@ -333,27 +368,21 @@ export default {
         });
 
         if (response.ok) {
-          mostrarNotificacion(`Archivo CSV de ${tipoCargaCSV.value} procesado exitosamente.`);
-          archivoCSV.value = null;
-          document.getElementById('csvFile').value = '';
+          mostrarNotificacion(`Archivo procesado correctamente.`);
+          removerArchivo();
           if (tipoCargaCSV.value === 'rutas') obtenerRutas();
           if (tipoCargaCSV.value === 'flota') obtenerVehiculos();
         } else {
-          const errData = await response.json();
-          console.error("ERROR DEL BACKEND EN CSV:", errData);
-          mostrarNotificacion(`Error procesando archivo. Revisa consola F12.`, true);
+          mostrarNotificacion('El servidor rechazó el formato del documento.', true);
         }
       } catch (error) {
-        console.error("ERROR DE RED O EJECUCIÓN EN CSV:", error);
-        mostrarNotificacion('Error subiendo el archivo al Backend.', true);
+        mostrarNotificacion('Error de red al subir el archivo.', true);
       } finally {
         isLoading.value = false;
       }
     };
 
     const abrirModalEdicion = (ruta) => {
-      console.log("--- BOTON EDITAR PRESIONADO ---");
-      console.log("Ruta capturada:", ruta);
       rutaAEditar.value = { ...ruta };
       isEditModalOpen.value = true;
     };
@@ -376,14 +405,14 @@ export default {
         });
 
         if (response.ok) {
-          mostrarNotificacion('Ruta actualizada exitosamente.');
+          mostrarNotificacion('Modificación aplicada exitosamente.');
           cerrarModalEdicion();
           obtenerRutas();
         } else {
-          mostrarNotificacion('Error al actualizar la ruta.', true);
+          mostrarNotificacion('No se pudo aplicar la modificación.', true);
         }
       } catch (error) {
-        mostrarNotificacion('Error de conexión al editar la ruta.', true);
+        mostrarNotificacion('Error de conexión al guardar cambios.', true);
       } finally {
         isLoading.value = false;
       }
@@ -400,8 +429,23 @@ export default {
     };
 
     const confirmarSuspension = async () => {
-      mostrarNotificacion('Acción en desarrollo.');
-      cerrarModalSuspension();
+      try {
+        const response = await fetch(`http://localhost:3000/api/empresas/routes/${rutaASuspender.value.id_ruta}/suspend`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`
+          }
+        });
+        if (response.ok) {
+          mostrarNotificacion('Ruta suspendida correctamente.');
+          cerrarModalSuspension();
+          obtenerRutas();
+        } else {
+           mostrarNotificacion('No se pudo suspender la ruta.', true);
+        }
+      } catch (error) {
+        mostrarNotificacion('Error de red al suspender la ruta.', true);
+      }
     };
 
     const obtenerVehiculos = async () => {
@@ -416,14 +460,9 @@ export default {
 
         if (response.ok) {
           vehiculos.value = await response.json();
-          // LOG DE AUDITORÍA F12
-          console.log("=== VEHÍCULOS CARGADOS DINÁMICAMENTE DESDE BD ===");
-          console.log(vehiculos.value);
-        } else {
-          mostrarNotificacion('Error al cargar los vehículos.', true);
         }
       } catch (error) {
-        mostrarNotificacion('Error de conexión al cargar vehículos.', true);
+        console.error('Error al cargar vehículos.');
       }
     };
 
@@ -437,12 +476,11 @@ export default {
       obtenerVehiculos();
     });
 
-    // TODO LO EXPORTADO A LA VISTA
     return {
-      activeTab, tipoCargaCSV, mensajeExito, mensajeError, archivoCSV, isLoading,
+      activeTab, tipoCargaCSV, mensajeExito, mensajeError, archivoCSV, isLoading, dragover,
       isSuspendModalOpen, rutaASuspender, formManual, vehiculos, rutas,
       isEditModalOpen, rutaAEditar, 
-      obtenerRutas, registrarRutaManual, manejarArchivo, procesarCSV, formatEstado,
+      obtenerRutas, registrarRutaManual, manejarArchivo, removerArchivo, manejarDrop, procesarCSV, formatEstado,
       abrirModalEdicion, cerrarModalEdicion, guardarEdicion,
       abrirModalSuspension, cerrarModalSuspension, confirmarSuspension
     };
@@ -461,20 +499,33 @@ export default {
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
 .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
 .form-group label { font-size: 0.875rem; font-weight: 600; color: #475569; }
-.form-group input, .form-group select { padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; }
-.form-actions { display: flex; justify-content: flex-end; }
-.btn-primary { background-color: #0284c7; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
+.form-group input, .form-select { padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; width: 100%; background-color: white; font-family: inherit; }
+.form-actions { display: flex; justify-content: flex-end; margin-top: 1rem; }
+.btn-primary { background-color: #0284c7; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+.btn-primary:hover { background-color: #0369a1; }
 .btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
+.btn-secondary { background-color: #e2e8f0; color: #475569; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+.btn-secondary:hover { background-color: #cbd5e1; }
+.btn-secondary.small { padding: 0.4rem 1rem; font-size: 0.875rem; }
 .radio-group { display: flex; gap: 2rem; margin-bottom: 2rem; }
 .radio-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #475569; font-weight: 500; }
-.file-upload-wrapper { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 3rem; text-align: center; margin-bottom: 2rem; background-color: #f8fafc; }
+
+/* Caja Drag and Drop Limpia */
+.file-upload-wrapper { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 3rem; text-align: center; margin-bottom: 1rem; background-color: #f8fafc; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.file-upload-wrapper.is-dragover { background-color: #e0f2fe; border-color: #0284c7; }
 .file-input { display: none; }
-.file-label { display: flex; flex-direction: column; align-items: center; gap: 1rem; cursor: pointer; color: #64748b; }
-.file-label i { font-size: 2.5rem; color: #0284c7; }
+.file-label { cursor: pointer; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; }
+.upload-icon-box { background-color: #e2e8f0; color: #475569; font-weight: 800; padding: 0.5rem 1rem; border-radius: 6px; letter-spacing: 1px; margin-bottom: 1rem; display: inline-block; }
+.upload-text { color: #64748b; font-weight: 600; }
+.file-selected-state { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+.file-name-highlight { font-weight: bold; color: #0f172a; font-size: 1.1rem; }
+
+/* Tabla y Botones de Accion */
 .table-responsive { overflow-x: auto; }
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th, .data-table td { padding: 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
 .data-table th { background-color: #f8fafc; color: #475569; font-weight: 600; font-size: 0.875rem; }
+.font-bold-code { font-weight: bold; color: #1e293b; }
 .badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
 .badge.express { background-color: #fef3c7; color: #b45309; }
 .badge.estandar, .badge.normal { background-color: #e0f2fe; color: #0369a1; }
@@ -484,13 +535,20 @@ export default {
 .status-indicator.eliminado { color: #dc2626; }
 .status-indicator.suspendido { color: #ea580c; }
 .actions-cell { display: flex; gap: 0.5rem; }
-.btn-action { padding: 0.5rem 1rem; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; }
-.btn-action.edit { background-color: #f1f5f9; color: #475569; }
-.btn-action.delete { background-color: #fef2f2; color: #dc2626; }
+
+/* ESTILOS DE BOTONES EN LA TABLA */
+.btn-action { padding: 0.5rem 1rem; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.btn-action.edit { background-color: #f1f5f9; color: #0284c7; border: 1px solid #bae6fd; }
+.btn-action.edit:hover { background-color: #e0f2fe; }
+.btn-action.delete { background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.btn-action.delete:hover { background-color: #fee2e2; }
+
 .alert-success { background-color: #ecfdf5; color: #16a34a; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #10b981; }
+.alert-danger-box { background-color: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 8px; border-left: 4px solid #ef4444; margin-bottom: 1.5rem; }
+.text-center { text-align: center; }
+.empty-state { color: #64748b; padding: 2rem; }
 .fade-in { animation: fadeIn 0.3s ease-in-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-.alert-danger-box { background-color: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 8px; border-left: 4px solid #ef4444; }
 
 /* Estilos de Modales */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
@@ -498,6 +556,6 @@ export default {
 .modal-content h2 { margin-top: 0; color: #0f172a; }
 .warning-text { color: #b45309; font-weight: 500; margin-top: 1rem; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem; }
-.btn-secondary { background: #f1f5f9; color: #475569; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
-.btn-danger { background: #ef4444; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
+.btn-danger { background-color: #ef4444; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+.btn-danger:hover { background-color: #dc2626; }
 </style>
