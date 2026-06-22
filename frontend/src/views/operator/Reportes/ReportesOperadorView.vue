@@ -95,6 +95,8 @@ import { useAuthStore } from '../../../stores/auth';
 import { API } from '../../../config/api';
 import UpperbarComponent        from '../../../common/components/Upperbar/UpperbarComponent.vue';
 import OperatorSidebarComponent from '../../../common/components/OperatorSidebar/OperatorSidebarComponent.vue';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default {
   name: 'ReportesOperadorView',
@@ -135,7 +137,49 @@ export default {
     };
 
     const exportarPDF = () => {
-      window.print();
+      if (!reportes.value) {
+        mostrarToast('No hay datos para exportar', 'error');
+        return;
+      }
+
+      const doc = new jsPDF();
+      
+      // Título
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Reportes y Estadísticas - Operador', 14, 22);
+
+      // Resumen Ganancias
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Ingresos Totales: Q ${reportes.value.ganancias?.total_ganado?.toFixed(2) || '0.00'}`, 14, 32);
+      doc.text(`Envíos Completados: ${reportes.value.ganancias?.total_envios || 0}`, 14, 40);
+      
+      // Resumen Calificaciones
+      doc.text(`Promedio de Calificaciones: ${Number(reportes.value.calificaciones?.promedio || 0).toFixed(1)} / 5`, 14, 48);
+      doc.text(`Total de Reseñas: ${reportes.value.calificaciones?.total_calificaciones || 0}`, 14, 56);
+
+      // Tabla Historial Clientes
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Historial de Clientes', 14, 70);
+
+      const clientesData = (reportes.value.historial_clientes || []).map(c => [
+        `${c.cliente_nombre} ${c.cliente_apellido}`,
+        (c.total_envios || 0).toString(),
+        `Q ${Number(c.total_gastado || 0).toFixed(2)}`
+      ]);
+
+      autoTable(doc, {
+        startY: 75,
+        head: [['Cliente', 'Envíos Solicitados', 'Total Gastado']],
+        body: clientesData,
+        theme: 'striped',
+        headStyles: { fillColor: [37, 99, 235] }
+      });
+
+      doc.save('Reporte_Estadistico_Operador.pdf');
+      mostrarToast('PDF generado exitosamente.', 'exito');
     };
 
     onMounted(cargarReportes);
@@ -332,30 +376,5 @@ export default {
     to { transform: translateY(0); opacity: 1; } 
 }
 
-/* Print Styles for PDF Export */
-@media print {
-  .print-hide {
-    display: none !important;
-  }
-  .op-content {
-    margin: 0 !important;
-    padding: 0 !important;
-    background-color: white !important;
-  }
-  .card-reporte {
-    box-shadow: none !important;
-    border: 1px solid #ddd !important;
-    page-break-inside: avoid;
-  }
-  .reportes-grid {
-    display: block !important;
-  }
-  .reportes-grid > div {
-    margin-bottom: 2rem;
-  }
-  /* Hide sidebar and upperbar during print */
-  :deep(.sidebar-container), :deep(.upperbar-container) {
-    display: none !important;
-  }
-}
+
 </style>
