@@ -235,11 +235,35 @@ export default {
       El backend ya tiene changeServiceStatus() pero sin ruta HTTP propia.
       Endpoint sugerido: PATCH /api/operadores/services/:id/status  { id_estado }
     */
-    const suspender = (s) => {
-      mostrarToast(`Suspender "${s.nombre}": pendiente de endpoint backend (PATCH /services/:id/status).`, 'error');
+        const suspender = async (s) => {
+      if (!confirm(`Suspender el servicio "${s.nombre}"?`)) return;
+      try {
+        const res = await fetch(`${API.operador.servicio(s.id_servicio)}/status`, {
+          method: 'PATCH',
+          headers: headers(),
+          body: JSON.stringify({ id_estado: 2 }),
+        });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.message); }
+        await cargar();
+        mostrarToast('Servicio suspendido temporalmente.');
+      } catch (err) {
+        mostrarToast(err.message || 'Error al suspender.', 'error');
+      }
     };
-    const activar = (s) => {
-      mostrarToast(`Activar "${s.nombre}": pendiente de endpoint backend (PATCH /services/:id/status).`, 'error');
+
+    const activar = async (s) => {
+      try {
+        const res = await fetch(`${API.operador.servicio(s.id_servicio)}/status`, {
+          method: 'PATCH',
+          headers: headers(),
+          body: JSON.stringify({ id_estado: 1 }),
+        });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.message); }
+        await cargar();
+        mostrarToast('Servicio activado nuevamente.');
+      } catch (err) {
+        mostrarToast(err.message || 'Error al activar.', 'error');
+      }
     };
 
     onMounted(cargar);
