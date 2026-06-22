@@ -199,7 +199,6 @@
       <div class="modal-content fade-in">
         <h2>Confirmar Suspensión</h2>
         <p>¿Estás seguro que deseas suspender la ruta <strong>{{ rutaASuspender?.origen }} - {{ rutaASuspender?.destino }}</strong>?</p>
-        <p class="warning-text">Esta acción ocultará la ruta temporalmente a los clientes.</p>
         <div class="modal-actions">
           <button class="btn-secondary" @click="cerrarModalSuspension">Cancelar</button>
           <button class="btn-danger" @click="confirmarSuspension">Si, Suspender</button>
@@ -210,7 +209,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'import';
+import { ref, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import UpperbarComponent from '../components/UpperbarComponent.vue';
 import CompanySidebarComponent from '../components/CompanySidebarComponent.vue';
@@ -314,16 +313,19 @@ export default {
     };
 
     const procesarCSV = async () => {
+      console.log("--- PRUEBA CSV: ENVIANDO ARCHIVO A BACKEND ---");
       if (!archivoCSV.value) return;
       isLoading.value = true;
 
       const formData = new FormData();
       formData.append('file', archivoCSV.value);
 
-      // CORRECCIÓN DE LA RUTA DEL BACKEND (agregada la 's' a routes)
+      // Corregida la ruta a /routes/csv
       const endpoint = tipoCargaCSV.value === 'flota' 
         ? 'http://localhost:3000/api/empresas/fleet/csv' 
         : 'http://localhost:3000/api/empresas/routes/csv';
+
+      console.log("Enviando a endpoint:", endpoint);
 
       try {
         const response = await fetch(endpoint, {
@@ -335,16 +337,19 @@ export default {
         });
 
         if (response.ok) {
-          mostrarNotificacion(`Archivo CSV de ${tipoCargaCSV.value} procesado exitosamente.`);
+          mostrarNotificacion(`Archivo procesado exitosamente.`);
           archivoCSV.value = null;
           document.getElementById('csvFile').value = '';
           if (tipoCargaCSV.value === 'rutas') obtenerRutas();
           if (tipoCargaCSV.value === 'flota') obtenerVehiculos();
         } else {
-          mostrarNotificacion('Error al procesar el archivo en el servidor.', true);
+          const errData = await response.json();
+          console.error("ERROR DEL BACKEND EN CSV:", errData);
+          mostrarNotificacion(`Fallo en servidor: ${errData.message || response.statusText}`, true);
         }
       } catch (error) {
-        mostrarNotificacion('Error subiendo el archivo al Backend.', true);
+        console.error("ERROR DE RED O EJECUCIÓN EN CSV:", error);
+        mostrarNotificacion(`Error subiendo CSV: ${error.message}`, true);
       } finally {
         isLoading.value = false;
       }
@@ -354,7 +359,8 @@ export default {
     // LOGICA DE MODAL DE EDICIÓN
     // ==========================================
     const abrirModalEdicion = (ruta) => {
-      // Clonar el objeto para no editar directamente la tabla hasta que se guarde
+      console.log("--- PRUEBA 1: VERSIÓN DEBUG BOTÓN EDITAR V2.0 ---");
+      console.log("Datos de la ruta seleccionada:", ruta);
       rutaAEditar.value = { ...ruta };
       isEditModalOpen.value = true;
     };
@@ -424,16 +430,17 @@ export default {
     const obtenerVehiculos = async () => {
       try {
         const response = await fetch('http://localhost:3000/api/empresas/vehicles', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${authStore.token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`,
+            'Content-Type': 'application/json'
+          }
+        });
 
-      if (response.ok) {
-        vehiculos.value = await response.json();
-      }
+        if (response.ok) {
+          vehiculos.value = await response.json();
+          console.log("Vehículos cargados dinámicamente:", vehiculos.value);
+        }
       } catch (error) {
         console.error('No se pudieron cargar los vehículos');
       }
@@ -449,7 +456,7 @@ export default {
       obtenerVehiculos();
     });
 
-    // ¡CRÍTICO! Retornar todas las funciones para que el template las encuentre
+    // AQUI RETORNAMOS TODO INCLUYENDO abrirModalEdicion PARA QUE EL HTML LO VEA
     return {
       activeTab, tipoCargaCSV, mensajeExito, mensajeError, archivoCSV, isLoading,
       isSuspendModalOpen, rutaASuspender, formManual, vehiculos, rutas,
