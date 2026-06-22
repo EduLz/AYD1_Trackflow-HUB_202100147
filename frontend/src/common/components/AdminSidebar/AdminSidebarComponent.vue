@@ -13,6 +13,9 @@
         <router-link :to="{ name: 'admin-crear-administrador' }" class="menu-item" active-class="active">
           Registrar Administrador
         </router-link>
+        <router-link :to="{ name: 'admin-cambio-perfil' }" class="menu-item" active-class="active">
+          Solicitudes Cambio de Perfil
+        </router-link>
       </nav>
 
     </div>
