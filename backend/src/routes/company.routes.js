@@ -21,7 +21,8 @@ const {
     getRoutes,
     getCoupons,
     getVehicles,
-    getReportesEmpresa  
+    getReportesEmpresa,
+    getDashboardEmpresa  
 } = require("../controllers/company.controller");
 
 // Registro (público)
@@ -29,7 +30,9 @@ router.post(
     "/register",
     registerEmpresa
 );
+
 router.get("/reportes", verifyToken, requireRole(4), getReportesEmpresa);
+router.get("/dashboard", verifyToken, requireRole(4), getDashboardEmpresa);
 // Rutas
 router.post(
     "/routes",

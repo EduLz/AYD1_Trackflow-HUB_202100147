@@ -685,7 +685,20 @@ const getReportesEmpresa = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
-
+const getDashboardEmpresa = async (req, res) => {
+    try {
+        const empresa = await companyService.getEmpresaByUsuario(req.user.id_usuario);
+        if (!empresa) {
+            return res.status(404).json({ message: "Empresa no encontrada" });
+        }
+        const resumen   = await companyService.getDashboardResumen(empresa.id_empresa);
+        const servicios = await companyService.getDashboardServicios(empresa.id_empresa);
+        return res.status(200).json({ resumen, servicios });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    }
+};
 module.exports = {
     registerEmpresa,
     createRoute,
@@ -701,5 +714,6 @@ module.exports = {
     getRoutes,
     getCoupons,
     getVehicles,
-    getReportesEmpresa
+    getReportesEmpresa,
+    getDashboardEmpresa
 };

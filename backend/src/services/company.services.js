@@ -721,7 +721,54 @@ const vehiclePlateExists = async (placa) => {
 
     return result.recordset[0];
 };
+const getDashboardResumen = async (id_empresa) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_empresa", id_empresa)
+        .query(`
+            SELECT
+                ISNULL((SELECT SUM(r.monto_proveedor)
+                        FROM Reservacion r INNER JOIN Ruta rt ON rt.id_ruta = r.id_ruta
+                        WHERE rt.id_empresa = @id_empresa AND r.id_estado = 4), 0) AS ganancias_totales,
+                ISNULL((SELECT COUNT(*)
+                        FROM Reservacion r INNER JOIN Ruta rt ON rt.id_ruta = r.id_ruta
+                        WHERE rt.id_empresa = @id_empresa), 0) AS servicios_contratados,
+                ISNULL((SELECT AVG(CAST(c.puntuacion AS DECIMAL(3,2)))
+                        FROM Calificacion c
+                        INNER JOIN Reservacion r ON r.id_reservacion = c.id_reservacion
+                        INNER JOIN Ruta rt ON rt.id_ruta = r.id_ruta
+                        WHERE rt.id_empresa = @id_empresa), 0) AS calificacion_global,
+                ISNULL((SELECT COUNT(*)
+                        FROM Ruta rt INNER JOIN EstadoServicio es ON es.id_estado = rt.id_estado
+                        WHERE rt.id_empresa = @id_empresa AND es.nombre = 'ACTIVO'), 0) AS rutas_activas,
+                ISNULL((SELECT COUNT(*)
+                        FROM Ruta rt INNER JOIN EstadoServicio es ON es.id_estado = rt.id_estado
+                        WHERE rt.id_empresa = @id_empresa AND es.nombre = 'SUSPENDIDO'), 0) AS rutas_suspendidas
+        `);
+    return result.recordset[0];
+};
 
+const getDashboardServicios = async (id_empresa) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_empresa", id_empresa)
+        .query(`
+            SELECT
+                r.id_reservacion AS id_servicio,
+                (cl.nombre + ' ' + cl.apellido) AS cliente_nombre,
+                rt.origen,
+                rt.destino,
+                r.precio_total AS precio,
+                er.nombre AS estado
+            FROM Reservacion r
+            INNER JOIN Ruta rt              ON rt.id_ruta   = r.id_ruta
+            INNER JOIN Cliente cl           ON cl.id_cliente = r.id_cliente
+            INNER JOIN EstadoReservacion er ON er.id_estado  = r.id_estado
+            WHERE rt.id_empresa = @id_empresa
+            ORDER BY r.id_reservacion DESC
+        `);
+    return result.recordset;
+};
 module.exports = {
     createEmpresa,
     createRoute,
@@ -745,5 +792,7 @@ module.exports = {
     getReporteCalificacionesEmpresa,
     getReporteEstadoRutas,
     vehicleHasScheduleConflict,
-    vehiclePlateExists
+    vehiclePlateExists,
+    getDashboardResumen,
+    getDashboardServicios
 };
