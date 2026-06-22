@@ -4,14 +4,14 @@
     <OperatorSidebarComponent />
 
     <main class="op-content">
-      <div class="op-header">
+      <div class="op-header print-hide">
         <div>
           <h1>Reportes y Estadísticas</h1>
           <p class="op-subtitle">Métricas de ganancias, calificaciones e historial de clientes.</p>
         </div>
         <div class="header-actions">
-          <button class="btn-primary" @click="mostrarFormReporte = !mostrarFormReporte">
-            {{ mostrarFormReporte ? 'Cerrar Formulario' : 'Reportar Cliente' }}
+          <button class="btn-primary" @click="exportarPDF">
+            Exportar a PDF
           </button>
           <button class="btn-secondary" @click="cargarReportes">Actualizar Reportes</button>
         </div>
@@ -51,53 +51,7 @@
           </div>
         </div>
 
-        <!-- Formulario para Reportar Cliente -->
-        <div v-if="mostrarFormReporte" class="card-reporte form-reporte-card">
-          <h3 class="card-titulo">Generar Reporte de Infracción</h3>
-          <p class="form-nota">Reporta a un cliente por incumplimiento de las condiciones del servicio.</p>
 
-          <form @submit.prevent="enviarReporte" class="form-grid">
-            <div class="form-group">
-              <label>Cliente a Reportar</label>
-              <select v-model="formReporte.cliente" required>
-                <option value="" disabled>Seleccione un cliente</option>
-                <!-- Si no hay clientes, mostramos opciones mock para que se pueda probar el flujo -->
-                <option v-for="(cl, idx) in opcionesClientes" :key="idx" :value="cl">
-                  {{ cl }}
-                </option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>Motivo de la Infracción</label>
-              <select v-model="formReporte.motivo" required>
-                <option value="" disabled>Seleccione un motivo</option>
-                <option value="Daño intencional a paquetes">Daño intencional a paquetes</option>
-                <option value="Información falsa de destino">Información falsa de destino</option>
-                <option value="Acoso o maltrato">Acoso o maltrato al personal</option>
-                <option value="Otro">Otro incumplimiento</option>
-              </select>
-            </div>
-
-            <div class="form-group full-width">
-              <label>Descripción Detallada</label>
-              <textarea v-model="formReporte.descripcion" rows="3" required placeholder="Describe lo sucedido..."></textarea>
-            </div>
-
-            <div class="form-group full-width">
-              <label>Evidencia (Fotografía o Video)</label>
-              <input type="file" @change="handleFileUpload" accept="image/*,video/*" required />
-            </div>
-
-            <div class="form-actions full-width">
-              <button type="submit" class="btn-danger" :disabled="enviandoReporte">
-                {{ enviandoReporte ? 'Enviando...' : 'Enviar Reporte' }}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <!-- Tabla Historial Clientes -->
         <div class="card-reporte clientes-card">
           <h3 class="card-titulo">Top Clientes Frecuentes</h3>
           
@@ -128,11 +82,6 @@
       </div>
     </main>
 
-    <!-- Aviso Mock -->
-    <div v-if="mostrarFormReporte" class="mock-aviso">
-      Funcionalidad de "Reportar Cliente" utilizando datos Mock.
-    </div>
-
     <!-- Toast -->
     <div v-if="toast.visible" class="op-toast" :class="toast.tipo === 'exito' ? 'toast-exito' : 'toast-error'">
       {{ toast.mensaje }}
@@ -146,6 +95,8 @@ import { useAuthStore } from '../../../stores/auth';
 import { API } from '../../../config/api';
 import UpperbarComponent        from '../../../common/components/Upperbar/UpperbarComponent.vue';
 import OperatorSidebarComponent from '../../../common/components/OperatorSidebar/OperatorSidebarComponent.vue';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default {
   name: 'ReportesOperadorView',
@@ -156,16 +107,6 @@ export default {
     const cargando  = ref(false);
     const reportes  = ref(null);
     const toast     = reactive({ visible: false, mensaje: '', tipo: 'exito' });
-
-    // Estado del formulario de reportes
-    const mostrarFormReporte = ref(false);
-    const enviandoReporte = ref(false);
-    const formReporte = reactive({
-      cliente: '',
-      motivo: '',
-      descripcion: '',
-      evidencia: null
-    });
 
     const mostrarToast = (mensaje, tipo = 'exito') => {
       Object.assign(toast, { visible: true, mensaje, tipo });
@@ -195,52 +136,57 @@ export default {
       }
     };
 
-    // Computado para listar clientes en el select del form
-    const opcionesClientes = computed(() => {
-      if (reportes.value?.historial_clientes?.length > 0) {
-        return reportes.value.historial_clientes.map(c => `${c.cliente_nombre} ${c.cliente_apellido}`);
+    const exportarPDF = () => {
+      if (!reportes.value) {
+        mostrarToast('No hay datos para exportar', 'error');
+        return;
       }
-      return ['Juan Perez (mock)', 'Empresa aaa (mock)'];
-    });
 
-    const handleFileUpload = (event) => {
-      formReporte.evidencia = event.target.files[0];
-    };
+      const doc = new jsPDF();
+      
+      // Título
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Reportes y Estadísticas - Operador', 14, 22);
 
-    const enviarReporte = async () => {
-      enviandoReporte.value = true;
-      try {
-        // Simulación de llamada al backend pendiente
-        // const formData = new FormData();
-        // formData.append('cliente', formReporte.cliente);
-        // formData.append('motivo', formReporte.motivo);
-        // formData.append('descripcion', formReporte.descripcion);
-        // formData.append('evidencia', formReporte.evidencia);
-        // await fetch(API.operador.enviarReporte, { method: 'POST', body: formData, headers: {...} });
+      // Resumen Ganancias
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Ingresos Totales: Q ${reportes.value.ganancias?.total_ganado?.toFixed(2) || '0.00'}`, 14, 32);
+      doc.text(`Envíos Completados: ${reportes.value.ganancias?.total_envios || 0}`, 14, 40);
+      
+      // Resumen Calificaciones
+      doc.text(`Promedio de Calificaciones: ${Number(reportes.value.calificaciones?.promedio || 0).toFixed(1)} / 5`, 14, 48);
+      doc.text(`Total de Reseñas: ${reportes.value.calificaciones?.total_calificaciones || 0}`, 14, 56);
 
-        await new Promise(resolve => setTimeout(resolve, 800)); // Simular retraso de red
-        
-        mostrarToast('Reporte generado y enviado a administración exitosamente.', 'exito');
-        mostrarFormReporte.value = false;
-        
-        // Limpiar form
-        formReporte.cliente = '';
-        formReporte.motivo = '';
-        formReporte.descripcion = '';
-        formReporte.evidencia = null;
-      } catch (error) {
-        mostrarToast('Error al enviar el reporte', 'error');
-      } finally {
-        enviandoReporte.value = false;
-      }
+      // Tabla Historial Clientes
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Historial de Clientes', 14, 70);
+
+      const clientesData = (reportes.value.historial_clientes || []).map(c => [
+        `${c.cliente_nombre} ${c.cliente_apellido}`,
+        (c.total_envios || 0).toString(),
+        `Q ${Number(c.total_gastado || 0).toFixed(2)}`
+      ]);
+
+      autoTable(doc, {
+        startY: 75,
+        head: [['Cliente', 'Envíos Solicitados', 'Total Gastado']],
+        body: clientesData,
+        theme: 'striped',
+        headStyles: { fillColor: [37, 99, 235] }
+      });
+
+      doc.save('Reporte_Estadistico_Operador.pdf');
+      mostrarToast('PDF generado exitosamente.', 'exito');
     };
 
     onMounted(cargarReportes);
 
     return {
       cargando, reportes, toast,
-      mostrarFormReporte, enviandoReporte, formReporte, opcionesClientes,
-      cargarReportes, handleFileUpload, enviarReporte
+      cargarReportes, exportarPDF
     };
   }
 };
@@ -362,55 +308,7 @@ export default {
 .valor-dinero { color: #16a34a; }
 .valor-promedio { color: #2563eb; }
 
-/* Formulario de Reporte */
-.form-reporte-card { grid-column: 1 / -1; 
-                     border-left: 3px solid #dc2626; 
-}
-.form-nota { font-size: 0.85rem; 
-               color: var(--text-muted); 
-               margin-bottom: 1.25rem; 
-}
-.form-grid { display: grid; 
-               grid-template-columns: 1fr 1fr; 
-               gap: 1.25rem; 
-}
 
-.full-width { grid-column: 1 / -1; }
-
-.form-group { display: flex; 
-              flex-direction: column; 
-              gap: 0.4rem; 
-}
-
-.form-group label { font-size: 0.8rem; 
-                     font-weight: 700; 
-                     color: var(--text-muted); 
-                     text-transform: uppercase; 
-}
-
-.form-group select, 
-.form-group textarea, 
-.form-group input[type="file"] { 
-  border: 1px solid var(--border-color); 
-  border-radius: var(--radius-sm); 
-  padding: 0.6rem; 
-  font-family: inherit; 
-  font-size: 0.88rem; 
-  color: var(--text-main); 
-}
-
-.form-group select:focus, 
-.form-group textarea:focus { 
-  outline: none; 
-  border-color: #dc2626; 
-}
-
-.form-actions { display: flex; 
-                justify-content: flex-end; 
-                margin-top: 0.5rem; 
-}
-
-/* Tabla Clientes */
 .clientes-card { grid-column: 1 / -1; }
 
 .empty-state { text-align: center; 
@@ -455,21 +353,7 @@ export default {
                 color: #16a34a; 
 }
 
-/* Aviso Mock */
-.mock-aviso { position: fixed; 
-              bottom: 0; 
-              left: 240px; 
-              right: 0; 
-              background: #fef9c3; 
-              border-top: 1px solid #fde68a; 
-              color: #92400e; 
-              font-size: 0.78rem; 
-              padding: 0.4rem 1.5rem; 
-              text-align: center; 
-              z-index: 100; 
-}
 
-/* Toast */
 .op-toast { position: fixed; 
             bottom: 2rem; 
             right: 1.5rem; 
@@ -491,4 +375,6 @@ export default {
     from { transform: translateY(12px); opacity: 0; } 
     to { transform: translateY(0); opacity: 1; } 
 }
+
+
 </style>
