@@ -26,7 +26,6 @@ import CalificacionesView     from '../views/operator/Calificaciones/Calificacio
 import CuponesView            from '../views/operator/Cupones/CuponesView.vue';
 import PerfilOperadorView     from '../views/operator/Perfil/PerfilOperadorView.vue';
 import ReportesOperadorView   from '../views/operator/Reportes/ReportesOperadorView.vue';
-import GestionReportesView    from '../views/operator/GestionReportes/GestionReportesView.vue';
 
 // Vistas del Modulo Empresa de Transporte (v2.0.0)
 import EmpresaRutasView   from '../views/company/Rutas/EmpresaRutas.vue';
@@ -57,7 +56,6 @@ const router = createRouter({
     { path: '/operator/cupones',             name: 'operator-cupones',            component: CuponesView,             meta: { role: 'OPERADOR' } },
     { path: '/operator/perfil',              name: 'operator-perfil',             component: PerfilOperadorView,      meta: { role: 'OPERADOR' } },
     { path: '/operator/reportes',            name: 'operator-reportes',           component: ReportesOperadorView,    meta: { role: 'OPERADOR' } },
-    { path: '/operator/gestion-reportes',    name: 'operator-gestion-reportes',   component: GestionReportesView,     meta: { role: 'OPERADOR' } },
 
     // --- Modulo Empresa de Transporte (v2.0.0) ---
     { path: '/company/dashboard', name: 'company-dashboard', component: CompanyDashboard, meta: { role: 'EMPRESA' } },
