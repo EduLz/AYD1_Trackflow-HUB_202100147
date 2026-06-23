@@ -822,6 +822,27 @@ const getRouteById = async (id_ruta) => {
     return result.recordset[0];
 };
 
+const updateCompanyProfile = async (id_usuario, datos) => {
+    const pool = await connectDB();
+    await pool.request()
+        .input("id_usuario", id_usuario)
+        .input("nombre_empresa", datos.nombre_empresa)
+        .input("telefono", datos.telefono)
+        .input("telefono_respaldo", datos.telefono_respaldo)
+        .input("nit", datos.nit)
+        .input("licencia_operativa", datos.licencia_operativa)
+        .query(`
+            UPDATE EmpresaTransporte
+            SET 
+                nombre_empresa = @nombre_empresa,
+                telefono = @telefono,
+                telefono_respaldo = @telefono_respaldo,
+                nit = @nit,
+                licencia_operativa = @licencia_operativa
+            WHERE id_usuario = @id_usuario
+        `);
+};
+
 module.exports = {
     createEmpresa,
     createRoute,
@@ -850,5 +871,6 @@ module.exports = {
     getDashboardServicios,
     getProfileChangeRequestsByUser,
     activateRoute,
-    getRouteById
+    getRouteById,
+    updateCompanyProfile
 };

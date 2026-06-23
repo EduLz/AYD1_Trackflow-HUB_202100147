@@ -219,7 +219,7 @@ export default {
                  align-items: center; 
 }
 
-.btn-primary { background-color: #eb4325; 
+.btn-primary { background-color: #3f5ff1; 
                color: #fff; 
                padding: 0.5rem 1.1rem; 
                border: none; 
@@ -229,7 +229,7 @@ export default {
                cursor: pointer; 
 }
 
-.btn-primary:hover { background-color: #eb4325; }
+.btn-primary:hover { background-color: #3f5ff1; }
 
 .btn-secondary { background-color: #fff; 
                  color: var(--text-main); 

@@ -46,7 +46,7 @@
           <div class="cal-header">
             <div class="cal-meta">
               <span class="cal-cliente">{{ c.cliente_nombre }} {{ c.cliente_apellido }}</span>
-              <span class="cal-servicio">{{ c.nombre_servicio }}</span>
+              <span class="cal-servicio">{{ c.servicio_nombre }}</span>
             </div>
             <div class="cal-derecha">
               <span class="puntuacion">{{ c.puntuacion }} / 5</span>
@@ -95,9 +95,9 @@
     </main>
 
     <!-- Nota de mock -->
-    <div class="mock-aviso">
+    <!-- <div class="mock-aviso">
       Datos de muestra. Endpoint pendiente: GET /api/operadores/calificaciones
-    </div>
+    </div> -->
 
     <!-- Toast -->
     <div v-if="toast.visible" class="op-toast" :class="toast.tipo === 'exito' ? 'toast-exito' : 'toast-error'">
