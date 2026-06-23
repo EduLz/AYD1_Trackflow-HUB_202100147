@@ -699,6 +699,58 @@ const getDashboardEmpresa = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+
+
+const getMyProfileChangeRequests = async (req, res) => {
+    try {
+        const requests =
+            await companyService.getProfileChangeRequestsByUser(
+                req.user.id_usuario
+            );
+
+        return res.status(200).json(requests);
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+const activateRoute = async (req, res) => {
+    try {
+
+        const { id } = req.params;
+
+        const route = await companyService.getRouteById(id);
+
+        if (!route) {
+            return res.status(404).json({
+                message: "Ruta no encontrada"
+            });
+        }
+
+        if (route.estado !== "SUSPENDIDO") {
+            return res.status(400).json({
+                message: "Solo las rutas suspendidas pueden activarse"
+            });
+        }
+
+        await companyService.activateRoute(id);
+
+        return res.status(200).json({
+            message: "Ruta activada correctamente"
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+            message: error.message
+        });
+
+    }
+};
+
 module.exports = {
     registerEmpresa,
     createRoute,
@@ -715,5 +767,7 @@ module.exports = {
     getCoupons,
     getVehicles,
     getReportesEmpresa,
-    getDashboardEmpresa
+    getDashboardEmpresa,
+    getMyProfileChangeRequests,
+    activateRoute
 };

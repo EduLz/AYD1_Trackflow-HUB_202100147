@@ -769,6 +769,59 @@ const getDashboardServicios = async (id_empresa) => {
         `);
     return result.recordset;
 };
+
+const getProfileChangeRequestsByUser = async (id_usuario) => {
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_usuario", id_usuario)
+        .query(`
+            SELECT
+                scp.id_solicitud,
+                scp.id_usuario,
+                es.nombre AS estado,
+                scp.datos_nuevos_json,
+                scp.fecha_solicitud
+            FROM SolicitudCambioPerfil scp
+            INNER JOIN EstadoSolicitud es
+                ON scp.id_estado = es.id_estado
+            WHERE scp.id_usuario = @id_usuario
+            ORDER BY scp.id_solicitud DESC
+        `);
+
+    return result.recordset;
+};
+
+const activateRoute = async (id_ruta) => {
+    const pool = await connectDB();
+
+    await pool.request()
+        .input("id_ruta", id_ruta)
+        .query(`
+            UPDATE Ruta
+            SET id_estado = 1
+            WHERE id_ruta = @id_ruta
+        `);
+};
+
+const getRouteById = async (id_ruta) => {
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_ruta", id_ruta)
+        .query(`
+            SELECT
+                r.id_ruta,
+                es.nombre AS estado
+            FROM Ruta r
+            INNER JOIN EstadoServicio es
+                ON r.id_estado = es.id_estado
+            WHERE r.id_ruta = @id_ruta
+        `);
+
+    return result.recordset[0];
+};
+
 module.exports = {
     createEmpresa,
     createRoute,
@@ -794,5 +847,8 @@ module.exports = {
     vehicleHasScheduleConflict,
     vehiclePlateExists,
     getDashboardResumen,
-    getDashboardServicios
+    getDashboardServicios,
+    getProfileChangeRequestsByUser,
+    activateRoute,
+    getRouteById
 };

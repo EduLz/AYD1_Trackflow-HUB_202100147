@@ -22,7 +22,9 @@ const {
     getCoupons,
     getVehicles,
     getReportesEmpresa,
-    getDashboardEmpresa  
+    getDashboardEmpresa,
+    getMyProfileChangeRequests,
+    activateRoute  
 } = require("../controllers/company.controller");
 
 // Registro (público)
@@ -62,6 +64,12 @@ router.patch(
     cancelRoute
 );
 
+router.patch(
+    "/routes/:id/activate",
+    verifyToken,
+    requireRole(4),
+    activateRoute
+);
 
 // Cupones
 router.post(
@@ -69,6 +77,14 @@ router.post(
     verifyToken,
     requireRole(4),
     createCoupon
+);
+
+// Visualizar las solicitudes de cambio de perfil
+router.get(
+    "/profile-change",
+    verifyToken,
+    requireRole(4),
+    getMyProfileChangeRequests
 );
 
 // Solicitudes de cambio de perfil
