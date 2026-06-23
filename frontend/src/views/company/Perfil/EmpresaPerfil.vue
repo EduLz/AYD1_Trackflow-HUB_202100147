@@ -96,7 +96,7 @@
               <thead>
                 <tr>
                   <th>ID Solicitud</th>
-                  <th>Empresa a Actualizar</th>
+                  <th>Nombre Propuesto</th>
                   <th>Fecha de Solicitud</th>
                   <th>Estado</th>
                   <th>Acciones</th>
@@ -116,7 +116,7 @@
                   </td>
                   <td>
                     <button type="button" class="btn-secondary small" @click="abrirModalDetalles(solicitud)">
-                      Mas informacion
+                      Ver detalles de actualizacion
                     </button>
                   </td>
                 </tr>
@@ -199,7 +199,6 @@ export default {
       return date.toLocaleDateString('es-GT', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     };
 
-    // Función para parsear el JSON de forma segura
     const parseDatosNuevos = (jsonString) => {
       try {
         return JSON.parse(jsonString);
