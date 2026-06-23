@@ -1,5 +1,5 @@
-const { updateServiceStatus, responderCalificacion } = require("../src/controllers/operator.controller");
-const { registerEmpresa } = require("../src/controllers/company.controller");
+const { updateServiceStatus, responderCalificacion } = require("../../src/controllers/operator.controller");
+const { registerEmpresa } = require("../../src/controllers/company.controller");
 
 const mockRes = () => {
     const res = {};
