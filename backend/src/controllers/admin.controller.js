@@ -2,6 +2,7 @@ const solicitudService = require("../services/request.services");
 const adminService = require("../services/admin.services");
 const authService = require("../services/auth.services");
 const operadorService = require("../services/operator.services");
+const companyService = require("../services/company.services");
 const { encryptPassword } = require("../utils/password");
 const { generateToken } = require("../utils/jwt");
 
@@ -170,6 +171,44 @@ const resolveProfileRequest = async (req, res) => {
     }
 };
 
+const getPendingCompanyProfileRequests = async (req, res) => {
+    try {
+        const solicitudes = await solicitudService.getPendingCompanyProfileRequests();
+        return res.status(200).json(solicitudes);
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+const resolveCompanyProfileRequest = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { accion, notas_admin } = req.body;
+
+        const solicitud = await solicitudService.getProfileRequestById(id);
+        if (!solicitud) {
+            return res.status(404).json({ message: "Solicitud no encontrada" });
+        }
+        if (solicitud.id_estado !== 1) {
+            return res.status(400).json({ message: "La solicitud ya fue procesada" });
+        }
+        if (accion === "APROBAR") {
+            const datos = JSON.parse(solicitud.datos_nuevos_json);
+            await companyService.updateCompanyProfile(solicitud.id_usuario, datos);
+            await solicitudService.resolveProfileRequest(id, 2, req.user.id_usuario, notas_admin);
+        } else {
+            await solicitudService.resolveProfileRequest(id, 3, req.user.id_usuario, notas_admin);
+        }
+        return res.status(200).json({
+            message: `Solicitud de empresa ${accion.toLowerCase()} correctamente`
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     getSolicitudes,
     approveSolicitud,
@@ -177,5 +216,7 @@ module.exports = {
     registerAdmin,
     verifyAdminOTP,
     getPendingProfileRequests,
-    resolveProfileRequest
+    resolveProfileRequest,
+    getPendingCompanyProfileRequests,
+    resolveCompanyProfileRequest
 };

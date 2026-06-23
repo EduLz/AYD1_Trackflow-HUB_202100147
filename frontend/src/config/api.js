@@ -17,6 +17,8 @@ export const API = {
     // Solicitudes de Cambio de Perfil
     getSolicitudesPerfil: `${BASE_URL}/api/admin/profile-change-requests`,
     resolverSolicitudPerfil: (id) => `${BASE_URL}/api/admin/profile-change-requests/${id}`,
+    getSolicitudesPerfilEmpresa: `${BASE_URL}/api/admin/company-profile-change-requests`,
+    resolverSolicitudPerfilEmpresa: (id) => `${BASE_URL}/api/admin/company-profile-change-requests/${id}`,
   },
   reuniones: {
     crear: `${BASE_URL}/api/reuniones`,

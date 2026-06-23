@@ -180,6 +180,31 @@ const getPendingProfileRequests = async () => {
             INNER JOIN EstadoSolicitud es
                 ON es.id_estado = scp.id_estado
             WHERE scp.id_estado = 1
+              AND u.id_rol = 3
+            ORDER BY scp.fecha_solicitud DESC
+        `);
+    return result.recordset;
+};
+
+const getPendingCompanyProfileRequests = async () => {
+
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .query(`
+            SELECT
+                scp.id_solicitud,
+                u.correo,
+                es.nombre AS estado,
+                scp.datos_nuevos_json,
+                scp.fecha_solicitud
+            FROM SolicitudCambioPerfil scp
+            INNER JOIN Usuario u
+                ON u.id_usuario = scp.id_usuario
+            INNER JOIN EstadoSolicitud es
+                ON es.id_estado = scp.id_estado
+            WHERE scp.id_estado = 1
+              AND u.id_rol = 4
             ORDER BY scp.fecha_solicitud DESC
         `);
     return result.recordset;
@@ -226,6 +251,7 @@ module.exports = {
     createProfileChangeRequest,
     getProfileRequestsByUser,
     getPendingProfileRequests,
+    getPendingCompanyProfileRequests,
     getProfileRequestById,
     resolveProfileRequest
 };

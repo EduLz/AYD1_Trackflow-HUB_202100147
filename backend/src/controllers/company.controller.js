@@ -364,34 +364,21 @@ const createCoupon = async (req, res) => {
 };
 
 const requestProfileChange = async (req, res) => {
-
     try {
+        const id_usuario = req.user.id_usuario;
+        const { nuevos_datos } = req.body;
 
-        const {
-            id_usuario,
-            nuevos_datos
-        } = req.body;
-
-        const request =
-            await companyService.createProfileChangeRequest(
-                id_usuario,
-                nuevos_datos
-            );
+        const request = await companyService.createProfileChangeRequest(id_usuario, nuevos_datos);
 
         return res.status(201).json({
-            message:
-                "Solicitud enviada correctamente",
+            message: "Solicitud enviada correctamente",
             request
         });
-
     } catch (error) {
-
         return res.status(500).json({
             message: error.message
         });
-
     }
-
 };
 
 const createVehicle = async (req, res) => {
