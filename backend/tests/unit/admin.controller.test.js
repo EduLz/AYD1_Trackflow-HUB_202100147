@@ -1,10 +1,10 @@
-const {getPendingProfileRequests, resolveProfileRequest} = require("../src/controllers/admin.controller");
+const {getPendingProfileRequests, resolveProfileRequest} = require("../../src/controllers/admin.controller");
 
-const solicitudService = require("../src/services/request.services");
-const operadorService = require("../src/services/operator.services");
+const solicitudService = require("../../src/services/request.services");
+const operadorService = require("../../src/services/operator.services");
 
-jest.mock("../src/services/request.services");
-jest.mock("../src/services/operator.services");
+jest.mock("../../src/services/request.services");
+jest.mock("../../src/services/operator.services");
 
 describe("Admin Controller - Solicitudes Cambio Perfil", () => {
     let req;

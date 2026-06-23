@@ -1,5 +1,5 @@
 const { updateServiceStatus, responderCalificacion } =
-    require("../src/controllers/operator.controller");
+    require("../../src/controllers/operator.controller");
 
 const mockRes = () => {
     const res = {};

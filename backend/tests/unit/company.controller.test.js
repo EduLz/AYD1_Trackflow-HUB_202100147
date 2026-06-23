@@ -1,8 +1,8 @@
-const companyService = require("../src/services/company.services");
-const emailService = require("../src/services/email.services");
+const companyService = require("../../src/services/company.services");
+const emailService = require("../../src/services/email.services");
 
-jest.mock("../src/services/company.services");
-jest.mock("../src/services/email.services");
+jest.mock("../../src/services/company.services");
+jest.mock("../../src/services/email.services");
 
 describe("Company module unit tests", () => {
 
