@@ -3,7 +3,8 @@ const express = require("express");
 const router = express.Router();
 
 const {getSolicitudes, approveSolicitud, rejectSolicitud, registerAdmin, verifyAdminOTP, 
-       getPendingProfileRequests, resolveProfileRequest} = require("../controllers/admin.controller");
+       getPendingProfileRequests, resolveProfileRequest,
+       getPendingCompanyProfileRequests, resolveCompanyProfileRequest} = require("../controllers/admin.controller");
 const {verifyToken, requireRole } = require("../middlewares/auth.middleware");
 
 router.get("/solicitudes",verifyToken, requireRole(1), getSolicitudes);
@@ -13,5 +14,8 @@ router.post("/register",registerAdmin);
 router.post("/verify-otp", verifyAdminOTP );
 router.get("/profile-change-requests", verifyToken, requireRole(1), getPendingProfileRequests);
 router.patch("/profile-change-requests/:id", verifyToken, requireRole(1), resolveProfileRequest);
+
+router.get("/company-profile-change-requests", verifyToken, requireRole(1), getPendingCompanyProfileRequests);
+router.patch("/company-profile-change-requests/:id", verifyToken, requireRole(1), resolveCompanyProfileRequest);
 
 module.exports = router;

@@ -8,83 +8,114 @@
       <div class="page-header">
         <h1>Solicitudes de Cambio de Perfil</h1>
         <p class="page-subtitle">
-          Revisa, aprueba o rechaza solicitudes de cambios en el perfil de los operadores.
+          Revisa, aprueba o rechaza solicitudes de cambios en el perfil de Operadores y Empresas.
         </p>
       </div>
 
-      <div class="tabla-wrapper">
-        <!-- Estado de carga -->
-        <div v-if="cargando" class="estado-carga">
-          Cargando solicitudes...
-        </div>
-
-        <!-- Tabla -->
-        <table v-else class="tabla-solicitudes">
-          <thead>
-            <tr>
-              <th>Operador</th>
-              <th>Fecha Solicitud</th>
-              <th>Datos Propuestos</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template v-for="sol in solicitudes" :key="sol.id_solicitud">
+      <div class="seccion-bloque">
+        <h2>Solicitudes de Operadores</h2>
+        <div class="tabla-wrapper">
+          <div v-if="cargando" class="estado-carga">Cargando solicitudes de operadores...</div>
+          <table v-else class="tabla-solicitudes">
+            <thead>
               <tr>
-                <td>
-                  <div class="correo-operador">{{ sol.correo }}</div>
-                </td>
-                <td>{{ formatearFecha(sol.fecha_solicitud) }}</td>
-                <td>
-                  <ul class="datos-list">
-                    <li v-for="(val, key) in parseDatos(sol.datos_nuevos_json)" :key="key">
-                      <strong>{{ key }}:</strong> {{ val }}
-                    </li>
-                  </ul>
-                </td>
-                <td>
-                  <span :class="'badge-estado estado-' + sol.estado.toLowerCase()">{{ sol.estado }}</span>
-                </td>
-                <td>
-                  <!-- Si esta pendiente, mostramos botones o formulario -->
-                  <div v-if="sol.estado === 'PENDIENTE'">
-                    
-                    <div v-if="formActivo === sol.id_solicitud" class="form-resolucion">
-                      <textarea 
-                        v-model="notasAdmin" 
-                        placeholder="Escribe una nota obligatoria..."
-                        rows="2"
-                        class="textarea-nota"
-                      ></textarea>
-                      <div class="acciones-form">
-                        <button class="btn-aprobar" @click="resolver(sol, 'APROBAR')" :disabled="!notasAdmin || procesando">Aprobar</button>
-                        <button class="btn-rechazar" @click="resolver(sol, 'RECHAZAR')" :disabled="!notasAdmin || procesando">Rechazar</button>
-                        <button class="btn-cancelar" @click="cancelarForm">Cancelar</button>
+                <th>Operador / Correo</th>
+                <th>Fecha Solicitud</th>
+                <th>Datos Propuestos</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template v-for="sol in solicitudes" :key="sol.id_solicitud">
+                <tr>
+                  <td><div class="correo-operador">{{ sol.correo }}</div></td>
+                  <td>{{ formatearFecha(sol.fecha_solicitud) }}</td>
+                  <td>
+                    <ul class="datos-list">
+                      <li v-for="(val, key) in parseDatos(sol.datos_nuevos_json)" :key="key">
+                        <strong>{{ key }}:</strong> {{ val }}
+                      </li>
+                    </ul>
+                  </td>
+                  <td><span :class="'badge-estado estado-' + sol.estado.toLowerCase()">{{ sol.estado }}</span></td>
+                  <td>
+                    <div v-if="sol.estado === 'PENDIENTE'">
+                      <div v-if="formActivo === sol.id_solicitud" class="form-resolucion">
+                        <textarea v-model="notasAdmin" placeholder="Escribe una nota..." rows="2" class="textarea-nota"></textarea>
+                        <div class="acciones-form">
+                          <button class="btn-aprobar" @click="resolver(sol, 'APROBAR')" :disabled="!notasAdmin || procesando">Aprobar</button>
+                          <button class="btn-rechazar" @click="resolver(sol, 'RECHAZAR')" :disabled="!notasAdmin || procesando">Rechazar</button>
+                          <button class="btn-cancelar" @click="cancelarForm">Cancelar</button>
+                        </div>
+                      </div>
+                      <div v-else class="acciones-celda">
+                        <button class="btn-resolver" @click="abrirForm(sol.id_solicitud)">Resolver Solicitud</button>
                       </div>
                     </div>
-
-                    <div v-else class="acciones-celda">
-                      <button class="btn-resolver" @click="abrirForm(sol.id_solicitud)">Resolver Solicitud</button>
-                    </div>
-
-                  </div>
-                  <div v-else class="resuelta-nota">
-                    No hay acciones disponibles
-                  </div>
-                </td>
+                    <div v-else class="resuelta-nota">No hay acciones disponibles</div>
+                  </td>
+                </tr>
+              </template>
+              <tr v-if="solicitudes.length === 0">
+                <td colspan="5"><div class="empty-state">No hay solicitudes de operadores pendientes.</div></td>
               </tr>
-            </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-            <tr v-if="solicitudes.length === 0">
-              <td colspan="5">
-                <div class="empty-state">
-                  No hay solicitudes de cambio de perfil pendientes.
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="seccion-bloque mt-4">
+        <h2>Solicitudes de Empresas</h2>
+        <div class="tabla-wrapper">
+          <div v-if="cargandoEmpresas" class="estado-carga">Cargando solicitudes de empresas...</div>
+          <table v-else class="tabla-solicitudes">
+            <thead>
+              <tr>
+                <th>Empresa / Correo</th>
+                <th>Fecha Solicitud</th>
+                <th>Datos Propuestos</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template v-for="sol in solicitudesEmpresas" :key="sol.id_solicitud">
+                <tr>
+                  <td><div class="correo-operador">{{ sol.correo }}</div></td>
+                  <td>{{ formatearFecha(sol.fecha_solicitud) }}</td>
+                  <td>
+                    <ul class="datos-list">
+                      <li v-for="(val, key) in parseDatos(sol.datos_nuevos_json)" :key="key">
+                        <strong>{{ key }}:</strong> {{ val }}
+                      </li>
+                    </ul>
+                  </td>
+                  <td><span :class="'badge-estado estado-' + sol.estado.toLowerCase()">{{ sol.estado }}</span></td>
+                  <td>
+                    <div v-if="sol.estado === 'PENDIENTE'">
+                      <div v-if="formActivoEmpresa === sol.id_solicitud" class="form-resolucion">
+                        <textarea v-model="notasAdminEmpresa" placeholder="Escribe una nota..." rows="2" class="textarea-nota"></textarea>
+                        <div class="acciones-form">
+                          <button class="btn-aprobar" @click="resolverEmpresa(sol, 'APROBAR')" :disabled="!notasAdminEmpresa || procesandoEmpresas">Aprobar</button>
+                          <button class="btn-rechazar" @click="resolverEmpresa(sol, 'RECHAZAR')" :disabled="!notasAdminEmpresa || procesandoEmpresas">Rechazar</button>
+                          <button class="btn-cancelar" @click="cancelarFormEmpresa">Cancelar</button>
+                        </div>
+                      </div>
+                      <div v-else class="acciones-celda">
+                        <button class="btn-resolver" @click="abrirFormEmpresa(sol.id_solicitud)">Resolver Solicitud</button>
+                      </div>
+                    </div>
+                    <div v-else class="resuelta-nota">No hay acciones disponibles</div>
+                  </td>
+                </tr>
+              </template>
+              <tr v-if="solicitudesEmpresas.length === 0">
+                <td colspan="5"><div class="empty-state">No hay solicitudes de empresas pendientes.</div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </main>
@@ -113,10 +144,14 @@ export default {
     const cargando = ref(false);
     const procesando = ref(false);
     const solicitudes = ref([]);
-    
-    // Formulario inline
     const formActivo = ref(null);
     const notasAdmin = ref('');
+
+    const cargandoEmpresas = ref(false);
+    const procesandoEmpresas = ref(false);
+    const solicitudesEmpresas = ref([]);
+    const formActivoEmpresa = ref(null);
+    const notasAdminEmpresa = ref('');
 
     const toast = reactive({ visible: false, mensaje: '', tipo: 'exito' });
 
@@ -144,13 +179,30 @@ export default {
         const res = await fetch(API.admin.getSolicitudesPerfil, {
           headers: { Authorization: `Bearer ${authStore.token}` }
         });
-        if (!res.ok) throw new Error('Error al cargar las solicitudes');
+        if (!res.ok) throw new Error('Error al cargar las solicitudes de operadores');
         const data = await res.json();
         solicitudes.value = Array.isArray(data) ? data : [];
       } catch (error) {
         mostrarToast(error.message, 'error');
       } finally {
         cargando.value = false;
+      }
+    };
+
+    const cargarSolicitudesEmpresas = async () => {
+      cargandoEmpresas.value = true;
+      try {
+        const res = await fetch(API.admin.getSolicitudesPerfilEmpresa, {
+          headers: { Authorization: `Bearer ${authStore.token}` }
+        });
+        if (!res.ok) throw new Error('Endpoints de empresa aún no disponibles');
+        const data = await res.json();
+        solicitudesEmpresas.value = Array.isArray(data) ? data : [];
+      } catch (error) {
+        // Fallará silenciosamente (o mostrando vacío) porque aún no está el backend
+        solicitudesEmpresas.value = [];
+      } finally {
+        cargandoEmpresas.value = false;
       }
     };
 
@@ -164,6 +216,16 @@ export default {
       notasAdmin.value = '';
     };
 
+    const abrirFormEmpresa = (id) => {
+      formActivoEmpresa.value = id;
+      notasAdminEmpresa.value = '';
+    };
+
+    const cancelarFormEmpresa = () => {
+      formActivoEmpresa.value = null;
+      notasAdminEmpresa.value = '';
+    };
+
     const resolver = async (sol, accion) => {
       procesando.value = true;
       try {
@@ -173,18 +235,12 @@ export default {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${authStore.token}` 
           },
-          body: JSON.stringify({
-            accion,
-            notas_admin: notasAdmin.value
-          })
+          body: JSON.stringify({ accion, notas_admin: notasAdmin.value })
         });
-
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || `Error al ${accion.toLowerCase()} la solicitud`);
-
         mostrarToast(data.message || `Solicitud ${accion.toLowerCase()} correctamente`, 'exito');
         cancelarForm();
-        // Recargar o simplemente actualizar la fila
         await cargarSolicitudes();
       } catch (error) {
         mostrarToast(error.message, 'error');
@@ -193,11 +249,39 @@ export default {
       }
     };
 
-    onMounted(cargarSolicitudes);
+    const resolverEmpresa = async (sol, accion) => {
+      procesandoEmpresas.value = true;
+      try {
+        const res = await fetch(API.admin.resolverSolicitudPerfilEmpresa(sol.id_solicitud), {
+          method: 'PATCH',
+          headers: { 
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authStore.token}` 
+          },
+          body: JSON.stringify({ accion, notas_admin: notasAdminEmpresa.value })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || `Error al ${accion.toLowerCase()} la solicitud de empresa`);
+        mostrarToast(data.message || `Solicitud ${accion.toLowerCase()} correctamente`, 'exito');
+        cancelarFormEmpresa();
+        await cargarSolicitudesEmpresas();
+      } catch (error) {
+        mostrarToast(error.message, 'error');
+      } finally {
+        procesandoEmpresas.value = false;
+      }
+    };
+
+    onMounted(() => {
+      cargarSolicitudes();
+      cargarSolicitudesEmpresas();
+    });
 
     return {
       cargando, procesando, solicitudes, toast, formActivo, notasAdmin,
-      formatearFecha, parseDatos, abrirForm, cancelarForm, resolver
+      cargandoEmpresas, procesandoEmpresas, solicitudesEmpresas, formActivoEmpresa, notasAdminEmpresa,
+      formatearFecha, parseDatos, abrirForm, cancelarForm, resolver,
+      abrirFormEmpresa, cancelarFormEmpresa, resolverEmpresa
     };
   }
 };
@@ -216,6 +300,10 @@ export default {
                   margin-bottom: 0.5rem; }
 .page-subtitle { font-size: 1rem; 
                 color: #64748b; }
+
+.seccion-bloque { margin-bottom: 3rem; }
+.seccion-bloque h2 { font-size: 1.3rem; margin-bottom: 1rem; color: #334155; font-weight: 700; }
+.mt-4 { margin-top: 2rem; }
 
 .tabla-wrapper { background: #fff; 
                  border: 1px solid #e2e8f0; 
