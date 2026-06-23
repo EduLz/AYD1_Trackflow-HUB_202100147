@@ -161,13 +161,19 @@
                   </span>
                 </td>
                 <td class="actions-cell">
-                  <button type="button" class="btn-action edit" @click="abrirModalEdicion(ruta)">
+                  <button type="button" class="btn-action edit" @click="abrirModalEdicion(ruta)" :disabled="ruta.estado?.toUpperCase() === 'ELIMINADO'">
                     Editar
                   </button>
-                  <button type="button" class="btn-action suspend" @click="abrirModalSuspension(ruta)">
+                  
+                  <button v-if="ruta.estado?.toUpperCase() !== 'SUSPENDIDO'" type="button" class="btn-action suspend" @click="abrirModalSuspension(ruta)" :disabled="ruta.estado?.toUpperCase() === 'ELIMINADO'">
                     Suspender
                   </button>
-                  <button type="button" class="btn-action cancel" @click="abrirModalCancelacion(ruta)">
+
+                  <button v-if="ruta.estado?.toUpperCase() === 'SUSPENDIDO'" type="button" class="btn-action reactivate" @click="abrirModalReactivacion(ruta)" :disabled="ruta.estado?.toUpperCase() === 'ELIMINADO'">
+                    Reactivar
+                  </button>
+
+                  <button type="button" class="btn-action cancel" @click="abrirModalCancelacion(ruta)" :disabled="ruta.estado?.toUpperCase() === 'ELIMINADO'">
                     Cancelar
                   </button>
                 </td>
@@ -223,6 +229,18 @@
       </div>
     </div>
 
+    <div v-if="isReactivateModalOpen" class="modal-overlay" @click.self="cerrarModalReactivacion">
+      <div class="modal-content fade-in">
+        <h2>Confirmar Reactivacion</h2>
+        <p>¿Estas seguro que deseas reactivar la ruta <strong>{{ rutaAReactivar?.origen }} - {{ rutaAReactivar?.destino }}</strong>?</p>
+        <p class="success-text" style="color: #16a34a; font-weight: bold; margin-top: 1rem;">La ruta volvera a estar visible y activa para los clientes.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" @click="cerrarModalReactivacion">Volver</button>
+          <button type="button" class="btn-success" @click="confirmarReactivacion">Si, Reactivar</button>
+        </div>
+      </div>
+    </div>
+
     <div v-if="isCancelModalOpen" class="modal-overlay" @click.self="cerrarModalCancelacion">
       <div class="modal-content fade-in">
         <h2>Confirmar Cancelacion</h2>
@@ -267,6 +285,9 @@ export default {
     const isSuspendModalOpen = ref(false);
     const rutaASuspender = ref(null);
 
+    const isReactivateModalOpen = ref(false);
+    const rutaAReactivar = ref(null);
+
     const isCancelModalOpen = ref(false);
     const rutaACancelar = ref(null);
     
@@ -305,6 +326,14 @@ export default {
     };
 
     const registrarRutaManual = async () => {
+      const idVehiculoSeleccionado = parseInt(formManual.value.id_vehiculo);
+      const vehiculoEnUso = rutas.value.find(r => r.id_vehiculo === idVehiculoSeleccionado && ['ACTIVO', 'PENDIENTE'].includes(r.estado?.toUpperCase()));
+      
+      if (vehiculoEnUso) {
+        mostrarNotificacion(`El vehiculo seleccionado ya esta asignado a la ruta activa #${vehiculoEnUso.id_ruta}. Selecciona otro.`, true);
+        return;
+      }
+
       isLoading.value = true;
       const payload = {
         ...formManual.value,
@@ -466,6 +495,36 @@ export default {
       }
     };
 
+    const abrirModalReactivacion = (ruta) => {
+      rutaAReactivar.value = ruta;
+      isReactivateModalOpen.value = true;
+    };
+
+    const cerrarModalReactivacion = () => {
+      isReactivateModalOpen.value = false;
+      rutaAReactivar.value = null;
+    };
+
+    const confirmarReactivacion = async () => {
+      try {
+        const response = await fetch(`http://localhost:3000/api/empresas/routes/${rutaAReactivar.value.id_ruta}/activate`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`
+          }
+        });
+        if (response.ok) {
+          mostrarNotificacion('Ruta reactivada y visible nuevamente.');
+          cerrarModalReactivacion();
+          obtenerRutas();
+        } else {
+           mostrarNotificacion('No se pudo reactivar la ruta.', true);
+        }
+      } catch (error) {
+        mostrarNotificacion('Error de red al intentar reactivar.', true);
+      }
+    };
+
     const abrirModalCancelacion = (ruta) => {
       rutaACancelar.value = ruta;
       isCancelModalOpen.value = true;
@@ -526,11 +585,13 @@ export default {
 
     return {
       activeTab, tipoCargaCSV, mensajeExito, mensajeError, archivoCSV, isLoading, dragover,
-      isSuspendModalOpen, rutaASuspender, isCancelModalOpen, rutaACancelar, formManual, vehiculos, rutas,
+      isSuspendModalOpen, rutaASuspender, isCancelModalOpen, rutaACancelar, 
+      isReactivateModalOpen, rutaAReactivar, formManual, vehiculos, rutas,
       isEditModalOpen, rutaAEditar, 
       obtenerRutas, registrarRutaManual, manejarArchivo, removerArchivo, manejarDrop, procesarCSV, formatEstado,
       abrirModalEdicion, cerrarModalEdicion, guardarEdicion,
       abrirModalSuspension, cerrarModalSuspension, confirmarSuspension,
+      abrirModalReactivacion, cerrarModalReactivacion, confirmarReactivacion,
       abrirModalCancelacion, cerrarModalCancelacion, confirmarCancelacion
     };
   }
@@ -581,15 +642,19 @@ export default {
 .status-indicator.activo { color: #16a34a; }
 .status-indicator.eliminado { color: #dc2626; }
 .status-indicator.suspendido { color: #ea580c; }
+.status-indicator.cancelado { color: #991b1b; }
 .actions-cell { display: flex; gap: 0.5rem; }
 
 .btn-action { padding: 0.5rem 1rem; border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
 .btn-action.edit { background-color: #f1f5f9; color: #0284c7; border: 1px solid #bae6fd; }
-.btn-action.edit:hover { background-color: #e0f2fe; }
+.btn-action.edit:hover:not(:disabled) { background-color: #e0f2fe; }
 .btn-action.suspend { background-color: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; }
-.btn-action.suspend:hover { background-color: #ffedd5; }
+.btn-action.suspend:hover:not(:disabled) { background-color: #ffedd5; }
 .btn-action.cancel { background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-.btn-action.cancel:hover { background-color: #fee2e2; }
+.btn-action.cancel:hover:not(:disabled) { background-color: #fee2e2; }
+.btn-action.reactivate { background-color: #ecfdf5; color: #16a34a; border: 1px solid #bbf7d0; }
+.btn-action.reactivate:hover:not(:disabled) { background-color: #dcfce7; }
+.btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .alert-success { background-color: #ecfdf5; color: #16a34a; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #10b981; }
 .alert-danger-box { background-color: #fef2f2; color: #991b1b; padding: 1rem; border-radius: 8px; border-left: 4px solid #ef4444; margin-bottom: 1.5rem; }
@@ -607,4 +672,6 @@ export default {
 .btn-danger:hover { background-color: #dc2626; }
 .btn-warning { background-color: #f97316; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
 .btn-warning:hover { background-color: #ea580c; }
+.btn-success { background-color: #22c55e; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+.btn-success:hover { background-color: #16a34a; }
 </style>
