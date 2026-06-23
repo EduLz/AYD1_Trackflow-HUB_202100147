@@ -30,7 +30,7 @@
                 <input 
                   type="text" 
                   v-model="formPerfil.nombre_empresa" 
-                  placeholder="Ej. Transportes Hernández"
+                  placeholder="Ej. Transportes Hernandez"
                   :disabled="estado_solicitud === 'PENDIENTE'"
                   required 
                 />
@@ -59,7 +59,7 @@
               </div>
 
               <div class="form-group">
-                <label>Teléfono Principal</label>
+                <label>Telefono Principal</label>
                 <input 
                   type="text" 
                   v-model="formPerfil.telefono" 
@@ -70,7 +70,7 @@
               </div>
 
               <div class="form-group">
-                <label>Teléfono de Respaldo</label>
+                <label>Telefono de Respaldo</label>
                 <input 
                   type="text" 
                   v-model="formPerfil.telefono_respaldo" 
@@ -88,8 +88,65 @@
             </div>
           </form>
         </div>
+
+        <div class="table-section mt-5" style="margin-top: 3rem;" v-if="historialSolicitudes.length > 0">
+          <h2>Historial de Solicitudes de Cambio</h2>
+          <div class="table-responsive" style="margin-top: 1rem;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID Solicitud</th>
+                  <th>Nombre Propuesto</th>
+                  <th>Fecha de Solicitud</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="solicitud in historialSolicitudes" :key="solicitud.id_solicitud">
+                  <td class="font-bold-code">#{{ solicitud.id_solicitud }}</td>
+                  
+                  <td><strong>{{ parseDatosNuevos(solicitud.datos_nuevos_json).nombre_empresa || 'N/A' }}</strong></td>
+                  
+                  <td>{{ formatearFecha(solicitud.fecha_solicitud) }}</td>
+                  <td>
+                    <span :class="['status-badge', solicitud.estado?.toLowerCase() || 'pendiente']">
+                      {{ solicitud.estado || 'PENDIENTE' }}
+                    </span>
+                  </td>
+                  <td>
+                    <button type="button" class="btn-secondary small" @click="abrirModalDetalles(solicitud)">
+                      Ver detalles de actualizacion
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </main>
+
+    <div v-if="isDetallesModalOpen" class="modal-overlay" @click.self="cerrarModalDetalles">
+      <div class="modal-content fade-in">
+        <h2>Detalles de Solicitud #{{ solicitudSeleccionada?.id_solicitud }}</h2>
+        <p class="co-subtitle" style="margin-bottom: 1.5rem;">Estos son los datos propuestos enviados al administrador.</p>
+        
+        <ul class="details-list">
+          <li><strong>Empresa:</strong> {{ datosParseados.nombre_empresa || 'N/A' }}</li>
+          <li><strong>NIT:</strong> {{ datosParseados.nit || 'N/A' }}</li>
+          <li><strong>Licencia:</strong> {{ datosParseados.licencia_operativa || 'N/A' }}</li>
+          <li><strong>Telefono:</strong> {{ datosParseados.telefono || 'N/A' }}</li>
+          <li><strong>Telefono de Respaldo:</strong> {{ datosParseados.telefono_respaldo || 'N/A' }}</li>
+        </ul>
+
+        <div class="modal-actions" style="margin-top: 2rem;">
+          <button type="button" class="btn-primary" @click="cerrarModalDetalles">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -111,8 +168,13 @@ export default {
     const mensajeExito = ref('');
     const mensajeError = ref('');
     const estado_solicitud = ref('ACTIVO');
+    const historialSolicitudes = ref([]);
     
-    // Modelo reactivo del formulario
+    // Variables del Modal de Detalles
+    const isDetallesModalOpen = ref(false);
+    const solicitudSeleccionada = ref(null);
+    const datosParseados = ref({});
+
     const formPerfil = ref({
       nombre_empresa: '',
       telefono: '',
@@ -131,6 +193,52 @@ export default {
       }
     };
 
+    const formatearFecha = (fechaStr) => {
+      if (!fechaStr) return '';
+      const date = new Date(fechaStr);
+      return date.toLocaleDateString('es-GT', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    };
+
+    const parseDatosNuevos = (jsonString) => {
+      try {
+        return JSON.parse(jsonString);
+      } catch (e) {
+        return {};
+      }
+    };
+
+    const abrirModalDetalles = (solicitud) => {
+      solicitudSeleccionada.value = solicitud;
+      datosParseados.value = parseDatosNuevos(solicitud.datos_nuevos_json);
+      isDetallesModalOpen.value = true;
+    };
+
+    const cerrarModalDetalles = () => {
+      isDetallesModalOpen.value = false;
+      solicitudSeleccionada.value = null;
+      datosParseados.value = {};
+    };
+
+    const obtenerSolicitudes = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/empresas/profile-change', {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${authStore.token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          historialSolicitudes.value = data || [];
+          
+          const tienePendiente = historialSolicitudes.value.some(s => s.estado === 'PENDIENTE');
+          if (tienePendiente) {
+            estado_solicitud.value = 'PENDIENTE';
+          }
+        }
+      } catch (error) {
+        console.error('Error cargando historial de solicitudes.');
+      }
+    };
+
     const obtenerPerfil = async () => {
       isLoading.value = true;
       try {
@@ -140,8 +248,6 @@ export default {
         });
         if (response.ok) {
           const data = await response.json();
-          console.log("=== DEBUG FRONTEND: PERFIL CARGADO ===", data);
-          
           formPerfil.value = {
             nombre_empresa: data.nombre_empresa || '',
             telefono: data.telefono || '',
@@ -162,8 +268,6 @@ export default {
     };
 
     const enviarSolicitudPerfil = async () => {
-      console.log("=== INICIANDO SOLICITUD DE CAMBIO DE PERFIL ===");
-      
       if (!formPerfil.value.nombre_empresa || !formPerfil.value.telefono || !formPerfil.value.nit || !formPerfil.value.licencia_operativa) {
         mostrarNotificacion('Por favor, completa todos los campos obligatorios.', true);
         return;
@@ -172,7 +276,6 @@ export default {
       isLoading.value = true;
       mensajeError.value = '';
       
-      // ESTRUCTURA EXACTA REQUERIDA POR EL BACKEND
       const payload = {
         id_usuario: authStore.user?.id_usuario || authStore.user?.id || 1,
         nuevos_datos: {
@@ -184,10 +287,7 @@ export default {
         }
       };
 
-      console.log("Payload formateado enviado al Backend:", payload);
-
       try {
-        // ENDPOINT CORREGIDO SEGÚN LA DOCUMENTACIÓN
         const response = await fetch('http://localhost:3000/api/empresas/profile-change', {
           method: 'POST',
           headers: {
@@ -200,13 +300,13 @@ export default {
         if (response.ok) {
           estado_solicitud.value = 'PENDIENTE';
           mostrarNotificacion('Solicitud de cambio enviada exitosamente. El Administrador ha sido notificado.');
+          obtenerSolicitudes(); 
         } else {
           const errData = await response.json().catch(() => ({}));
-          console.error("ERROR DEL BACKEND:", errData);
           mostrarNotificacion(`Error: ${errData.message || 'No se pudo procesar la solicitud de cambio.'}`, true);
         }
       } catch (error) {
-        mostrarNotificacion('Error de conexión con el servidor.', true);
+        mostrarNotificacion('Error de conexion con el servidor.', true);
       } finally {
         isLoading.value = false;
       }
@@ -214,11 +314,13 @@ export default {
 
     onMounted(() => {
       obtenerPerfil();
+      obtenerSolicitudes();
     });
 
     return { 
-      formPerfil, estado_solicitud, mensajeExito, mensajeError, isLoading,
-      enviarSolicitudPerfil
+      formPerfil, estado_solicitud, historialSolicitudes, mensajeExito, mensajeError, isLoading,
+      isDetallesModalOpen, solicitudSeleccionada, datosParseados,
+      enviarSolicitudPerfil, formatearFecha, parseDatosNuevos, abrirModalDetalles, cerrarModalDetalles
     };
   }
 };
@@ -247,7 +349,29 @@ export default {
 .btn-primary { background-color: #2563eb; color: #ffffff; border: none; padding: 0.8rem 1.5rem; border-radius: 6px; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: background-color 0.2s; }
 .btn-primary:hover:not(:disabled) { background-color: #1d4ed8; }
 .btn-primary:disabled { background-color: #93c5fd; cursor: not-allowed; }
+.btn-secondary.small { background-color: #e2e8f0; color: #475569; padding: 0.4rem 1rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.875rem; transition: background-color 0.2s; }
+.btn-secondary.small:hover { background-color: #cbd5e1; }
+
+.table-responsive { overflow-x: auto; margin-top: 1.5rem; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th, .data-table td { padding: 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
+.data-table th { background-color: #f8fafc; color: #475569; font-weight: 600; font-size: 0.875rem; }
+.font-bold-code { font-weight: bold; letter-spacing: 1px; color: #1e293b; font-family: monospace; font-size: 1rem; }
+.status-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+.status-badge.aprobado { background-color: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
+.status-badge.pendiente { background-color: #fef08a; color: #c2410c; border: 1px solid #fde047; }
+.status-badge.rechazado { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
 
 .fade-in { animation: fadeIn 0.3s ease-in-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Modal Styles */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal-content { background: white; padding: 2rem; border-radius: 12px; width: 100%; max-width: 500px; }
+.modal-content h2 { margin-top: 0; color: #0f172a; margin-bottom: 0.5rem; }
+.details-list { list-style: none; padding: 0; margin: 0; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; padding: 1.5rem; }
+.details-list li { padding: 0.75rem 0; border-bottom: 1px solid #e2e8f0; color: #334155; font-size: 0.95rem; }
+.details-list li:last-child { border-bottom: none; }
+.details-list strong { color: #0f172a; margin-right: 0.5rem; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 1rem; }
 </style>
