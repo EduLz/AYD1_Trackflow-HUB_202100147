@@ -556,11 +556,8 @@ Los requerimientos funcionales describen las acciones que el sistema debe ser ca
 
 ## 5. Diagrama de clases
 
-_Inserte aquí el diagrama de clases._
 
 ![Diagrama de clases](/docs/Anexos/clases.jpeg)
-
-**Descripción:** Breve explicación de las clases principales del sistema, sus atributos, métodos y relaciones (asociación, herencia, composición) más relevantes.
 
 ---
 
