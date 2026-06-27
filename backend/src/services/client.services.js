@@ -150,10 +150,161 @@ const getShippingServices = async (filters) => {
 
 };
 
+const getClienteByUserId = async (id_usuario) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_usuario", id_usuario)
+        .query(`
+            SELECT *
+            FROM Cliente
+            WHERE id_usuario = @id_usuario
+        `);
+    return result.recordset[0];
+};
+
+const createMetodoPago = async (id_cliente, id_tipo) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_cliente", id_cliente)
+        .input("id_tipo", id_tipo)
+        .query(`
+            INSERT INTO MetodoPago
+            (
+                id_cliente,
+                id_tipo
+            )
+            OUTPUT INSERTED.*
+            VALUES
+            (
+                @id_cliente,
+                @id_tipo
+            )
+        `);
+    return result.recordset[0];
+};
+
+const createTarjeta = async (data) => {
+
+    const pool = await connectDB();
+        const result = await pool.request()
+        .input("id_metodo", data.id_metodo)
+        .input("numero_hash", data.numero_hash)
+        .input("numero_ultimos4", data.numero_ultimos4)
+        .input("nombre_titular", data.nombre_titular)
+        .input("fecha_vencimiento", data.fecha_vencimiento)
+        .input("cvv_hash", data.cvv_hash)
+        .input("fingerprint", data.fingerprint)
+        .query(`
+            INSERT INTO TarjetaSimulada
+            (
+                id_metodo,
+                numero_hash,
+                numero_ultimos4,
+                nombre_titular,
+                fecha_vencimiento,
+                cvv_hash,
+                fingerprint
+            )
+
+            VALUES
+            (
+                @id_metodo,
+                @numero_hash,
+                @numero_ultimos4,
+                @nombre_titular,
+                @fecha_vencimiento,
+                @cvv_hash,
+                @fingerprint
+            )
+        `);
+};
+
+const findCardByFingerprint = async (fingerprint) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("fingerprint", fingerprint)
+        .query(`
+            SELECT *
+            FROM TarjetaSimulada
+            WHERE fingerprint = @fingerprint
+        `);
+    return result.recordset[0];
+};
+
+const getPaymentMethods = async (id_cliente) => {
+
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_cliente", id_cliente)
+        .query(`
+            SELECT
+                mp.id_metodo,
+                tmp.nombre AS tipo,
+                mp.activo,
+                mp.fecha_registro,
+
+                ts.nombre_titular,
+                ts.numero_ultimos4,
+                ts.fecha_vencimiento,
+                ts.saldo
+
+            FROM MetodoPago mp
+
+            INNER JOIN TipoMetodoPago tmp
+                ON tmp.id_tipo = mp.id_tipo
+
+            LEFT JOIN TarjetaSimulada ts
+                ON ts.id_metodo = mp.id_metodo
+
+            WHERE mp.id_cliente = @id_cliente
+
+            ORDER BY mp.fecha_registro DESC
+        `);
+
+    return result.recordset;
+};
+
+const getPaymentMethodById = async (id_metodo) => {
+
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_metodo", id_metodo)
+        .query(`
+            SELECT *
+            FROM MetodoPago
+            WHERE id_metodo = @id_metodo
+        `);
+
+    return result.recordset[0];
+};
+
+const deactivatePaymentMethod = async (id_metodo) => {
+
+    const pool = await connectDB();
+    await pool.request()
+        .input("id_metodo", id_metodo)
+        .query(`
+            UPDATE MetodoPago
+            SET activo = 0
+            WHERE id_metodo = @id_metodo
+        `);
+};
 
 module.exports = {
     createCliente,
-    getShippingServices
+    getShippingServices,
+    getClienteByUserId,
+    createMetodoPago,
+    createTarjeta,
+    findCardByFingerprint,
+    getPaymentMethods,
+    getPaymentMethodById,
+    deactivatePaymentMethod
 };
 
         

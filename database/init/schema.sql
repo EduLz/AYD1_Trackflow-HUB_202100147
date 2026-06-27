@@ -245,6 +245,7 @@ CREATE TABLE TarjetaSimulada (
     fecha_vencimiento CHAR(7)       NOT NULL,
     cvv_hash          VARCHAR(255)  NOT NULL,
     saldo             DECIMAL(10,2) NOT NULL DEFAULT 1000.00,
+    fingerprint       VARCHAR(64)   NOT NULL,
     FOREIGN KEY (id_metodo) REFERENCES MetodoPago(id_metodo)
 );
 
