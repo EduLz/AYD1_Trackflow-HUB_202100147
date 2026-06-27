@@ -12,7 +12,7 @@
             <Perfil />
           </div>
 
-          <div v-slot:default v-if="vistaSeleccionada === 'buscar-envios'">
+          <div v-if="vistaSeleccionada === 'buscar-envios'">
             <BuscarEnvios />
           </div>
 
@@ -29,13 +29,10 @@
               <h1>Centro de Reportes</h1>
               <p>Historial y creación de tickets de soporte para sus servicios contratados.</p>
             </div>
-          </div>
+            </div>
 
           <div v-if="vistaSeleccionada === 'billetera'">
-            <div class="content-header">
-              <h1>Billetera Virtual y Pagos</h1>
-              <p>Gestione su saldo de Q1,000.00 y administre sus tarjetas con validación Luhn.</p>
-            </div>
+            <Billetera />
           </div>
 
           <div v-if="vistaSeleccionada === 'cupones'">
@@ -66,6 +63,7 @@ import BuscarEnvios from './BuscarEnvios.vue';
 import BuscarTransporte from './BuscarTransporte.vue';
 import MisReservaciones from './MisReservaciones.vue';
 import Perfil from './Perfil.vue';
+import Billetera from './Billetera.vue';
 
 // Se define 'perfil' como el estado de inicio predeterminado
 const vistaSeleccionada = ref('perfil');
