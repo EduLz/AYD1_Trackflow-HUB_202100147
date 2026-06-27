@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const sql = require("mssql");
 
 const authService = require("../services/auth.services");
 const clienteService = require("../services/client.services");
@@ -7,6 +8,7 @@ const emailService = require("../services/email.services");
 const { validarLuhn } = require("../utils/luhn");
 const { hashValue, fingerprintCard } = require("../utils/payment");
 const { encryptPassword } = require("../utils/password");
+const { connectDB } = require("../config/database");
 
 const registerCliente = async (req, res) => {
     try {
@@ -230,10 +232,113 @@ const deactivatePaymentMethod = async (req, res) => {
     }
 };
 
+const createReservation = async (req, res) => {
+
+    const transaction = new sql.Transaction(await connectDB());
+    try {
+        const {
+            id_servicio,
+            id_metodo_pago,
+            fecha_inicio
+        } = req.body;
+        if (
+            !id_servicio ||
+            !id_metodo_pago ||
+            !fecha_inicio
+        ) {
+            return res.status(400).json({
+                message: "Todos los campos son obligatorios"
+            });
+        }
+        const cliente = await clienteService.getClienteByUserId(req.user.id_usuario);
+        if (!cliente) {
+            return res.status(404).json({
+                message: "Cliente no encontrado"
+            });
+        }
+        const servicio = await clienteService.getShippingServiceById(id_servicio);
+        if (!servicio) {
+            return res.status(404).json({
+                message: "Servicio no encontrado"
+            });
+        }
+        const metodo = await clienteService.getCardByMethod(id_metodo_pago);
+        if (!metodo) {
+            return res.status(404).json({
+                message: "Método de pago no encontrado"
+            });
+        }
+        if (metodo.id_cliente !== cliente.id_cliente) {
+            return res.status(403).json({
+                message: "El método de pago no pertenece al cliente"
+            });
+        }
+        if (!metodo.activo) {
+            return res.status(400).json({
+                message: "El método de pago está desactivado"
+            });
+        }
+        const hoy = new Date();
+        const fechaReserva = new Date(fecha_inicio);
+        const diferencia = fechaReserva.getTime() - hoy.getTime();
+        if (diferencia < 24 * 60 * 60 * 1000) {
+            return res.status(400).json({
+                message: "Debe reservar con al menos 24 horas de anticipación"
+            });
+        }
+
+        const conflicto = await clienteService.hasReservationConflict(cliente.id_cliente, fecha_inicio);
+        if (conflicto) {
+            return res.status(409).json({
+                message: "Ya existe una reservación para esa fecha"
+            });
+        }
+        if (metodo.saldo < servicio.precio_envio) {
+            return res.status(400).json({
+                message: "Saldo insuficiente"
+            });
+        }
+        const precio = Number(servicio.precio_envio);
+        const comision = Number((precio * 0.10).toFixed(2));
+        const proveedor = Number((precio - comision).toFixed(2));
+        await transaction.begin();
+        const request = new sql.Request(transaction);
+        await clienteService.discountBalanceTransaction(transaction, id_metodo_pago, precio);
+
+        const reservacion = await clienteService.createReservationTransaction(
+        transaction,
+        {
+            id_cliente: cliente.id_cliente,
+            id_metodo_pago,
+            id_servicio_env: id_servicio,
+            fecha_inicio,
+            precio_total: precio,
+            comision,
+            proveedor
+        }
+    );
+        await transaction.commit();
+
+        return res.status(201).json({
+            message: "Reservación creada correctamente",
+            reservacion
+        });
+    } catch (error) {
+        if (transaction._aborted === false) {
+            await transaction.rollback();
+        }
+        console.error(error);
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     registerCliente,
     getShippingServices,
     registerCard,
     getPaymentMethods,
-    deactivatePaymentMethod
+    deactivatePaymentMethod,
+    createReservation
 };
