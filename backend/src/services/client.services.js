@@ -682,6 +682,49 @@ const getReservationReportData = async (id_reservacion, id_cliente) => {
     return result.recordset[0];
 };
 
+const getMyReports = async (id_usuario) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_usuario", id_usuario)
+        .query(`
+            SELECT
+                r.id_reporte,
+                er.nombre AS estado,
+                r.tipo_reporte,
+                r.motivo,
+                r.descripcion,
+                r.accion_tomada,
+                r.fecha_reporte,
+                r.fecha_resolucion,
+                r.id_reservacion
+            FROM Reporte r
+            INNER JOIN EstadoReporte er
+                ON er.id_estado = r.id_estado
+            WHERE r.id_reportante = @id_usuario
+            ORDER BY r.fecha_reporte DESC
+        `);
+
+    return result.recordset;
+};
+
+const getReportEvidence = async (id_reporte) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_reporte", id_reporte)
+        .query(`
+            SELECT
+                id_evidencia,
+                tipo,
+                url,
+                fecha_carga
+            FROM EvidenciaReporte
+            WHERE id_reporte = @id_reporte
+        `);
+    return result.recordset;
+};
+
 module.exports = {
     createCliente,
     getShippingServices,
@@ -708,7 +751,9 @@ module.exports = {
     cancelReservation,
     createReport,
     createEvidence,
-    getReservationReportData
+    getReservationReportData,
+    getMyReports,
+    getReportEvidence
 };
 
         

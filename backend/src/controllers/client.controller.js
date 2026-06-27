@@ -492,6 +492,23 @@ const createReport = async (req, res) => {
     }
 };
 
+const getMyReports = async (req, res) => {
+
+    try {
+        const reportes = await clienteService.getMyReports(req.user.id_usuario);
+        for (const reporte of reportes) {
+            reporte.evidencias = await clienteService.getReportEvidence(
+                    reporte.id_reporte
+                );
+        }
+        return res.status(200).json(reportes);
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     registerCliente,
     getShippingServices,
@@ -501,5 +518,6 @@ module.exports = {
     createReservation,
     rateShippingService,
     cancelReservation,
-    createReport
+    createReport,
+    getMyReports
 };
