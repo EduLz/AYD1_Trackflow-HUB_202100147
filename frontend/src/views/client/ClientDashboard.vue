@@ -1,42 +1,133 @@
 <template>
-  <div>
-    <UpperbarComponent />
+  <div class="dashboard-wrapper">
+    <Upperbar @toggle-carrito="mostrarCarrito = !mostrarCarrito" />
     
-    <aside class="sidebar-client">
-      <div class="sidebar-menu">
-        <nav class="nav-group">
-          <p class="menu-title">Operaciones</p>
-          <router-link to="/client/dashboard" class="menu-item" active-class="active">Gestión de Envíos</router-link>
-          <a href="#" class="menu-item">Gestión de Transporte</a>
-          <a href="#" class="menu-item">Gestión de Pagos</a>
-          <a href="#" class="menu-item">Calificaciones y Reseñas</a>
-        </nav>
-      </div>
-    </aside>
+    <div class="dashboard-main-area">
+      <ClientSidebar 
+        :vistaActiva="vistaSeleccionada" 
+        @cambio-vista="actualizarVista" 
+      />
 
-    <main class="dashboard-content">
-      <div class="dashboard-card">
-        <h1>Módulo de Clientes</h1>
-        <p>Bienvenido al Sistema de Gestión de Envíos y Logística TrackFlow-HUB. Utilice el menú lateral para contratar nuevos servicios o realizar pagos.</p>
-      </div>
-    </main>
+      <main class="content-scroll-area">
+        <div class="content-inner">
+          
+          <div v-if="vistaSeleccionada === 'perfil'">
+            <Perfil />
+          </div>
+
+          <div v-if="vistaSeleccionada === 'buscar-envios'">
+            <BuscarEnvios />
+          </div>
+
+          <div v-if="vistaSeleccionada === 'buscar-transporte'">
+            <BuscarTransporte />
+          </div>
+
+          <div v-if="vistaSeleccionada === 'reservaciones'">
+            <MisReservaciones />
+          </div>
+
+          <div v-if="vistaSeleccionada === 'reportes'">
+            <CentroReportes />
+          </div>
+
+          <div v-if="vistaSeleccionada === 'billetera'">
+            <Billetera />
+          </div>
+
+          <div v-if="vistaSeleccionada === 'cupones'">
+            <Cupones />
+          </div>
+
+          <div v-if="vistaSeleccionada === 'checkout'">
+            <Checkout @regresar="vistaSeleccionada = 'perfil'" />
+          </div>
+
+        </div>
+      </main>
+    </div>
+
+    <CarritoResumen 
+      v-if="mostrarCarrito" 
+      @cerrar="mostrarCarrito = false" 
+      @ir-checkout="irAlCheckout" 
+    />
   </div>
 </template>
 
-<script>
-import UpperbarComponent from '../../common/components/Upperbar/UpperbarComponent.vue';
-// Importaciones directas de hojas de estilo
-import '../../common/components/Upperbar/upperbar.css';
-import './client-dashboard.css';
+<script setup>
+import { ref } from 'vue';
+import Upperbar from '../../common/components/Upperbar/UpperbarComponent.vue';
+import ClientSidebar from '../../common/components/ClientSidebar/ClientSidebarComponent.vue';
+import CarritoResumen from '../../common/components/CarritoResumen/CarritoResumen.vue';
+import BuscarEnvios from './BuscarEnvios.vue';
+import BuscarTransporte from './BuscarTransporte.vue';
+import MisReservaciones from './MisReservaciones.vue';
+import Perfil from './Perfil.vue';
+import Billetera from './Billetera.vue';
+import Cupones from './Cupones.vue';
+import CentroReportes from './CentroReportes.vue';
+import Checkout from './Checkout.vue';
 
-export default {
-  name: 'ClientDashboard',
-  components: {
-    UpperbarComponent
-  }
+// Se define 'perfil' como el estado de inicio predeterminado
+const vistaSeleccionada = ref('perfil');
+const mostrarCarrito = ref(false);
+
+const actualizarVista = (nuevaVista) => {
+  vistaSeleccionada.value = nuevaVista;
+};
+
+const irAlCheckout = () => {
+  vistaSeleccionada.value = 'checkout';
+  mostrarCarrito.value = false;
 };
 </script>
 
 <style scoped>
-/* Estilos aislados del componente */
+.dashboard-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: var(--bg-secondary, #f8fafc);
+  margin: 0;
+  padding: 0;
+}
+
+.dashboard-main-area {
+  display: flex;
+  flex: 1;
+  height: calc(100vh - 70px);
+  overflow: hidden;
+}
+
+.content-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  background-color: #f8fafc;
+}
+
+.content-inner {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.content-header {
+  margin-bottom: 2rem;
+}
+
+.content-header h1 {
+  font-size: 1.8rem;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+  margin-top: 0;
+}
+
+.content-header p {
+  color: #64748b;
+  font-size: 1rem;
+  margin: 0;
+}
 </style>
