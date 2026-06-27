@@ -579,6 +579,56 @@ const getReporteGananciasPorServicio = async (id_operador) => {
         `);
     return result.recordset;
 };
+
+const getReservationById = async (id_reservacion, id_operador) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_reservacion", id_reservacion)
+        .input("id_operador", id_operador)
+        .query(`
+            SELECT
+                r.*,
+                er.nombre AS estado
+            FROM Reservacion r
+            INNER JOIN ServicioEnvio s
+                ON s.id_servicio = r.id_servicio_env
+            INNER JOIN EstadoReservacion er
+                ON er.id_estado = r.id_estado
+            WHERE r.id_reservacion = @id_reservacion
+            AND s.id_operador = @id_operador
+        `);
+
+    return result.recordset[0];
+};
+
+const updateReservationStatus = async (id_reservacion, id_estado, finalizar = false) => {
+
+    const pool = await connectDB();
+    const query = finalizar
+        ? `
+            UPDATE Reservacion
+            SET
+                id_estado = @id_estado,
+                fecha_fin = GETDATE()
+            OUTPUT INSERTED.*
+            WHERE id_reservacion = @id_reservacion
+        `
+        : `
+            UPDATE Reservacion
+            SET
+                id_estado = @id_estado
+            OUTPUT INSERTED.*
+            WHERE id_reservacion = @id_reservacion
+        `;
+    const result = await pool.request()
+        .input("id_reservacion", id_reservacion)
+        .input("id_estado", id_estado)
+        .query(query);
+
+    return result.recordset[0];
+};
+
 module.exports = {
     createOperator,
     getOperatorByUserId,
@@ -602,5 +652,7 @@ module.exports = {
     getReporteCalificaciones,
     updateOperatorProfile,
     getReservacionesByOperator,
-    getReporteGananciasPorServicio
+    getReporteGananciasPorServicio,
+    getReservationById,
+    updateReservationStatus
 };
