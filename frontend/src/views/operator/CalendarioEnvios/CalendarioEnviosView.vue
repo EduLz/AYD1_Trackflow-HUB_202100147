@@ -12,6 +12,10 @@
         </div>
         <div class="header-actions">
           <input type="month" v-model="mesFiltro" class="input-mes" />
+            <select v-model="servicioFiltro" class="input-mes">
+            <option value="TODOS">General (todos los servicios)</option>
+            <option v-for="s in serviciosDisponibles" :key="s" :value="s">{{ s }}</option>
+          </select>
           <button class="btn-secondary" @click="cargar">Actualizar</button>
         </div>
       </div>
@@ -86,26 +90,10 @@ const d2 = new Date(hoy); d2.setDate(hoy.getDate() + 2);
 const d3 = new Date(hoy); d3.setDate(hoy.getDate() + 5);
 
 const MOCK_RESERVACIONES = [
-  {
-    id_reservacion: 101, fecha_inicio: d1.toISOString().split('T')[0],
-    estado: 'PENDIENTE', nombre_servicio: 'Envio Express Zona 5',
-    nombre_cliente: 'Juan Perez', telefono: '5555-1234', direccion_origen: 'Zona 1, Ciudad'
-  },
-  {
-    id_reservacion: 102, fecha_inicio: d1.toISOString().split('T')[0],
-    estado: 'ACTIVO', nombre_servicio: 'Carga Pesada B-1',
-    nombre_cliente: 'Empresa XYZ', telefono: '2222-9999', direccion_origen: 'Bodegas Mixco'
-  },
-  {
-    id_reservacion: 103, fecha_inicio: d2.toISOString().split('T')[0],
-    estado: 'PENDIENTE', nombre_servicio: 'Envio Express Zona 5',
-    nombre_cliente: 'Maria Lopez', telefono: '4444-8888', direccion_origen: 'Zona 10, Ciudad'
-  },
-  {
-    id_reservacion: 105, fecha_inicio: d3.toISOString().split('T')[0],
-    estado: 'PENDIENTE', nombre_servicio: 'Flete Interdepartamental',
-    nombre_cliente: 'Carlos Ruiz', telefono: '3333-1111', direccion_origen: 'Escuintla Centro'
-  }
+  { id_reservacion: 101, fecha_inicio: d1.toISOString().split('T')[0], estado: 'PENDIENTE', nombre_servicio: 'Envio Express Zona 5', nombre_cliente: 'Juan Perez', telefono: '5555-1234', direccion_origen: 'Zona 1, Ciudad' },
+  { id_reservacion: 102, fecha_inicio: d1.toISOString().split('T')[0], estado: 'ACTIVO', nombre_servicio: 'Carga Pesada B-1', nombre_cliente: 'Empresa XYZ', telefono: '2222-9999', direccion_origen: 'Bodegas Mixco' },
+  { id_reservacion: 103, fecha_inicio: d2.toISOString().split('T')[0], estado: 'PENDIENTE', nombre_servicio: 'Envio Express Zona 5', nombre_cliente: 'Maria Lopez', telefono: '4444-8888', direccion_origen: 'Zona 10, Ciudad' },
+  { id_reservacion: 105, fecha_inicio: d3.toISOString().split('T')[0], estado: 'PENDIENTE', nombre_servicio: 'Flete Interdepartamental', nombre_cliente: 'Carlos Ruiz', telefono: '3333-1111', direccion_origen: 'Escuintla Centro' }
 ];
 
 export default {
@@ -117,6 +105,7 @@ export default {
     const cargando   = ref(false);
     const reservaciones = ref([]);
     const mesFiltro  = ref(new Date().toISOString().slice(0, 7)); // YYYY-MM
+    const servicioFiltro = ref('TODOS');
     const toast      = reactive({ visible: false, mensaje: '', tipo: 'exito' });
 
     const mostrarToast = (mensaje, tipo = 'exito') => {
@@ -125,7 +114,7 @@ export default {
     };
 
     const formatearDia = (fechaIso) => {
-      const f = new Date(fechaIso + 'T12:00:00'); // Evitar timezone offset
+      const f = new Date(fechaIso + 'T12:00:00');
       return f.toLocaleDateString('es-GT', { weekday: 'long', day: 'numeric', month: 'long' });
     };
 
@@ -140,24 +129,32 @@ export default {
         const data = await res.json();
         reservaciones.value = data.reservaciones || [];
       } catch {
-        // Fallback a mock data
         reservaciones.value = MOCK_RESERVACIONES.filter(r => r.fecha_inicio.startsWith(mesFiltro.value));
       } finally {
         cargando.value = false;
       }
     };
 
-    // Agrupar reservaciones por fecha
+    // Servicios unicos para el filtro individual
+    const serviciosDisponibles = computed(() => {
+      const set = new Set(reservaciones.value.map(r => r.nombre_servicio).filter(Boolean));
+      return [...set];
+    });
+
+    // Agrupar por fecha (General = todos; Individual = un servicio seleccionado)
     const diasAgrupados = computed(() => {
-      if (!reservaciones.value.length) return [];
-      
+      const lista = servicioFiltro.value === 'TODOS'
+        ? reservaciones.value
+        : reservaciones.value.filter(r => r.nombre_servicio === servicioFiltro.value);
+
+      if (!lista.length) return [];
+
       const grupos = {};
-      reservaciones.value.forEach(res => {
+      lista.forEach(res => {
         if (!grupos[res.fecha_inicio]) grupos[res.fecha_inicio] = [];
         grupos[res.fecha_inicio].push(res);
       });
 
-      // Convertir a array y ordenar por fecha
       return Object.keys(grupos)
         .sort()
         .map(fecha => ({
@@ -169,7 +166,7 @@ export default {
     onMounted(cargar);
 
     return {
-      cargando, mesFiltro, diasAgrupados, toast,
+      cargando, mesFiltro, servicioFiltro, serviciosDisponibles, diasAgrupados, toast,
       formatearDia, cargar
     };
   }
