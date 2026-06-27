@@ -173,8 +173,28 @@ const registerCard = async (req, res) => {
     }
 };
 
+const getPaymentMethods = async (req, res) => {
+
+    try {
+        const cliente = await clienteService.getClienteByUserId(req.user.id_usuario);
+        if (!cliente) {
+            return res.status(404).json({
+                message: "Cliente no encontrado"
+            });
+        }
+        const metodos =await clienteService.getPaymentMethods(cliente.id_cliente);
+        return res.status(200).json(metodos);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     registerCliente,
     getShippingServices,
-    registerCard
+    registerCard,
+    getPaymentMethods
 };

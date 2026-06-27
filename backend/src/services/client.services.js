@@ -234,13 +234,48 @@ const findCardByFingerprint = async (fingerprint) => {
     return result.recordset[0];
 };
 
+const getPaymentMethods = async (id_cliente) => {
+
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_cliente", id_cliente)
+        .query(`
+            SELECT
+                mp.id_metodo,
+                tmp.nombre AS tipo,
+                mp.activo,
+                mp.fecha_registro,
+
+                ts.nombre_titular,
+                ts.numero_ultimos4,
+                ts.fecha_vencimiento,
+                ts.saldo
+
+            FROM MetodoPago mp
+
+            INNER JOIN TipoMetodoPago tmp
+                ON tmp.id_tipo = mp.id_tipo
+
+            LEFT JOIN TarjetaSimulada ts
+                ON ts.id_metodo = mp.id_metodo
+
+            WHERE mp.id_cliente = @id_cliente
+
+            ORDER BY mp.fecha_registro DESC
+        `);
+
+    return result.recordset;
+};
+
 module.exports = {
     createCliente,
     getShippingServices,
     getClienteByUserId,
     createMetodoPago,
     createTarjeta,
-    findCardByFingerprint
+    findCardByFingerprint,
+    getPaymentMethods
 };
 
         
