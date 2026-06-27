@@ -441,6 +441,57 @@ const cancelReservation = async (req, res) => {
     }
 };
 
+const createReport = async (req, res) => {
+
+    try {
+        const {
+            id_reservacion,
+            motivo,
+            descripcion
+
+        } = req.body;
+
+        const cliente = await clienteService.getClienteByUserId(
+                req.user.id_usuario
+            );
+
+        const reservacion = await clienteService.getReservationReportData(
+                id_reservacion,
+                cliente.id_cliente
+            );
+        if (!reservacion) {
+            return res.status(404).json({
+                message: "Reservación no encontrada"
+            });
+        }
+        const reporte =
+            await clienteService.createReport({
+                id_reportante: req.user.id_usuario,
+                id_reportado: reservacion.reportado,
+                id_reservacion,
+                tipo_reporte: "SERVICIO_ENVIO",
+                motivo,
+                descripcion
+            });
+        if (req.files) {
+            for (const file of req.files) {
+                await clienteService.createEvidence(
+                    reporte.id_reporte,
+                    `/uploads/${file.filename}`
+                );
+            }
+        }
+        return res.status(201).json({
+            message: "Reporte creado correctamente",
+            id_reporte: reporte.id_reporte
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     registerCliente,
     getShippingServices,
@@ -449,5 +500,6 @@ module.exports = {
     deactivatePaymentMethod,
     createReservation,
     rateShippingService,
-    cancelReservation
+    cancelReservation,
+    createReport
 };

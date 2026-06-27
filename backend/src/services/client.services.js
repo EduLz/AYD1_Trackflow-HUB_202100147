@@ -594,6 +594,94 @@ const cancelReservation = async (transaction, id_reservacion, motivo) => {
         `);
 };
 
+const createReport = async (data) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_estado", 1) // PENDIENTE
+        .input("id_reportante", data.id_reportante)
+        .input("id_reportado", data.id_reportado)
+        .input("id_reservacion", data.id_reservacion)
+        .input("tipo_reporte", data.tipo_reporte)
+        .input("motivo", data.motivo)
+        .input("descripcion", data.descripcion)
+        .query(`
+            INSERT INTO Reporte
+            (
+                id_estado,
+                id_reportante,
+                id_reportado,
+                id_reservacion,
+                tipo_reporte,
+                motivo,
+                descripcion
+            )
+
+            OUTPUT INSERTED.*
+
+            VALUES
+            (
+                @id_estado,
+                @id_reportante,
+                @id_reportado,
+                @id_reservacion,
+                @tipo_reporte,
+                @motivo,
+                @descripcion
+            )
+        `);
+    return result.recordset[0];
+};
+
+const createEvidence = async (id_reporte, url) => {
+
+    const pool = await connectDB();
+    await pool.request()
+        .input("id_reporte", id_reporte)
+        .input("url", url)
+        .query(`
+            INSERT INTO EvidenciaReporte
+            (
+                id_reporte,
+                url
+            )
+            VALUES
+            (
+                @id_reporte,
+                @url
+            )
+        `);
+};
+
+const getReservationReportData = async (id_reservacion, id_cliente) => {
+
+    const pool = await connectDB();
+
+    const result = await pool.request()
+
+        .input("id_reservacion", id_reservacion)
+        .input("id_cliente", id_cliente)
+        .query(`
+            SELECT
+                r.id_reservacion,
+                u.id_usuario AS reportado,
+                c.id_usuario AS cliente
+            FROM Reservacion r
+            INNER JOIN ServicioEnvio s
+                ON s.id_servicio = r.id_servicio_env
+            INNER JOIN OperadorLogistico o
+                ON o.id_operador = s.id_operador
+            INNER JOIN Usuario u
+                ON u.id_usuario = o.id_usuario
+            INNER JOIN Cliente c
+                ON c.id_cliente = r.id_cliente
+            WHERE
+                r.id_reservacion = @id_reservacion
+            AND r.id_cliente = @id_cliente
+        `);
+    return result.recordset[0];
+};
+
 module.exports = {
     createCliente,
     getShippingServices,
@@ -617,7 +705,10 @@ module.exports = {
     updateServiceRating,
     getReservationById,
     refundBalance,
-    cancelReservation
+    cancelReservation,
+    createReport,
+    createEvidence,
+    getReservationReportData
 };
 
         
