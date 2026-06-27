@@ -584,6 +584,69 @@ const getReservaciones = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+
+const startReservation = async (req, res) => {
+
+    try {
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        const reservacion = await operadorService.getReservationById(req.params.id, operador.id_operador);
+        if (!reservacion) {
+            return res.status(404).json({
+                message: "Reservación no encontrada"
+            });
+        }
+        if (reservacion.estado !== "PENDIENTE") {
+            return res.status(400).json({
+                message: "Solo puede iniciar reservaciones pendientes"
+            });
+        }
+        const updated = await operadorService.updateReservationStatus(
+                req.params.id,
+                3 // EN_TRANSITO
+            );
+        return res.json({
+            message: "Envío iniciado",
+            reservacion: updated
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+const finishReservation = async (req, res) => {
+
+    try {
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        const reservacion = await operadorService.getReservationById(req.params.id, operador.id_operador);
+        if (!reservacion) {
+            return res.status(404).json({
+                message: "Reservación no encontrada"
+            });
+        }
+        if (reservacion.estado !== "EN_TRANSITO") {
+            return res.status(400).json({
+                message: "La reservación no está en tránsito"
+            });
+        }
+        const updated = await operadorService.updateReservationStatus(
+                req.params.id,
+                4, // ENTREGADO
+                true
+            );
+
+        return res.json({
+            message: "Envío finalizado",
+            reservacion: updated
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     registerOperador,
     createService,
@@ -601,5 +664,7 @@ module.exports = {
     getCalendarioEnvios,
     getReportes,
     getMyProfileRequests,
-    getReservaciones
+    getReservaciones,
+    startReservation,
+    finishReservation
 };
