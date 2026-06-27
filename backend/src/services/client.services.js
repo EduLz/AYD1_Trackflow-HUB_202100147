@@ -1,4 +1,5 @@
 const { connectDB } = require("../config/database");
+const sql = require("mssql");
 
 const createCliente = async (data) => {
     const {
@@ -295,6 +296,170 @@ const deactivatePaymentMethod = async (id_metodo) => {
         `);
 };
 
+const getShippingServiceById = async (id_servicio) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_servicio", id_servicio)
+        .query(`
+            SELECT *
+            FROM ServicioEnvio
+            WHERE id_servicio = @id_servicio
+              AND id_estado = 1
+        `);
+    return result.recordset[0];
+};
+
+const getCardByMethod = async (id_metodo) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_metodo", id_metodo)
+        .query(`
+            SELECT
+                mp.*,
+                ts.saldo
+            FROM MetodoPago mp
+
+            INNER JOIN TarjetaSimulada ts
+                ON ts.id_metodo = mp.id_metodo
+
+            WHERE mp.id_metodo = @id_metodo
+        `);
+    return result.recordset[0];
+};
+
+const hasReservationConflict = async (id_cliente, fecha) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_cliente", id_cliente)
+        .input("fecha", fecha)
+        .query(`
+            SELECT *
+            FROM Reservacion
+            WHERE id_cliente = @id_cliente
+            AND fecha_inicio = @fecha
+            AND id_estado IN (1,2,3)
+        `);
+    return result.recordset.length > 0;
+};
+
+const discountBalance = async (id_metodo, monto) => {
+
+    const pool = await connectDB();
+    await pool.request()
+        .input("id_metodo", id_metodo)
+        .input("monto", monto)
+        .query(`
+            UPDATE TarjetaSimulada
+            SET saldo = saldo - @monto
+            WHERE id_metodo = @id_metodo
+        `);
+};
+
+const createReservation = async (data) => {
+
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_cliente", data.id_cliente)
+        .input("id_estado", 1)
+        .input("id_metodo_pago", data.id_metodo_pago)
+        .input("id_servicio_env", data.id_servicio_env)
+        .input("tipo_servicio", "ENVIO")
+        .input("fecha_inicio", data.fecha_inicio)
+        .input("precio_total", data.precio_total)
+        .input("comision", data.comision)
+        .input("proveedor", data.proveedor)
+        .query(`
+            INSERT INTO Reservacion
+            (
+                id_cliente,
+                id_estado,
+                id_metodo_pago,
+                id_servicio_env,
+                tipo_servicio,
+                fecha_inicio,
+                precio_total,
+                comision_plataforma,
+                monto_proveedor
+            )
+
+            OUTPUT INSERTED.*
+
+            VALUES
+            (
+                @id_cliente,
+                @id_estado,
+                @id_metodo_pago,
+                @id_servicio_env,
+                @tipo_servicio,
+                @fecha_inicio,
+                @precio_total,
+                @comision,
+                @proveedor
+            )
+        `);
+    return result.recordset[0];
+};
+
+const discountBalanceTransaction = async (transaction, id_metodo, monto) => {
+
+    await new sql.Request(transaction)
+        .input("id_metodo", id_metodo)
+        .input("monto", monto)
+        .query(`
+            UPDATE TarjetaSimulada
+            SET saldo = saldo - @monto
+            WHERE id_metodo = @id_metodo
+        `);
+};
+
+const createReservationTransaction = async (transaction, data) => {
+
+    const result = await new sql.Request(transaction)
+        .input("id_cliente", data.id_cliente)
+        .input("id_estado", 1)
+        .input("id_metodo", data.id_metodo_pago)
+        .input("id_servicio", data.id_servicio_env)
+        .input("fecha", data.fecha_inicio)
+        .input("precio", data.precio_total)
+        .input("comision", data.comision)
+        .input("proveedor", data.proveedor)
+        .query(`
+            INSERT INTO Reservacion
+            (
+                id_cliente,
+                id_estado,
+                id_metodo_pago,
+                id_servicio_env,
+                tipo_servicio,
+                fecha_inicio,
+                precio_total,
+                comision_plataforma,
+                monto_proveedor
+            )
+
+            OUTPUT INSERTED.*
+
+            VALUES
+            (
+                @id_cliente,
+                @id_estado,
+                @id_metodo,
+                @id_servicio,
+                'ENVIO',
+                @fecha,
+                @precio,
+                @comision,
+                @proveedor
+            )
+        `);
+
+    return result.recordset[0];
+};
+
 module.exports = {
     createCliente,
     getShippingServices,
@@ -304,7 +469,14 @@ module.exports = {
     findCardByFingerprint,
     getPaymentMethods,
     getPaymentMethodById,
-    deactivatePaymentMethod
+    deactivatePaymentMethod,
+    getShippingServiceById,
+    getCardByMethod,
+    hasReservationConflict,
+    discountBalance,
+    createReservation,
+    discountBalanceTransaction,
+    createReservationTransaction
 };
 
         
