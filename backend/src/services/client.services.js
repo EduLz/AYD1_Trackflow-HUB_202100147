@@ -268,6 +268,33 @@ const getPaymentMethods = async (id_cliente) => {
     return result.recordset;
 };
 
+const getPaymentMethodById = async (id_metodo) => {
+
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_metodo", id_metodo)
+        .query(`
+            SELECT *
+            FROM MetodoPago
+            WHERE id_metodo = @id_metodo
+        `);
+
+    return result.recordset[0];
+};
+
+const deactivatePaymentMethod = async (id_metodo) => {
+
+    const pool = await connectDB();
+    await pool.request()
+        .input("id_metodo", id_metodo)
+        .query(`
+            UPDATE MetodoPago
+            SET activo = 0
+            WHERE id_metodo = @id_metodo
+        `);
+};
+
 module.exports = {
     createCliente,
     getShippingServices,
@@ -275,7 +302,9 @@ module.exports = {
     createMetodoPago,
     createTarjeta,
     findCardByFingerprint,
-    getPaymentMethods
+    getPaymentMethods,
+    getPaymentMethodById,
+    deactivatePaymentMethod
 };
 
         

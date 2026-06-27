@@ -192,9 +192,48 @@ const getPaymentMethods = async (req, res) => {
     }
 };
 
+const deactivatePaymentMethod = async (req, res) => {
+
+    try {
+        const { id } = req.params;
+        const cliente = await clienteService.getClienteByUserId(req.user.id_usuario);
+        if (!cliente) {
+            return res.status(404).json({
+                message: "Cliente no encontrado"
+            });
+        }
+        const metodo = await clienteService.getPaymentMethodById(id);
+        if (!metodo) {
+            return res.status(404).json({
+                message: "Método de pago no encontrado"
+            });
+        }
+        if (metodo.id_cliente !== cliente.id_cliente) {
+            return res.status(403).json({
+                message: "No tiene permisos sobre este método de pago"
+            });
+        }
+        if (!metodo.activo) {
+            return res.status(400).json({
+                message: "El método ya está desactivado"
+            });
+        }
+        await clienteService.deactivatePaymentMethod(id);
+        return res.status(200).json({
+            message: "Método de pago desactivado correctamente"
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     registerCliente,
     getShippingServices,
     registerCard,
-    getPaymentMethods
+    getPaymentMethods,
+    deactivatePaymentMethod
 };
