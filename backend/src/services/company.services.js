@@ -842,7 +842,27 @@ const updateCompanyProfile = async (id_usuario, datos) => {
             WHERE id_usuario = @id_usuario
         `);
 };
-
+const getReportesDeClientes = async (id_usuario) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_usuario", id_usuario)
+        .query(`
+            SELECT
+                rep.id_reporte,
+                rep.tipo_reporte,
+                rep.motivo,
+                rep.descripcion,
+                rep.fecha_reporte,
+                er.nombre AS estado,
+                ur.correo AS reportante_correo
+            FROM Reporte rep
+            INNER JOIN EstadoReporte er ON er.id_estado  = rep.id_estado
+            INNER JOIN Usuario ur       ON ur.id_usuario = rep.id_reportante
+            WHERE rep.id_reportado = @id_usuario
+            ORDER BY rep.fecha_reporte DESC
+        `);
+    return result.recordset;
+};
 module.exports = {
     createEmpresa,
     createRoute,
@@ -872,5 +892,6 @@ module.exports = {
     getProfileChangeRequestsByUser,
     activateRoute,
     getRouteById,
-    updateCompanyProfile
+    updateCompanyProfile,
+    getReportesDeClientes
 };
