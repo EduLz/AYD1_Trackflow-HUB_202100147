@@ -561,7 +561,24 @@ const getReservacionesByOperator = async (id_operador) => {
         `);
     return result.recordset;
 };
-
+const getReporteGananciasPorServicio = async (id_operador) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_operador", id_operador)
+        .query(`
+            SELECT
+                s.nombre AS servicio_nombre,
+                COUNT(r.id_reservacion) AS total_envios,
+                ISNULL(SUM(r.monto_proveedor), 0) AS total_ganado
+            FROM ServicioEnvio s
+            LEFT JOIN Reservacion r
+                ON r.id_servicio_env = s.id_servicio AND r.id_estado = 4
+            WHERE s.id_operador = @id_operador
+            GROUP BY s.nombre
+            ORDER BY total_ganado DESC
+        `);
+    return result.recordset;
+};
 module.exports = {
     createOperator,
     getOperatorByUserId,
@@ -584,5 +601,6 @@ module.exports = {
     getReporteClientes,
     getReporteCalificaciones,
     updateOperatorProfile,
-    getReservacionesByOperator
+    getReservacionesByOperator,
+    getReporteGananciasPorServicio
 };

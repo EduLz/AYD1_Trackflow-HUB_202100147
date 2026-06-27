@@ -7,6 +7,7 @@ const emailService = require("../services/email.services");
 const { encryptPassword } = require("../utils/password");
 const requestService = require("../services/request.services");
 
+
 const registerOperador = async (req, res) => {
     try {
         const {
@@ -544,10 +545,12 @@ const getReportes = async (req, res) => {
         const ganancias      = await operadorService.getReporteGanancias(operador.id_operador);
         const clientes       = await operadorService.getReporteClientes(operador.id_operador);
         const calificaciones = await operadorService.getReporteCalificaciones(operador.id_operador);
+        const gananciasPorServicio = await operadorService.getReporteGananciasPorServicio(operador.id_operador);
 
         return res.status(200).json({
             reportes: {
                 ganancias,
+                gananciasPorServicio,
                 historial_clientes: clientes,
                 calificaciones
             }
