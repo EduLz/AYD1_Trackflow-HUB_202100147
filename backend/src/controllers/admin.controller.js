@@ -208,7 +208,36 @@ const resolveCompanyProfileRequest = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+const listarReportes = async (req, res) => {
+    try {
+        const reportes = await adminService.getAllReportes();
+        return res.status(200).json({ reportes });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    }
+};
 
+const cambiarEstadoReporte = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const id_estado = Number(req.body.id_estado);
+
+        // ENVIADO=1, EN_REVISION=2, ACEPTADO=3, RECHAZADO=4
+        if (![1, 2, 3, 4].includes(id_estado)) {
+            return res.status(400).json({ message: "Estado de reporte invalido" });
+        }
+
+        const reporte = await adminService.updateReporteEstado(id, id_estado);
+        if (!reporte) {
+            return res.status(404).json({ message: "Reporte no encontrado" });
+        }
+        return res.status(200).json({ message: "Estado del reporte actualizado", reporte });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    }
+};
 module.exports = {
     getSolicitudes,
     approveSolicitud,
@@ -218,5 +247,7 @@ module.exports = {
     getPendingProfileRequests,
     resolveProfileRequest,
     getPendingCompanyProfileRequests,
-    resolveCompanyProfileRequest
+    resolveCompanyProfileRequest,
+    listarReportes,
+    cambiarEstadoReporte
 };
