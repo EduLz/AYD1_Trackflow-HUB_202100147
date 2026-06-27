@@ -8,6 +8,10 @@
         <div class="header-section">
           <h1>Dashboard de Resultados</h1>
           <p class="co-subtitle">Metricas de rendimiento operativo, ingresos financieros e historial de servicios contratados.</p>
+          <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+          <button @click="exportarPDFGeneral" style="background:#2563eb;color:#fff;border:none;padding:0.5rem 1rem;border-radius:6px;font-weight:600;cursor:pointer;">PDF Reporte General</button>
+          <button @click="exportarPDFServicios" style="background:#16a34a;color:#fff;border:none;padding:0.5rem 1rem;border-radius:6px;font-weight:600;cursor:pointer;">PDF Servicios Contratados</button>
+        </div>
         </div>
 
         <div v-if="mensajeError" class="alert-danger-box" style="margin-bottom: 1.5rem; background-color: #fef2f2; color: #991b1b; padding: 1rem; border-left: 4px solid #ef4444;">
@@ -81,6 +85,8 @@ import { useAuthStore } from '../../../stores/auth';
 import UpperbarComponent from '../../../common/components/Upperbar/UpperbarComponent.vue';
 import CompanySidebarComponent from '../../../common/components/CompanySidebar/CompanySidebarComponent.vue';
 import './CompanyDashboard.css';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default {
   name: 'CompanyDashboard',
@@ -128,8 +134,54 @@ export default {
     onMounted(() => {
       obtenerDashboardInfo();
     });
+           const fechaHoy = () => new Date().toLocaleDateString('es-GT');
 
-    return { resumen, ultimosServicios, isLoading, mensajeError };
+    const exportarPDFGeneral = () => {
+      const doc = new jsPDF();
+      doc.setFontSize(18); doc.setFont('helvetica', 'bold');
+      doc.text('Reporte General - Empresa de Transporte', 14, 22);
+      doc.setFontSize(11); doc.setFont('helvetica', 'normal');
+      doc.text(`Fecha: ${fechaHoy()}`, 14, 30);
+      const r = resumen.value;
+      autoTable(doc, {
+        startY: 38,
+        head: [['Metrica', 'Valor']],
+        body: [
+          ['Ganancias Totales', `Q ${Number(r.ganancias_totales || 0).toFixed(2)}`],
+          ['Servicios Contratados', `${r.servicios_contratados || 0}`],
+          ['Calificacion Global', `${Number(r.calificacion_global || 0).toFixed(1)} / 5.0`],
+          ['Rutas Activas', `${r.rutas_activas || 0}`],
+          ['Rutas Suspendidas', `${r.rutas_suspendidas || 0}`]
+        ],
+        theme: 'striped',
+        headStyles: { fillColor: [37, 99, 235] }
+      });
+      doc.save('Reporte_General_Empresa.pdf');
+    };
+
+    const exportarPDFServicios = () => {
+      const doc = new jsPDF();
+      doc.setFontSize(18); doc.setFont('helvetica', 'bold');
+      doc.text('Servicios Contratados - Empresa', 14, 22);
+      doc.setFontSize(11); doc.setFont('helvetica', 'normal');
+      doc.text(`Fecha: ${fechaHoy()}`, 14, 30);
+      const filas = (ultimosServicios.value || []).map(s => [
+        s.codigo_seguimiento || `SVC-${s.id_servicio}`,
+        s.cliente_nombre || 'No especificado',
+        `${s.origen} a ${s.destino}`,
+        `Q ${Number(s.precio || 0).toFixed(2)}`,
+        s.estado || 'PENDIENTE'
+      ]);
+      autoTable(doc, {
+        startY: 38,
+        head: [['ID', 'Cliente', 'Ruta', 'Monto', 'Estado']],
+        body: filas,
+        theme: 'striped',
+        headStyles: { fillColor: [22, 163, 74] }
+      });
+      doc.save('Servicios_Contratados_Empresa.pdf');
+    };
+    return { resumen, ultimosServicios, isLoading, mensajeError, exportarPDFGeneral, exportarPDFServicios};
   }
 };
 </script>
