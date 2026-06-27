@@ -746,17 +746,20 @@ const getAvailableCoupons = async (id_cliente) => {
                 c.fecha_inicio,
                 c.fecha_fin,
                 c.usos_maximos,
-                c.usos_actuales
+                c.usos_actuales,
+                CASE
+                    WHEN c.activo = 0 THEN 'INACTIVO'
+                    WHEN cc.usado = 1 THEN 'USADO'
+                    WHEN CAST(GETDATE() AS DATE) < c.fecha_inicio THEN 'PENDIENTE'
+                    WHEN CAST(GETDATE() AS DATE) > c.fecha_fin THEN 'VENCIDO'
+                    ELSE 'DISPONIBLE'
+                END AS estado
             FROM CuponCliente cc
             INNER JOIN Cupon c
                 ON c.id_cupon = cc.id_cupon
             INNER JOIN TipoCupon tc
                 ON tc.id_tipo = c.id_tipo
-            WHERE
-                cc.id_cliente = @id_cliente
-                AND cc.usado = 0
-                AND c.activo = 1
-                AND GETDATE() BETWEEN c.fecha_inicio AND c.fecha_fin
+            WHERE cc.id_cliente = @id_cliente;
         `);
 
     return result.recordset;
