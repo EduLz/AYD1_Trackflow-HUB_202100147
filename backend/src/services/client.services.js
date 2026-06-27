@@ -427,6 +427,8 @@ const createReservationTransaction = async (transaction, data) => {
         .input("precio", data.precio_total)
         .input("comision", data.comision)
         .input("proveedor", data.proveedor)
+        .input("id_cupon", data.id_cupon || null)
+        .input("descuento", data.descuento_aplicado || 0)
         .query(`
             INSERT INTO Reservacion
             (
@@ -434,11 +436,13 @@ const createReservationTransaction = async (transaction, data) => {
                 id_estado,
                 id_metodo_pago,
                 id_servicio_env,
+                id_cupon_aplicado,
                 tipo_servicio,
                 fecha_inicio,
                 precio_total,
                 comision_plataforma,
-                monto_proveedor
+                monto_proveedor,
+                descuento_aplicado
             )
 
             OUTPUT INSERTED.*
@@ -449,14 +453,15 @@ const createReservationTransaction = async (transaction, data) => {
                 @id_estado,
                 @id_metodo,
                 @id_servicio,
+                @id_cupon,
                 'ENVIO',
                 @fecha,
                 @precio,
                 @comision,
-                @proveedor
+                @proveedor,
+                @descuento
             )
         `);
-
     return result.recordset[0];
 };
 
@@ -725,6 +730,87 @@ const getReportEvidence = async (id_reporte) => {
     return result.recordset;
 };
 
+const getAvailableCoupons = async (id_cliente) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_cliente", id_cliente)
+        .query(`
+            SELECT
+                cc.id_cupon_cliente,
+                c.id_cupon,
+                c.codigo,
+                tc.nombre AS tipo,
+                c.descripcion,
+                c.valor,
+                c.fecha_inicio,
+                c.fecha_fin,
+                c.usos_maximos,
+                c.usos_actuales
+            FROM CuponCliente cc
+            INNER JOIN Cupon c
+                ON c.id_cupon = cc.id_cupon
+            INNER JOIN TipoCupon tc
+                ON tc.id_tipo = c.id_tipo
+            WHERE
+                cc.id_cliente = @id_cliente
+                AND cc.usado = 0
+                AND c.activo = 1
+                AND GETDATE() BETWEEN c.fecha_inicio AND c.fecha_fin
+        `);
+
+    return result.recordset;
+};
+
+const getClientCoupon = async (id_cliente, id_cupon) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_cliente", id_cliente)
+        .input("id_cupon", id_cupon)
+        .query(`
+            SELECT
+                cc.id_cupon_cliente,
+                c.*
+            FROM CuponCliente cc
+            INNER JOIN Cupon c
+                ON c.id_cupon = cc.id_cupon
+            WHERE
+                cc.id_cliente = @id_cliente
+                AND cc.id_cupon = @id_cupon
+                AND cc.usado = 0
+                AND c.activo = 1
+                AND GETDATE()
+                    BETWEEN c.fecha_inicio
+                    AND c.fecha_fin
+        `);
+    return result.recordset[0];
+};
+
+const useCouponTransaction = async (transaction, id_cupon_cliente) => {
+
+    await new sql.Request(transaction)
+        .input("id", id_cupon_cliente)
+        .query(`
+            UPDATE CuponCliente
+            SET
+                usado = 1,
+                fecha_uso = GETDATE()
+            WHERE id_cupon_cliente = @id
+        `);
+};
+
+const increaseCouponUsesTransaction = async (transaction, id_cupon) => {
+
+    await new sql.Request(transaction)
+        .input("id", id_cupon)
+        .query(`
+            UPDATE Cupon
+            SET usos_actuales = usos_actuales + 1
+            WHERE id_cupon = @id
+        `);
+};
+
 module.exports = {
     createCliente,
     getShippingServices,
@@ -753,7 +839,11 @@ module.exports = {
     createEvidence,
     getReservationReportData,
     getMyReports,
-    getReportEvidence
+    getReportEvidence,
+    getAvailableCoupons,
+    getClientCoupon,
+    useCouponTransaction,
+    increaseCouponUsesTransaction
 };
 
         

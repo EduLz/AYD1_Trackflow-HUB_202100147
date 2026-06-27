@@ -239,7 +239,8 @@ const createReservation = async (req, res) => {
         const {
             id_servicio,
             id_metodo_pago,
-            fecha_inicio
+            fecha_inicio,
+            id_cupon
         } = req.body;
         if (
             !id_servicio ||
@@ -286,45 +287,88 @@ const createReservation = async (req, res) => {
                 message: "Debe reservar con al menos 24 horas de anticipación"
             });
         }
-
         const conflicto = await clienteService.hasReservationConflict(cliente.id_cliente, fecha_inicio);
         if (conflicto) {
             return res.status(409).json({
                 message: "Ya existe una reservación para esa fecha"
             });
         }
-        if (metodo.saldo < servicio.precio_envio) {
+
+        const precioOriginal = Number(servicio.precio_envio);
+        let precioFinal = precioOriginal;
+        let descuentoAplicado = 0;
+        let cuponCliente = null;
+        if (id_cupon) {
+            cuponCliente = await clienteService.getClientCoupon(
+                    cliente.id_cliente,
+                    id_cupon
+                );
+            if (!cuponCliente) {
+                return res.status(400).json({
+                    message: "Cupón inválido o no disponible"
+                });
+            }
+            if (cuponCliente.id_tipo === 1) {
+                descuentoAplicado =
+                    precioOriginal * (Number(cuponCliente.valor) / 100);
+
+            } else {
+                descuentoAplicado = Number(cuponCliente.valor);
+            }
+            if (descuentoAplicado > precioOriginal) {
+                descuentoAplicado = precioOriginal;
+            }
+            precioFinal =
+                Number((precioOriginal - descuentoAplicado).toFixed(2));
+        }
+
+        if (Number(metodo.saldo) < precioFinal) {
             return res.status(400).json({
                 message: "Saldo insuficiente"
             });
         }
-        const precio = Number(servicio.precio_envio);
-        const comision = Number((precio * 0.10).toFixed(2));
-        const proveedor = Number((precio - comision).toFixed(2));
+        const comision = Number((precioFinal * 0.10).toFixed(2));
+        const proveedor = Number((precioFinal - comision).toFixed(2));
         await transaction.begin();
-        const request = new sql.Request(transaction);
-        await clienteService.discountBalanceTransaction(transaction, id_metodo_pago, precio);
-
-        const reservacion = await clienteService.createReservationTransaction(
-        transaction,
-        {
-            id_cliente: cliente.id_cliente,
+        await clienteService.discountBalanceTransaction(
+            transaction,
             id_metodo_pago,
-            id_servicio_env: id_servicio,
-            fecha_inicio,
-            precio_total: precio,
-            comision,
-            proveedor
+            precioFinal
+        );
+        const reservacion = await clienteService.createReservationTransaction(
+                transaction,
+                {
+                    id_cliente: cliente.id_cliente,
+                    id_metodo_pago,
+                    id_servicio_env: id_servicio,
+                    fecha_inicio,
+                    precio_total: precioFinal,
+                    comision,
+                    proveedor,
+                    id_cupon: id_cupon || null,
+                    descuento_aplicado: descuentoAplicado
+                }
+            );
+        if (cuponCliente) {
+            await clienteService.useCouponTransaction(
+                transaction,
+                cuponCliente.id_cupon_cliente
+            );
+            await clienteService.increaseCouponUsesTransaction(
+                transaction,
+                id_cupon
+            );
         }
-    );
         await transaction.commit();
-
         return res.status(201).json({
             message: "Reservación creada correctamente",
+            precio_original: precioOriginal,
+            descuento_aplicado: descuentoAplicado,
+            precio_pagado: precioFinal,
             reservacion
         });
     } catch (error) {
-        if (transaction._aborted === false) {
+        if (!transaction._aborted) {
             await transaction.rollback();
         }
         console.error(error);
@@ -509,6 +553,25 @@ const getMyReports = async (req, res) => {
     }
 };
 
+const getMyCoupons = async (req, res) => {
+
+    try {
+        const cliente = await clienteService.getClienteByUserId(
+                req.user.id_usuario
+            );
+        const cupones = await clienteService.getAvailableCoupons(
+                cliente.id_cliente
+            );
+        return res.status(200).json({
+            cupones
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     registerCliente,
     getShippingServices,
@@ -519,5 +582,6 @@ module.exports = {
     rateShippingService,
     cancelReservation,
     createReport,
-    getMyReports
+    getMyReports,
+    getMyCoupons
 };
