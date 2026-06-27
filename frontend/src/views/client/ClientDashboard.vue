@@ -3,7 +3,10 @@
     <Upperbar @toggle-carrito="mostrarCarrito = !mostrarCarrito" />
     
     <div class="dashboard-main-area">
-      <ClientSidebar @cambio-vista="actualizarVista" />
+      <ClientSidebar 
+        :vistaActiva="vistaSeleccionada" 
+        @cambio-vista="actualizarVista" 
+      />
 
       <main class="content-scroll-area">
         <div class="content-inner">
@@ -25,21 +28,19 @@
           </div>
 
           <div v-if="vistaSeleccionada === 'reportes'">
-            <div class="content-header">
-              <h1>Centro de Reportes</h1>
-              <p>Historial y creación de tickets de soporte para sus servicios contratados.</p>
-            </div>
-            </div>
+            <CentroReportes />
+          </div>
 
           <div v-if="vistaSeleccionada === 'billetera'">
             <Billetera />
           </div>
 
           <div v-if="vistaSeleccionada === 'cupones'">
-            <div class="content-header">
-              <h1>Mis Cupones</h1>
-              <p>Canjee y revise las restricciones de sus cupones promocionales.</p>
-            </div>
+            <Cupones />
+          </div>
+
+          <div v-if="vistaSeleccionada === 'checkout'">
+            <Checkout @regresar="vistaSeleccionada = 'perfil'" />
           </div>
 
         </div>
@@ -49,7 +50,7 @@
     <CarritoResumen 
       v-if="mostrarCarrito" 
       @cerrar="mostrarCarrito = false" 
-      @ir-pagos="irABilletera" 
+      @ir-checkout="irAlCheckout" 
     />
   </div>
 </template>
@@ -64,6 +65,9 @@ import BuscarTransporte from './BuscarTransporte.vue';
 import MisReservaciones from './MisReservaciones.vue';
 import Perfil from './Perfil.vue';
 import Billetera from './Billetera.vue';
+import Cupones from './Cupones.vue';
+import CentroReportes from './CentroReportes.vue';
+import Checkout from './Checkout.vue';
 
 // Se define 'perfil' como el estado de inicio predeterminado
 const vistaSeleccionada = ref('perfil');
@@ -73,8 +77,8 @@ const actualizarVista = (nuevaVista) => {
   vistaSeleccionada.value = nuevaVista;
 };
 
-const irABilletera = () => {
-  vistaSeleccionada.value = 'billetera';
+const irAlCheckout = () => {
+  vistaSeleccionada.value = 'checkout';
   mostrarCarrito.value = false;
 };
 </script>
