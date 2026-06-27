@@ -10,10 +10,10 @@
           <p class="op-subtitle">Métricas de ganancias, calificaciones e historial de clientes.</p>
         </div>
         <div class="header-actions">
-          <button class="btn-primary" @click="exportarPDF">
-            Exportar a PDF
-          </button>
-          <button class="btn-secondary" @click="cargarReportes">Actualizar Reportes</button>
+          <button class="btn-primary" @click="exportarPDFGanancias">PDF Ganancias</button>
+          <button class="btn-primary" @click="exportarPDFClientes">PDF Clientes</button>
+          <button class="btn-primary" @click="exportarPDFCalificaciones">PDF Calificaciones</button>
+          <button class="btn-secondary" @click="cargarReportes">Actualizar</button>
         </div>
       </div>
 
@@ -136,57 +136,105 @@ export default {
       }
     };
 
-    const exportarPDF = () => {
-      if (!reportes.value) {
-        mostrarToast('No hay datos para exportar', 'error');
-        return;
-      }
+        const fechaHoy = () => new Date().toLocaleDateString('es-GT');
 
+    // PDF 1: Ganancias (general + por servicio)
+    const exportarPDFGanancias = () => {
+      if (!reportes.value) { mostrarToast('No hay datos para exportar', 'error'); return; }
       const doc = new jsPDF();
-      
-      // Título
-      doc.setFontSize(18);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Reportes y Estadísticas - Operador', 14, 22);
+      doc.setFontSize(18); doc.setFont('helvetica', 'bold');
+      doc.text('Reporte de Ganancias - Operador', 14, 22);
+      doc.setFontSize(11); doc.setFont('helvetica', 'normal');
+      doc.text(`Fecha: ${fechaHoy()}`, 14, 30);
+      doc.text(`Ingresos Totales (general): Q ${Number(reportes.value.ganancias?.total_ganado || 0).toFixed(2)}`, 14, 40);
+      doc.text(`Envios Completados: ${reportes.value.ganancias?.total_envios || 0}`, 14, 48);
 
-      // Resumen Ganancias
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Ingresos Totales: Q ${reportes.value.ganancias?.total_ganado?.toFixed(2) || '0.00'}`, 14, 32);
-      doc.text(`Envíos Completados: ${reportes.value.ganancias?.total_envios || 0}`, 14, 40);
-      
-      // Resumen Calificaciones
-      doc.text(`Promedio de Calificaciones: ${Number(reportes.value.calificaciones?.promedio || 0).toFixed(1)} / 5`, 14, 48);
-      doc.text(`Total de Reseñas: ${reportes.value.calificaciones?.total_calificaciones || 0}`, 14, 56);
+      const filas = (reportes.value.gananciasPorServicio || []).map(s => [
+        s.servicio_nombre,
+        (s.total_envios || 0).toString(),
+        `Q ${Number(s.total_ganado || 0).toFixed(2)}`
+      ]);
+      autoTable(doc, {
+        startY: 58,
+        head: [['Servicio', 'Envios', 'Ganancias']],
+        body: filas,
+        theme: 'striped',
+        headStyles: { fillColor: [22, 163, 74] }
+      });
+      doc.save('Reporte_Ganancias_Operador.pdf');
+      mostrarToast('PDF de ganancias generado.', 'exito');
+    };
 
-      // Tabla Historial Clientes
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Historial de Clientes', 14, 70);
+    // PDF 2: Historial de clientes
+    const exportarPDFClientes = () => {
+      if (!reportes.value) { mostrarToast('No hay datos para exportar', 'error'); return; }
+      const doc = new jsPDF();
+      doc.setFontSize(18); doc.setFont('helvetica', 'bold');
+      doc.text('Historial de Clientes - Operador', 14, 22);
+      doc.setFontSize(11); doc.setFont('helvetica', 'normal');
+      doc.text(`Fecha: ${fechaHoy()}`, 14, 30);
 
-      const clientesData = (reportes.value.historial_clientes || []).map(c => [
+      const filas = (reportes.value.historial_clientes || []).map(c => [
         `${c.cliente_nombre} ${c.cliente_apellido}`,
         (c.total_envios || 0).toString(),
         `Q ${Number(c.total_gastado || 0).toFixed(2)}`
       ]);
-
       autoTable(doc, {
-        startY: 75,
-        head: [['Cliente', 'Envíos Solicitados', 'Total Gastado']],
-        body: clientesData,
+        startY: 40,
+        head: [['Cliente', 'Envios Solicitados', 'Total Gastado']],
+        body: filas,
         theme: 'striped',
         headStyles: { fillColor: [37, 99, 235] }
       });
+      doc.save('Historial_Clientes_Operador.pdf');
+      mostrarToast('PDF de clientes generado.', 'exito');
+    };
 
-      doc.save('Reporte_Estadistico_Operador.pdf');
-      mostrarToast('PDF generado exitosamente.', 'exito');
+    // PDF 3: Calificaciones y comentarios (trae la lista de /calificaciones)
+    const exportarPDFCalificaciones = async () => {
+      try {
+        const res = await fetch(API.operador.calificaciones, {
+          headers: { Authorization: `Bearer ${authStore.token}` }
+        });
+        if (!res.ok) throw new Error('Error al obtener las calificaciones');
+        const data = await res.json();
+        const lista = data.calificaciones || [];
+
+        const doc = new jsPDF();
+        doc.setFontSize(18); doc.setFont('helvetica', 'bold');
+        doc.text('Calificaciones y Comentarios - Operador', 14, 22);
+        doc.setFontSize(11); doc.setFont('helvetica', 'normal');
+        doc.text(`Fecha: ${fechaHoy()}`, 14, 30);
+        doc.text(`Promedio General: ${Number(reportes.value?.calificaciones?.promedio || 0).toFixed(1)} / 5`, 14, 38);
+        doc.text(`Total de Resenas: ${reportes.value?.calificaciones?.total_calificaciones || 0}`, 14, 46);
+
+        const filas = lista.map(c => [
+          `${c.cliente_nombre} ${c.cliente_apellido}`,
+          `${c.puntuacion} / 5`,
+          c.comentario || '-',
+          c.respuesta || 'Sin responder'
+        ]);
+        autoTable(doc, {
+          startY: 54,
+          head: [['Cliente', 'Puntuacion', 'Comentario', 'Tu Respuesta']],
+          body: filas,
+          theme: 'striped',
+          headStyles: { fillColor: [234, 179, 8] },
+          columnStyles: { 2: { cellWidth: 55 }, 3: { cellWidth: 50 } }
+        });
+        doc.save('Calificaciones_Operador.pdf');
+        mostrarToast('PDF de calificaciones generado.', 'exito');
+      } catch (error) {
+        mostrarToast(error.message, 'error');
+      }
     };
 
     onMounted(cargarReportes);
 
     return {
       cargando, reportes, toast,
-      cargarReportes, exportarPDF
+      cargarReportes,
+      exportarPDFGanancias, exportarPDFClientes, exportarPDFCalificaciones
     };
   }
 };
