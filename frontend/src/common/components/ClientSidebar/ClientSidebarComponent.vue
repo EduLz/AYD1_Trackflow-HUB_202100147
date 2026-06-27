@@ -8,7 +8,7 @@
           <span class="chevron" :class="{ open: secciones.cuenta }">▼</span>
         </div>
         <ul class="nav-list" v-show="secciones.cuenta">
-          <li :class="{ active: vistaActual === 'perfil' }" @click="cambiarVista('perfil')">
+          <li :class="{ active: vistaActiva === 'perfil' }" @click="cambiarVista('perfil')">
             <span class="nav-text">Editar Perfil</span>
           </li>
         </ul>
@@ -20,10 +20,10 @@
           <span class="chevron" :class="{ open: secciones.buscadores }">▼</span>
         </div>
         <ul class="nav-list" v-show="secciones.buscadores">
-          <li :class="{ active: vistaActual === 'buscar-envios' }" @click="cambiarVista('buscar-envios')">
+          <li :class="{ active: vistaActiva === 'buscar-envios' }" @click="cambiarVista('buscar-envios')">
             <span class="nav-text">Servicios de Envío</span>
           </li>
-          <li :class="{ active: vistaActual === 'buscar-transporte' }" @click="cambiarVista('buscar-transporte')">
+          <li :class="{ active: vistaActiva === 'buscar-transporte' }" @click="cambiarVista('buscar-transporte')">
             <span class="nav-text">Empresas de Transporte</span>
           </li>
         </ul>
@@ -35,10 +35,10 @@
           <span class="chevron" :class="{ open: secciones.servicios }">▼</span>
         </div>
         <ul class="nav-list" v-show="secciones.servicios">
-          <li :class="{ active: vistaActual === 'reservaciones' }" @click="cambiarVista('reservaciones')">
+          <li :class="{ active: vistaActiva === 'reservaciones' }" @click="cambiarVista('reservaciones')">
             <span class="nav-text">Mis Reservaciones</span>
           </li>
-          <li :class="{ active: vistaActual === 'reportes' }" @click="cambiarVista('reportes')">
+          <li :class="{ active: vistaActiva === 'reportes' }" @click="cambiarVista('reportes')">
             <span class="nav-text">Centro de Reportes</span>
           </li>
         </ul>
@@ -50,10 +50,10 @@
           <span class="chevron" :class="{ open: secciones.finanzas }">▼</span>
         </div>
         <ul class="nav-list" v-show="secciones.finanzas">
-          <li :class="{ active: vistaActual === 'billetera' }" @click="cambiarVista('billetera')">
+          <li :class="{ active: vistaActiva === 'billetera' }" @click="cambiarVista('billetera')">
             <span class="nav-text">Billetera y Pagos</span>
           </li>
-          <li :class="{ active: vistaActual === 'cupones' }" @click="cambiarVista('cupones')">
+          <li :class="{ active: vistaActiva === 'cupones' }" @click="cambiarVista('cupones')">
             <span class="nav-text">Mis Cupones</span>
           </li>
         </ul>
@@ -66,10 +66,16 @@
 <script setup>
 import { ref } from 'vue';
 
-const emit = defineEmits(['cambio-vista']);
-const vistaActual = ref('perfil');
+// Recibimos la vista activa desde el Dashboard maestro
+const props = defineProps({
+  vistaActiva: {
+    type: String,
+    required: true
+  }
+});
 
-// Unicamente 'cuenta' se inicializa en true
+const emit = defineEmits(['cambio-vista']);
+
 const secciones = ref({
   cuenta: true,
   buscadores: false,
@@ -82,7 +88,6 @@ const toggleSeccion = (seccion) => {
 };
 
 const cambiarVista = (nuevaVista) => {
-  vistaActual.value = nuevaVista;
   emit('cambio-vista', nuevaVista);
 };
 </script>

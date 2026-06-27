@@ -29,10 +29,10 @@
 
       <div class="cart-footer" v-if="items.length > 0">
         <div class="total-row">
-          <span>Total a Pagar:</span>
+          <span>Total:</span>
           <span class="total-price">Q{{ calcularTotal.toFixed(2) }}</span>
         </div>
-        <button class="btn-checkout" @click="procederAlPago">Proceder al Pago</button>
+        <button class="btn-checkout" @click="procederAlCheckout">Proceder al Checkout</button>
       </div>
 
     </div>
@@ -42,7 +42,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 
-const emit = defineEmits(['cerrar', 'ir-pagos']);
+const emit = defineEmits(['cerrar', 'ir-checkout']);
 
 const items = ref([
   { id: 1, tipo: 'Envío', nombre: 'Paquete Express Plus', proveedor: 'Logistics GT', fecha: '30/08/2026', precio: 45.00 },
@@ -57,12 +57,14 @@ const cerrarCarrito = () => {
   emit('cerrar');
 };
 
-const procederAlPago = () => {
-  emit('ir-pagos');
+const procederAlCheckout = () => {
+  emit('cerrar');
+  emit('ir-checkout'); // Redirige a la vista nueva
 };
 </script>
 
 <style scoped>
+/* Los mismos estilos del carrito anterior */
 .cart-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(15, 23, 42, 0.4); z-index: 2000; display: flex; justify-content: flex-end; }
 .cart-panel { width: 400px; background-color: #ffffff; height: 100vh; box-shadow: -4px 0 15px rgba(0,0,0,0.1); display: flex; flex-direction: column; animation: slideIn 0.3s ease-out forwards; }
 @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
