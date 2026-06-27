@@ -82,6 +82,20 @@ const registerCliente = async (req, res) => {
     }
 };
 
+const getShippingServices = async (req, res) => {
+
+    try {
+        const servicios = await clienteService.getShippingServices(req.query);
+        return res.status(200).json(servicios);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
-    registerCliente
+    registerCliente,
+    getShippingServices
 };
