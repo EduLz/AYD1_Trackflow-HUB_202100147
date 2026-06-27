@@ -142,12 +142,50 @@ const findAdminByUserId = async (id_usuario) => {
 
     return result.recordset[0];
 };
+const getAllReportes = async () => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .query(`
+            SELECT
+                rep.id_reporte,
+                rep.tipo_reporte,
+                rep.motivo,
+                rep.descripcion,
+                rep.fecha_reporte,
+                rep.fecha_resolucion,
+                er.nombre AS estado,
+                ur.correo AS reportante_correo,
+                ud.correo AS reportado_correo
+            FROM Reporte rep
+            INNER JOIN EstadoReporte er ON er.id_estado    = rep.id_estado
+            INNER JOIN Usuario ur       ON ur.id_usuario   = rep.id_reportante
+            INNER JOIN Usuario ud       ON ud.id_usuario   = rep.id_reportado
+            ORDER BY rep.fecha_reporte DESC
+        `);
+    return result.recordset;
+};
 
+const updateReporteEstado = async (id_reporte, id_estado) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_reporte", id_reporte)
+        .input("id_estado", id_estado)
+        .query(`
+            UPDATE Reporte
+            SET id_estado = @id_estado,
+                fecha_resolucion = CASE WHEN @id_estado IN (3,4) THEN GETDATE() ELSE fecha_resolucion END
+            OUTPUT INSERTED.*
+            WHERE id_reporte = @id_reporte
+        `);
+    return result.recordset[0];
+};
 module.exports = {
     approveOperador,
     rejectOperador,
     createAdmin,
     saveOTP,
     verifyOTP,
-    findAdminByUserId
+    findAdminByUserId,
+    getAllReportes,
+    updateReporteEstado
 };
