@@ -1,6 +1,6 @@
 <template>
   <div class="dashboard-wrapper">
-    <Upperbar />
+    <Upperbar @toggle-carrito="mostrarCarrito = !mostrarCarrito" />
     
     <div class="dashboard-main-area">
       <ClientSidebar @cambio-vista="actualizarVista" />
@@ -8,7 +8,11 @@
       <main class="content-scroll-area">
         <div class="content-inner">
           
-          <div v-if="vistaSeleccionada === 'buscar-envios'">
+          <div v-if="vistaSeleccionada === 'perfil'">
+            <Perfil />
+          </div>
+
+          <div v-slot:default v-if="vistaSeleccionada === 'buscar-envios'">
             <BuscarEnvios />
           </div>
 
@@ -16,68 +20,92 @@
             <BuscarTransporte />
           </div>
 
+          <div v-if="vistaSeleccionada === 'reservaciones'">
+            <MisReservaciones />
+          </div>
+
+          <div v-if="vistaSeleccionada === 'reportes'">
+            <div class="content-header">
+              <h1>Centro de Reportes</h1>
+              <p>Historial y creación de tickets de soporte para sus servicios contratados.</p>
+            </div>
+          </div>
+
           <div v-if="vistaSeleccionada === 'billetera'">
             <div class="content-header">
               <h1>Billetera Virtual y Pagos</h1>
-              <p>Gestione su saldo de Q1,000.00 y administre sus tarjetas con validación Luhn de seguridad.</p>
+              <p>Gestione su saldo de Q1,000.00 y administre sus tarjetas con validación Luhn.</p>
             </div>
-            </div>
+          </div>
 
-            <div v-if="vistaSeleccionada === 'reservaciones'">
-  <MisReservaciones />
-</div>
+          <div v-if="vistaSeleccionada === 'cupones'">
+            <div class="content-header">
+              <h1>Mis Cupones</h1>
+              <p>Canjee y revise las restricciones de sus cupones promocionales.</p>
+            </div>
+          </div>
 
         </div>
       </main>
     </div>
+
+    <CarritoResumen 
+      v-if="mostrarCarrito" 
+      @cerrar="mostrarCarrito = false" 
+      @ir-pagos="irABilletera" 
+    />
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
 import Upperbar from '../../common/components/Upperbar/UpperbarComponent.vue';
-import ClientSidebar from '../../common/components/ClientSidebar//ClientSidebarComponent.vue';
+import ClientSidebar from '../../common/components/ClientSidebar/ClientSidebarComponent.vue';
+import CarritoResumen from '../../common/components/CarritoResumen/CarritoResumen.vue';
 import BuscarEnvios from './BuscarEnvios.vue';
 import BuscarTransporte from './BuscarTransporte.vue';
 import MisReservaciones from './MisReservaciones.vue';
+import Perfil from './Perfil.vue';
 
-// Control de navegación interna
-const vistaSeleccionada = ref('buscar-envios');
+// Se define 'perfil' como el estado de inicio predeterminado
+const vistaSeleccionada = ref('perfil');
+const mostrarCarrito = ref(false);
 
 const actualizarVista = (nuevaVista) => {
   vistaSeleccionada.value = nuevaVista;
 };
+
+const irABilletera = () => {
+  vistaSeleccionada.value = 'billetera';
+  mostrarCarrito.value = false;
+};
 </script>
 
 <style scoped>
-/* Contenedor principal que ocupa exactamente el 100% de la pantalla */
 .dashboard-wrapper {
   display: flex;
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  overflow: hidden; /* Nada sale de este contenedor */
+  overflow: hidden;
   background-color: var(--bg-secondary, #f8fafc);
   margin: 0;
   padding: 0;
 }
 
-/* Área de abajo (Sidebar + Contenido principal) */
 .dashboard-main-area {
   display: flex;
   flex: 1;
-  height: calc(100vh - 70px); /* 100% menos la altura del Upperbar */
+  height: calc(100vh - 70px);
   overflow: hidden;
 }
 
-/* El área de contenido que sí tiene scroll */
 .content-scroll-area {
   flex: 1;
-  overflow-y: auto; /* Solo esta parte hace scroll vertical */
+  overflow-y: auto;
   background-color: #f8fafc;
 }
 
-/* Margen interior del contenido para que no pegue con los bordes */
 .content-inner {
   padding: 2rem;
   max-width: 1400px;
@@ -90,7 +118,7 @@ const actualizarVista = (nuevaVista) => {
 
 .content-header h1 {
   font-size: 1.8rem;
-  color: var(--text-main, #1e293b);
+  color: #1e293b;
   margin-bottom: 0.5rem;
   margin-top: 0;
 }

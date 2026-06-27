@@ -32,7 +32,7 @@ import { useRouter } from 'vue-router';
 const router = useRouter();
 const rolUsuario = ref(''); 
 const nombreUsuario = ref('');
-const itemsEnCarrito = ref(1); // Simulado
+const itemsEnCarrito = ref(2); // Simulado para pruebas de UI
 
 onMounted(() => {
   rolUsuario.value = localStorage.getItem('tf_role') || 'CLIENTE';
@@ -53,22 +53,19 @@ const cerrarSesion = () => {
 </script>
 
 <style scoped>
-/* Los mismos estilos estables de antes, más el texto del carrito */
 .upperbar-container { display: flex; justify-content: space-between; align-items: center; background-color: #ffffff; height: 70px; padding: 0 2rem; border-bottom: 1px solid #e2e8f0; flex-shrink: 0; }
 .app-title h2 { margin: 0; font-size: 1.25rem; color: #1e293b; }
 .module-name { color: #3b82f6; font-weight: 500; }
 .upperbar-actions { display: flex; align-items: center; gap: 2rem; }
-
 .cart-button { position: relative; background-color: transparent; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.5rem 1rem; cursor: pointer; color: #475569; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; font-weight: 600; }
 .cart-button:hover { background-color: #f8fafc; color: #3b82f6; }
 .cart-icon { width: 22px; height: 22px; }
 .cart-text { font-size: 0.95rem; }
 .cart-badge { position: absolute; top: -5px; right: -5px; background-color: #ef4444; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 12px; font-weight: bold; }
-
 .user-profile { display: flex; align-items: center; gap: 1rem; }
 .avatar-circle { width: 40px; height: 40px; background-color: #3b82f6; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
 .user-info { display: flex; flex-direction: column; }
 .user-name { font-weight: 600; font-size: 0.9rem; }
-.user-role { font-size: 0.8rem; color: #64748b; text-transform: capitalize;}
+.user-role { font-size: 0.8rem; color: #64748b; text-transform: capitalize; }
 .btn-logout { background: none; border: none; color: #ef4444; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
 </style>
