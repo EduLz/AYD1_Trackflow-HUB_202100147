@@ -239,7 +239,8 @@ const createReservation = async (req, res) => {
         const {
             id_servicio,
             id_metodo_pago,
-            fecha_inicio
+            fecha_inicio,
+            id_cupon
         } = req.body;
         if (
             !id_servicio ||
@@ -286,45 +287,88 @@ const createReservation = async (req, res) => {
                 message: "Debe reservar con al menos 24 horas de anticipación"
             });
         }
-
         const conflicto = await clienteService.hasReservationConflict(cliente.id_cliente, fecha_inicio);
         if (conflicto) {
             return res.status(409).json({
                 message: "Ya existe una reservación para esa fecha"
             });
         }
-        if (metodo.saldo < servicio.precio_envio) {
+
+        const precioOriginal = Number(servicio.precio_envio);
+        let precioFinal = precioOriginal;
+        let descuentoAplicado = 0;
+        let cuponCliente = null;
+        if (id_cupon) {
+            cuponCliente = await clienteService.getClientCoupon(
+                    cliente.id_cliente,
+                    id_cupon
+                );
+            if (!cuponCliente) {
+                return res.status(400).json({
+                    message: "Cupón inválido o no disponible"
+                });
+            }
+            if (cuponCliente.id_tipo === 1) {
+                descuentoAplicado =
+                    precioOriginal * (Number(cuponCliente.valor) / 100);
+
+            } else {
+                descuentoAplicado = Number(cuponCliente.valor);
+            }
+            if (descuentoAplicado > precioOriginal) {
+                descuentoAplicado = precioOriginal;
+            }
+            precioFinal =
+                Number((precioOriginal - descuentoAplicado).toFixed(2));
+        }
+
+        if (Number(metodo.saldo) < precioFinal) {
             return res.status(400).json({
                 message: "Saldo insuficiente"
             });
         }
-        const precio = Number(servicio.precio_envio);
-        const comision = Number((precio * 0.10).toFixed(2));
-        const proveedor = Number((precio - comision).toFixed(2));
+        const comision = Number((precioFinal * 0.10).toFixed(2));
+        const proveedor = Number((precioFinal - comision).toFixed(2));
         await transaction.begin();
-        const request = new sql.Request(transaction);
-        await clienteService.discountBalanceTransaction(transaction, id_metodo_pago, precio);
-
-        const reservacion = await clienteService.createReservationTransaction(
-        transaction,
-        {
-            id_cliente: cliente.id_cliente,
+        await clienteService.discountBalanceTransaction(
+            transaction,
             id_metodo_pago,
-            id_servicio_env: id_servicio,
-            fecha_inicio,
-            precio_total: precio,
-            comision,
-            proveedor
+            precioFinal
+        );
+        const reservacion = await clienteService.createReservationTransaction(
+                transaction,
+                {
+                    id_cliente: cliente.id_cliente,
+                    id_metodo_pago,
+                    id_servicio_env: id_servicio,
+                    fecha_inicio,
+                    precio_total: precioFinal,
+                    comision,
+                    proveedor,
+                    id_cupon: id_cupon || null,
+                    descuento_aplicado: descuentoAplicado
+                }
+            );
+        if (cuponCliente) {
+            await clienteService.useCouponTransaction(
+                transaction,
+                cuponCliente.id_cupon_cliente
+            );
+            await clienteService.increaseCouponUsesTransaction(
+                transaction,
+                id_cupon
+            );
         }
-    );
         await transaction.commit();
-
         return res.status(201).json({
             message: "Reservación creada correctamente",
+            precio_original: precioOriginal,
+            descuento_aplicado: descuentoAplicado,
+            precio_pagado: precioFinal,
             reservacion
         });
     } catch (error) {
-        if (transaction._aborted === false) {
+        if (!transaction._aborted) {
             await transaction.rollback();
         }
         console.error(error);
@@ -394,6 +438,140 @@ const rateShippingService = async (req, res) => {
     }
 };
 
+const cancelReservation = async (req, res) => {
+
+    const transaction = new sql.Transaction(await connectDB());
+    try {
+        const cliente = await clienteService.getClienteByUserId(req.user.id_usuario);
+        const reservacion = await clienteService.getReservationById(req.params.id, cliente.id_cliente);
+        if (!reservacion) {
+            return res.status(404).json({
+                message: "Reservación no encontrada"
+            });
+        }
+        if (reservacion.estado !== "PENDIENTE") {
+            return res.status(400).json({
+                message: "Solo puede cancelar reservaciones pendientes"
+            });
+        }
+        const inicio = new Date(reservacion.fecha_inicio);
+        const ahora = new Date();
+        const horas = (inicio - ahora) / (1000 * 60 * 60);
+        if (horas < 24) {
+            return res.status(400).json({
+                message: "Solo puede cancelar con al menos 24 horas de anticipación"
+            });
+        }
+        await transaction.begin();
+        await clienteService.refundBalance(
+            transaction,
+            reservacion.id_metodo_pago,
+            reservacion.precio_total
+        );
+        await clienteService.cancelReservation(
+            transaction,
+            reservacion.id_reservacion,
+            req.body.motivo || null
+        );
+        await transaction.commit();
+        return res.json({
+            message: "Reservación cancelada correctamente"
+        });
+    } catch (error) {
+        await transaction.rollback();
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+const createReport = async (req, res) => {
+
+    try {
+        const {
+            id_reservacion,
+            motivo,
+            descripcion
+
+        } = req.body;
+
+        const cliente = await clienteService.getClienteByUserId(
+                req.user.id_usuario
+            );
+
+        const reservacion = await clienteService.getReservationReportData(
+                id_reservacion,
+                cliente.id_cliente
+            );
+        if (!reservacion) {
+            return res.status(404).json({
+                message: "Reservación no encontrada"
+            });
+        }
+        const reporte =
+            await clienteService.createReport({
+                id_reportante: req.user.id_usuario,
+                id_reportado: reservacion.reportado,
+                id_reservacion,
+                tipo_reporte: "SERVICIO_ENVIO",
+                motivo,
+                descripcion
+            });
+        if (req.files) {
+            for (const file of req.files) {
+                await clienteService.createEvidence(
+                    reporte.id_reporte,
+                    `/uploads/${file.filename}`
+                );
+            }
+        }
+        return res.status(201).json({
+            message: "Reporte creado correctamente",
+            id_reporte: reporte.id_reporte
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+const getMyReports = async (req, res) => {
+
+    try {
+        const reportes = await clienteService.getMyReports(req.user.id_usuario);
+        for (const reporte of reportes) {
+            reporte.evidencias = await clienteService.getReportEvidence(
+                    reporte.id_reporte
+                );
+        }
+        return res.status(200).json(reportes);
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+const getMyCoupons = async (req, res) => {
+
+    try {
+        const cliente = await clienteService.getClienteByUserId(
+                req.user.id_usuario
+            );
+        const cupones = await clienteService.getAvailableCoupons(
+                cliente.id_cliente
+            );
+        return res.status(200).json({
+            cupones
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     registerCliente,
     getShippingServices,
@@ -401,5 +579,9 @@ module.exports = {
     getPaymentMethods,
     deactivatePaymentMethod,
     createReservation,
-    rateShippingService
+    rateShippingService,
+    cancelReservation,
+    createReport,
+    getMyReports,
+    getMyCoupons
 };

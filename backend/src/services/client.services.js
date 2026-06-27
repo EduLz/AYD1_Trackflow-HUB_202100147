@@ -427,6 +427,8 @@ const createReservationTransaction = async (transaction, data) => {
         .input("precio", data.precio_total)
         .input("comision", data.comision)
         .input("proveedor", data.proveedor)
+        .input("id_cupon", data.id_cupon || null)
+        .input("descuento", data.descuento_aplicado || 0)
         .query(`
             INSERT INTO Reservacion
             (
@@ -434,11 +436,13 @@ const createReservationTransaction = async (transaction, data) => {
                 id_estado,
                 id_metodo_pago,
                 id_servicio_env,
+                id_cupon_aplicado,
                 tipo_servicio,
                 fecha_inicio,
                 precio_total,
                 comision_plataforma,
-                monto_proveedor
+                monto_proveedor,
+                descuento_aplicado
             )
 
             OUTPUT INSERTED.*
@@ -449,14 +453,15 @@ const createReservationTransaction = async (transaction, data) => {
                 @id_estado,
                 @id_metodo,
                 @id_servicio,
+                @id_cupon,
                 'ENVIO',
                 @fecha,
                 @precio,
                 @comision,
-                @proveedor
+                @proveedor,
+                @descuento
             )
         `);
-
     return result.recordset[0];
 };
 
@@ -548,6 +553,267 @@ const updateServiceRating = async (id_servicio) => {
         `);
 };
 
+const getReservationById = async (id_reservacion, id_cliente) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_reservacion", id_reservacion)
+        .input("id_cliente", id_cliente)
+        .query(`
+            SELECT
+                r.*,
+                er.nombre AS estado
+            FROM Reservacion r
+            INNER JOIN EstadoReservacion er
+                ON er.id_estado = r.id_estado
+            WHERE r.id_reservacion = @id_reservacion
+            AND r.id_cliente = @id_cliente
+        `);
+    return result.recordset[0];
+};
+
+const refundBalance = async (transaction, id_metodo, monto) => {
+
+    await new sql.Request(transaction)
+        .input("id_metodo", id_metodo)
+        .input("monto", monto)
+        .query(`
+            UPDATE TarjetaSimulada
+            SET saldo = saldo + @monto
+            WHERE id_metodo = @id_metodo
+        `);
+};
+
+const cancelReservation = async (transaction, id_reservacion, motivo) => {
+
+    await new sql.Request(transaction)
+        .input("id_reservacion", id_reservacion)
+        .input("motivo", motivo)
+        .query(`
+            UPDATE Reservacion
+            SET
+                id_estado = 5,
+                fecha_cancelacion = GETDATE(),
+                motivo_cancelacion = @motivo
+            WHERE id_reservacion = @id_reservacion
+        `);
+};
+
+const createReport = async (data) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_estado", 1) // PENDIENTE
+        .input("id_reportante", data.id_reportante)
+        .input("id_reportado", data.id_reportado)
+        .input("id_reservacion", data.id_reservacion)
+        .input("tipo_reporte", data.tipo_reporte)
+        .input("motivo", data.motivo)
+        .input("descripcion", data.descripcion)
+        .query(`
+            INSERT INTO Reporte
+            (
+                id_estado,
+                id_reportante,
+                id_reportado,
+                id_reservacion,
+                tipo_reporte,
+                motivo,
+                descripcion
+            )
+
+            OUTPUT INSERTED.*
+
+            VALUES
+            (
+                @id_estado,
+                @id_reportante,
+                @id_reportado,
+                @id_reservacion,
+                @tipo_reporte,
+                @motivo,
+                @descripcion
+            )
+        `);
+    return result.recordset[0];
+};
+
+const createEvidence = async (id_reporte, url) => {
+
+    const pool = await connectDB();
+    await pool.request()
+        .input("id_reporte", id_reporte)
+        .input("url", url)
+        .query(`
+            INSERT INTO EvidenciaReporte
+            (
+                id_reporte,
+                url
+            )
+            VALUES
+            (
+                @id_reporte,
+                @url
+            )
+        `);
+};
+
+const getReservationReportData = async (id_reservacion, id_cliente) => {
+
+    const pool = await connectDB();
+
+    const result = await pool.request()
+
+        .input("id_reservacion", id_reservacion)
+        .input("id_cliente", id_cliente)
+        .query(`
+            SELECT
+                r.id_reservacion,
+                u.id_usuario AS reportado,
+                c.id_usuario AS cliente
+            FROM Reservacion r
+            INNER JOIN ServicioEnvio s
+                ON s.id_servicio = r.id_servicio_env
+            INNER JOIN OperadorLogistico o
+                ON o.id_operador = s.id_operador
+            INNER JOIN Usuario u
+                ON u.id_usuario = o.id_usuario
+            INNER JOIN Cliente c
+                ON c.id_cliente = r.id_cliente
+            WHERE
+                r.id_reservacion = @id_reservacion
+            AND r.id_cliente = @id_cliente
+        `);
+    return result.recordset[0];
+};
+
+const getMyReports = async (id_usuario) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_usuario", id_usuario)
+        .query(`
+            SELECT
+                r.id_reporte,
+                er.nombre AS estado,
+                r.tipo_reporte,
+                r.motivo,
+                r.descripcion,
+                r.accion_tomada,
+                r.fecha_reporte,
+                r.fecha_resolucion,
+                r.id_reservacion
+            FROM Reporte r
+            INNER JOIN EstadoReporte er
+                ON er.id_estado = r.id_estado
+            WHERE r.id_reportante = @id_usuario
+            ORDER BY r.fecha_reporte DESC
+        `);
+
+    return result.recordset;
+};
+
+const getReportEvidence = async (id_reporte) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_reporte", id_reporte)
+        .query(`
+            SELECT
+                id_evidencia,
+                tipo,
+                url,
+                fecha_carga
+            FROM EvidenciaReporte
+            WHERE id_reporte = @id_reporte
+        `);
+    return result.recordset;
+};
+
+const getAvailableCoupons = async (id_cliente) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_cliente", id_cliente)
+        .query(`
+            SELECT
+                cc.id_cupon_cliente,
+                c.id_cupon,
+                c.codigo,
+                tc.nombre AS tipo,
+                c.descripcion,
+                c.valor,
+                c.fecha_inicio,
+                c.fecha_fin,
+                c.usos_maximos,
+                c.usos_actuales,
+                CASE
+                    WHEN c.activo = 0 THEN 'INACTIVO'
+                    WHEN cc.usado = 1 THEN 'USADO'
+                    WHEN CAST(GETDATE() AS DATE) < c.fecha_inicio THEN 'PENDIENTE'
+                    WHEN CAST(GETDATE() AS DATE) > c.fecha_fin THEN 'VENCIDO'
+                    ELSE 'DISPONIBLE'
+                END AS estado
+            FROM CuponCliente cc
+            INNER JOIN Cupon c
+                ON c.id_cupon = cc.id_cupon
+            INNER JOIN TipoCupon tc
+                ON tc.id_tipo = c.id_tipo
+            WHERE cc.id_cliente = @id_cliente;
+        `);
+
+    return result.recordset;
+};
+
+const getClientCoupon = async (id_cliente, id_cupon) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_cliente", id_cliente)
+        .input("id_cupon", id_cupon)
+        .query(`
+            SELECT
+                cc.id_cupon_cliente,
+                c.*
+            FROM CuponCliente cc
+            INNER JOIN Cupon c
+                ON c.id_cupon = cc.id_cupon
+            WHERE
+                cc.id_cliente = @id_cliente
+                AND cc.id_cupon = @id_cupon
+                AND cc.usado = 0
+                AND c.activo = 1
+                AND GETDATE()
+                    BETWEEN c.fecha_inicio
+                    AND c.fecha_fin
+        `);
+    return result.recordset[0];
+};
+
+const useCouponTransaction = async (transaction, id_cupon_cliente) => {
+
+    await new sql.Request(transaction)
+        .input("id", id_cupon_cliente)
+        .query(`
+            UPDATE CuponCliente
+            SET
+                usado = 1,
+                fecha_uso = GETDATE()
+            WHERE id_cupon_cliente = @id
+        `);
+};
+
+const increaseCouponUsesTransaction = async (transaction, id_cupon) => {
+
+    await new sql.Request(transaction)
+        .input("id", id_cupon)
+        .query(`
+            UPDATE Cupon
+            SET usos_actuales = usos_actuales + 1
+            WHERE id_cupon = @id
+        `);
+};
+
 module.exports = {
     createCliente,
     getShippingServices,
@@ -568,7 +834,19 @@ module.exports = {
     getReservationForRating,
     hasRating,
     createRating,
-    updateServiceRating
+    updateServiceRating,
+    getReservationById,
+    refundBalance,
+    cancelReservation,
+    createReport,
+    createEvidence,
+    getReservationReportData,
+    getMyReports,
+    getReportEvidence,
+    getAvailableCoupons,
+    getClientCoupon,
+    useCouponTransaction,
+    increaseCouponUsesTransaction
 };
 
         
