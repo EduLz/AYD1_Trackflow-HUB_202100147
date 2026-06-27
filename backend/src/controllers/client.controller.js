@@ -394,6 +394,53 @@ const rateShippingService = async (req, res) => {
     }
 };
 
+const cancelReservation = async (req, res) => {
+
+    const transaction = new sql.Transaction(await connectDB());
+    try {
+        const cliente = await clienteService.getClienteByUserId(req.user.id_usuario);
+        const reservacion = await clienteService.getReservationById(req.params.id, cliente.id_cliente);
+        if (!reservacion) {
+            return res.status(404).json({
+                message: "Reservación no encontrada"
+            });
+        }
+        if (reservacion.estado !== "PENDIENTE") {
+            return res.status(400).json({
+                message: "Solo puede cancelar reservaciones pendientes"
+            });
+        }
+        const inicio = new Date(reservacion.fecha_inicio);
+        const ahora = new Date();
+        const horas = (inicio - ahora) / (1000 * 60 * 60);
+        if (horas < 24) {
+            return res.status(400).json({
+                message: "Solo puede cancelar con al menos 24 horas de anticipación"
+            });
+        }
+        await transaction.begin();
+        await clienteService.refundBalance(
+            transaction,
+            reservacion.id_metodo_pago,
+            reservacion.precio_total
+        );
+        await clienteService.cancelReservation(
+            transaction,
+            reservacion.id_reservacion,
+            req.body.motivo || null
+        );
+        await transaction.commit();
+        return res.json({
+            message: "Reservación cancelada correctamente"
+        });
+    } catch (error) {
+        await transaction.rollback();
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     registerCliente,
     getShippingServices,
@@ -401,5 +448,6 @@ module.exports = {
     getPaymentMethods,
     deactivatePaymentMethod,
     createReservation,
-    rateShippingService
+    rateShippingService,
+    cancelReservation
 };

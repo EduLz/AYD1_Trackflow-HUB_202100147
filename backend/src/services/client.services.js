@@ -548,6 +548,52 @@ const updateServiceRating = async (id_servicio) => {
         `);
 };
 
+const getReservationById = async (id_reservacion, id_cliente) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_reservacion", id_reservacion)
+        .input("id_cliente", id_cliente)
+        .query(`
+            SELECT
+                r.*,
+                er.nombre AS estado
+            FROM Reservacion r
+            INNER JOIN EstadoReservacion er
+                ON er.id_estado = r.id_estado
+            WHERE r.id_reservacion = @id_reservacion
+            AND r.id_cliente = @id_cliente
+        `);
+    return result.recordset[0];
+};
+
+const refundBalance = async (transaction, id_metodo, monto) => {
+
+    await new sql.Request(transaction)
+        .input("id_metodo", id_metodo)
+        .input("monto", monto)
+        .query(`
+            UPDATE TarjetaSimulada
+            SET saldo = saldo + @monto
+            WHERE id_metodo = @id_metodo
+        `);
+};
+
+const cancelReservation = async (transaction, id_reservacion, motivo) => {
+
+    await new sql.Request(transaction)
+        .input("id_reservacion", id_reservacion)
+        .input("motivo", motivo)
+        .query(`
+            UPDATE Reservacion
+            SET
+                id_estado = 5,
+                fecha_cancelacion = GETDATE(),
+                motivo_cancelacion = @motivo
+            WHERE id_reservacion = @id_reservacion
+        `);
+};
+
 module.exports = {
     createCliente,
     getShippingServices,
@@ -568,7 +614,10 @@ module.exports = {
     getReservationForRating,
     hasRating,
     createRating,
-    updateServiceRating
+    updateServiceRating,
+    getReservationById,
+    refundBalance,
+    cancelReservation
 };
 
         
