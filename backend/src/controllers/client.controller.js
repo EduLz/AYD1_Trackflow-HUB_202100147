@@ -334,11 +334,72 @@ const createReservation = async (req, res) => {
     }
 };
 
+const rateShippingService = async (req, res) => {
+
+    try {
+        const {
+            id_reservacion,
+            puntuacion,
+            comentario
+        } = req.body;
+
+        if (!id_reservacion || !puntuacion) {
+            return res.status(400).json({
+                message: "Datos incompletos"
+            });
+        }
+        if (puntuacion < 1 || puntuacion > 5) {
+            return res.status(400).json({
+                message: "La puntuación debe estar entre 1 y 5"
+            });
+        }
+
+        const cliente = await clienteService.getClienteByUserId(req.user.id_usuario);
+        const reservacion = await clienteService.getReservationForRating(
+                id_reservacion,
+                cliente.id_cliente
+            );
+        if (!reservacion) {
+            return res.status(404).json({
+                message: "Reservación no encontrada"
+            });
+        }
+        if (reservacion.estado !== "ENTREGADO") {
+            return res.status(400).json({
+                message: "Solo puede calificar servicios entregados"
+            });
+        }
+        const existe = await clienteService.hasRating(id_reservacion);
+        if (existe) {
+            return res.status(400).json({
+                message: "Esta reservación ya fue calificada"
+            });
+        }
+        const rating = await clienteService.createRating({
+                id_reservacion,
+                id_cliente: cliente.id_cliente,
+                puntuacion,
+                comentario
+
+            });
+        await clienteService.updateServiceRating(reservacion.id_servicio_env);
+        return res.status(201).json({
+            message: "Calificación registrada correctamente",
+            rating
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     registerCliente,
     getShippingServices,
     registerCard,
     getPaymentMethods,
     deactivatePaymentMethod,
-    createReservation
+    createReservation,
+    rateShippingService
 };

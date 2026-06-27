@@ -2,7 +2,7 @@ const express = require("express");
 
 const router = express.Router();
 const { registerCliente, getShippingServices, registerCard, getPaymentMethods,
-        deactivatePaymentMethod, createReservation } = require("../controllers/client.controller");
+        deactivatePaymentMethod, createReservation, rateShippingService } = require("../controllers/client.controller");
 const { verifyToken, requireRole } = require("../middlewares/auth.middleware");
 
 router.post("/register", registerCliente);
@@ -11,5 +11,6 @@ router.post("/payment/card", verifyToken, requireRole(2), registerCard);
 router.get("/payment", verifyToken, requireRole(2), getPaymentMethods);
 router.patch("/payment/:id/deactivate", verifyToken, requireRole(2), deactivatePaymentMethod);
 router.post("/reservations", verifyToken, requireRole(2), createReservation);
+router.post("/calificaciones", verifyToken, requireRole(2), rateShippingService);
 
 module.exports = router;

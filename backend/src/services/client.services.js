@@ -460,6 +460,94 @@ const createReservationTransaction = async (transaction, data) => {
     return result.recordset[0];
 };
 
+const getReservationForRating = async (id_reservacion, id_cliente) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_reservacion", id_reservacion)
+        .input("id_cliente", id_cliente)
+        .query(`
+            SELECT
+                r.*,
+                er.nombre AS estado
+            FROM Reservacion r
+            INNER JOIN EstadoReservacion er
+                ON er.id_estado = r.id_estado
+            WHERE r.id_reservacion = @id_reservacion
+            AND r.id_cliente = @id_cliente
+        `);
+
+    return result.recordset[0];
+};
+
+const hasRating = async (id_reservacion) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_reservacion", id_reservacion)
+        .query(`
+            SELECT *
+            FROM Calificacion
+            WHERE id_reservacion = @id_reservacion
+        `);
+    return result.recordset[0];
+};
+
+const createRating = async (data) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_reservacion", data.id_reservacion)
+        .input("id_cliente", data.id_cliente)
+        .input("puntuacion", data.puntuacion)
+        .input("comentario", data.comentario)
+        .query(`
+            INSERT INTO Calificacion
+            (
+                id_reservacion,
+                id_cliente,
+                puntuacion,
+                comentario
+            )
+
+            OUTPUT INSERTED.*
+
+            VALUES
+            (
+                @id_reservacion,
+                @id_cliente,
+                @puntuacion,
+                @comentario
+            )
+        `);
+
+    return result.recordset[0];
+};
+
+const updateServiceRating = async (id_servicio) => {
+
+    const pool = await connectDB();
+    await pool.request()
+        .input("id_servicio", id_servicio)
+        .query(`
+            UPDATE ServicioEnvio
+            SET
+                calificacion_prom = stats.promedio,
+                total_calificaciones = stats.total
+            FROM ServicioEnvio s
+            CROSS APPLY(
+                SELECT
+                    AVG(CAST(c.puntuacion AS DECIMAL(5,2))) AS promedio,
+                    COUNT(*) AS total
+                FROM Calificacion c
+                INNER JOIN Reservacion r
+                    ON r.id_reservacion = c.id_reservacion
+                WHERE r.id_servicio_env = s.id_servicio
+            ) stats
+            WHERE s.id_servicio = @id_servicio
+        `);
+};
+
 module.exports = {
     createCliente,
     getShippingServices,
@@ -476,7 +564,11 @@ module.exports = {
     discountBalance,
     createReservation,
     discountBalanceTransaction,
-    createReservationTransaction
+    createReservationTransaction,
+    getReservationForRating,
+    hasRating,
+    createRating,
+    updateServiceRating
 };
 
         
