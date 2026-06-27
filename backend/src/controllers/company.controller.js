@@ -737,7 +737,15 @@ const activateRoute = async (req, res) => {
 
     }
 };
-
+const getReportesClientes = async (req, res) => {
+    try {
+        const reportes = await companyService.getReportesDeClientes(req.user.id_usuario);
+        return res.status(200).json({ reportes });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    }
+};
 module.exports = {
     registerEmpresa,
     createRoute,
@@ -756,5 +764,6 @@ module.exports = {
     getReportesEmpresa,
     getDashboardEmpresa,
     getMyProfileChangeRequests,
-    activateRoute
+    activateRoute,
+    getReportesClientes
 };

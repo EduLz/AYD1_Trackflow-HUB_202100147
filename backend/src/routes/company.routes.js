@@ -24,6 +24,7 @@ const {
     getReportesEmpresa,
     getDashboardEmpresa,
     getMyProfileChangeRequests,
+    getReportesClientes,
     activateRoute  
 } = require("../controllers/company.controller");
 
@@ -32,7 +33,7 @@ router.post(
     "/register",
     registerEmpresa
 );
-
+router.get("/reportes-clientes", verifyToken, requireRole(4), getReportesClientes);
 router.get("/reportes", verifyToken, requireRole(4), getReportesEmpresa);
 router.get("/dashboard", verifyToken, requireRole(4), getDashboardEmpresa);
 // Rutas
