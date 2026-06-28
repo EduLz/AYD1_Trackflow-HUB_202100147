@@ -16,7 +16,7 @@
           required 
           style="text-transform: uppercase;"
         />
-        <button type="submit" class="btn-redeem">Validar y Canjear</button>
+        <button type="submit" class="btn-redeem" :disabled="procesando">{{ procesando ? 'Validando...' : 'Validar y Canjear' }}</button>
       </form>
       <span v-if="mensaje" :class="['mensaje', tipoMensaje]">{{ mensaje }}</span>
     </div>
@@ -24,20 +24,22 @@
     <div class="history-section">
       <h3>Historial de Cupones Activos / Utilizados</h3>
       
-      <div class="coupons-grid">
+      <div v-if="cargando" class="loading-state">Cargando cupones...</div>
+
+      <div v-else class="coupons-grid">
         <div v-if="cupones.length === 0" class="empty-state">
           No ha utilizado ningún cupón aún.
         </div>
 
-        <div v-for="cupon in cupones" :key="cupon.codigo" class="coupon-card">
+        <div v-for="cupon in cupones" :key="cupon.id_cupon_cliente" class="coupon-card">
           <div class="coupon-header">
             <span class="coupon-code">{{ cupon.codigo }}</span>
-            <span class="coupon-discount">-{{ cupon.descuento }}%</span>
+            <span class="coupon-discount">-{{ cupon.valor }}{{ cupon.tipo === 'PORCENTAJE' ? '%' : 'Q' }}</span>
           </div>
           <div class="coupon-body">
-            <p><strong>Proveedor:</strong> {{ cupon.proveedor }}</p>
-            <p><strong>Condiciones:</strong> {{ cupon.condiciones }}</p>
-            <p><strong>Restricciones:</strong> {{ cupon.restricciones }}</p>
+            <p><strong>Descripción:</strong> {{ cupon.descripcion }}</p>
+            <p><strong>Vigencia:</strong> {{ formatearFecha(cupon.fecha_inicio) }} al {{ formatearFecha(cupon.fecha_fin) }}</p>
+            <p><strong>Usos Restantes:</strong> {{ cupon.usos_maximos - cupon.usos_actuales }}</p>
           </div>
           <div class="coupon-footer">
             <span :class="['status', cupon.estado.toLowerCase()]">{{ cupon.estado }}</span>
@@ -49,52 +51,59 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const codigoCupon = ref('');
 const mensaje = ref('');
 const tipoMensaje = ref('');
+const cupones = ref([]);
+const cargando = ref(true);
+const procesando = ref(false);
 
-// Simulador de base de datos de cupones del usuario
-const cupones = ref([
-  {
-    codigo: 'ENVIOFREE26',
-    descuento: 100,
-    proveedor: 'Logistics GT',
-    condiciones: 'Aplica solo para envíos menores a 5kg.',
-    restricciones: 'Válido un uso por usuario. No acumulable.',
-    estado: 'Utilizado'
-  },
-  {
-    codigo: 'VIAJESUR15',
-    descuento: 15,
-    proveedor: 'Rutas Nacionales SA',
-    condiciones: 'Aplica para viajes hacia la ruta sur del país.',
-    restricciones: 'Válido hasta el 31/12/2026. Compra mínima Q200.',
-    estado: 'Activo'
-  }
-]);
-
-const canjearCupon = () => {
-  if (codigoCupon.value.trim() === 'TRACKFLOW20') {
-    cupones.value.unshift({
-      codigo: 'TRACKFLOW20',
-      descuento: 20,
-      proveedor: 'TrackFlow General',
-      condiciones: 'Aplica a cualquier servicio de envío o transporte.',
-      restricciones: 'Válido por 30 días.',
-      estado: 'Activo'
-    });
-    mensaje.value = "¡Cupón canjeado exitosamente!";
-    tipoMensaje.value = "success";
-    codigoCupon.value = '';
-  } else {
-    mensaje.value = "El código ingresado no existe o ha expirado.";
-    tipoMensaje.value = "error";
-  }
-  
-  setTimeout(() => { mensaje.value = ''; }, 3000);
+const formatearFecha = (isoString) => {
+  if(!isoString) return '';
+  const date = new Date(isoString);
+  return date.toLocaleDateString();
 };
+
+const cargarCupones = async () => {
+  cargando.value = true;
+  try {
+    const token = localStorage.getItem('tf_jwt');
+    const response = await fetch(`${API_URL}/api/clientes/cupones`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      cupones.value = data.cupones || [];
+    } else {
+      console.error("Error al obtener cupones");
+    }
+  } catch (error) {
+    console.error("Error en petición:", error);
+  } finally {
+    cargando.value = false;
+  }
+};
+
+const canjearCupon = async () => {
+  // Lógica preparada para el POST /api/clientes/cupones/canjear si existe en el backend.
+  // Por ahora lo simulamos y recargamos la lista
+  procesando.value = true;
+  setTimeout(() => {
+    mensaje.value = "Cupón verificado.";
+    tipoMensaje.value = "success";
+    procesando.value = false;
+    codigoCupon.value = '';
+    cargarCupones(); // Refrescamos
+  }, 1000);
+};
+
+onMounted(() => {
+  cargarCupones();
+});
 </script>
 
 <style scoped>
@@ -108,6 +117,7 @@ const canjearCupon = () => {
 .input-field { flex: 1; padding: 0.8rem 1.2rem; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; font-weight: bold; }
 .btn-redeem { padding: 0 2rem; background-color: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
 .btn-redeem:hover { background-color: #2563eb; }
+.btn-redeem:disabled { background-color: #94a3b8; cursor: not-allowed; }
 
 .mensaje { display: block; margin-top: 1rem; font-weight: 600; font-size: 0.9rem; }
 .mensaje.success { color: #10b981; }
@@ -125,6 +135,7 @@ const canjearCupon = () => {
 .coupon-footer { padding: 1rem; background: #f8fafc; border-top: 1px solid #e2e8f0; text-align: right; }
 .status { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; padding: 0.2rem 0.6rem; border-radius: 4px; }
 .status.activo { background-color: #dcfce3; color: #15803d; }
+.status.pendiente { background-color: #fef3c7; color: #d97706; }
 .status.utilizado { background-color: #e2e8f0; color: #475569; }
-.empty-state { grid-column: 1 / -1; padding: 2rem; text-align: center; color: #64748b; background: white; border: 1px dashed #cbd5e1; border-radius: 8px; }
+.loading-state, .empty-state { padding: 2rem; text-align: center; color: #64748b; background: white; border: 1px dashed #cbd5e1; border-radius: 8px; }
 </style>

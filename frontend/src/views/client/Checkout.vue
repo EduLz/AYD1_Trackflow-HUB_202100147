@@ -7,7 +7,11 @@
       <p>Verifique sus servicios y seleccione un método de pago para confirmar su reservación.</p>
     </div>
 
-    <div class="checkout-grid">
+    <div v-if="procesando" class="loading-state">
+      Procesando transacción, por favor no cierre esta ventana...
+    </div>
+
+    <div v-else class="checkout-grid">
       <div class="summary-section">
         <h3>Resumen de la Orden</h3>
         <div class="order-items">
@@ -41,8 +45,8 @@
           <label class="method-card" :class="{ selected: metodoPago === 'tarjeta' }">
             <input type="radio" value="tarjeta" v-model="metodoPago" />
             <div class="method-info">
-              <span class="method-name">Tarjeta de Crédito terminada en 1111</span>
-              <span class="method-desc">Expira: 12/30 | Visa</span>
+              <span class="method-name">Tarjeta de Crédito</span>
+              <span class="method-desc">Cualquier tarjeta guardada</span>
             </div>
           </label>
         </div>
@@ -51,7 +55,6 @@
         <p class="secure-text">🔒 Pago encriptado de extremo a extremo.</p>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -59,10 +62,13 @@
 import { ref, computed } from 'vue';
 
 const emit = defineEmits(['regresar']);
+const procesando = ref(false);
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+// Mock del carrito (Deberá venir de un Store / LocalStorage real)
 const items = ref([
-  { id: 1, nombre: 'Paquete Express Plus', proveedor: 'Logistics GT', fecha: '30/08/2026', precio: 45.00 },
-  { id: 2, nombre: 'Flete Directo Occidente', proveedor: 'TransXpress S.A.', fecha: '25/08/2026', precio: 350.00 }
+  { id: 1, id_servicio: 1, nombre: 'Paquete Express Plus', proveedor: 'Logistics GT', fecha: '2026-08-30', precio: 45.00 },
+  { id: 2, id_servicio: 2, nombre: 'Flete Directo Occidente', proveedor: 'TransXpress S.A.', fecha: '2026-08-25', precio: 350.00 }
 ]);
 
 const saldoWallet = ref(1000.00);
@@ -72,14 +78,49 @@ const calcularTotal = computed(() => {
   return items.value.reduce((total, item) => total + item.precio, 0);
 });
 
-const procesarPago = () => {
+const procesarPago = async () => {
   if (metodoPago.value === 'wallet' && saldoWallet.value < calcularTotal.value) {
     alert("Error: Saldo insuficiente en su Billetera TrackFlow. Recargue saldo o utilice una tarjeta.");
     return;
   }
   
-  alert("¡Pago Procesado Exitosamente! Sus reservaciones ahora están en estado 'Activo'.");
-  emit('regresar'); // Regresa al perfil tras pagar
+  procesando.value = true;
+  
+  try {
+    const token = localStorage.getItem('tf_jwt');
+    
+    // El Sprint 3 requiere POST a /api/clientes/reservations
+    // Hacemos el envío de cada item del carrito
+    for (const item of items.value) {
+      const response = await fetch(`${API_URL}/api/clientes/reservations`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({
+          id_servicio: item.id_servicio,
+          id_metodo_pago: metodoPago.value === 'wallet' ? 1 : 2,
+          fecha_inicio: item.fecha,
+          id_cupon: null // Opcional según Sprint 3
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Fallo en la creación de reservación.");
+      }
+    }
+
+    alert("¡Pago Procesado Exitosamente! Sus reservaciones ahora están en estado 'Activo'.");
+    // Limpiaríamos el carrito real aquí
+    emit('regresar');
+
+  } catch (error) {
+    console.error("Error al procesar pago:", error);
+    alert("Ocurrió un problema de red. Verifique que el backend esté conectado.");
+  } finally {
+    procesando.value = false;
+  }
 };
 </script>
 
@@ -89,10 +130,9 @@ const procesarPago = () => {
 .checkout-header p { color: #64748b; margin: 0; }
 .btn-back { background: transparent; border: 1px solid #cbd5e1; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; color: #475569; font-weight: 600; margin-bottom: 1rem; transition: all 0.2s; }
 .btn-back:hover { background: #f8fafc; border-color: #94a3b8; }
+.loading-state { text-align: center; color: #3b82f6; padding: 3rem; background: white; border-radius: 8px; border: 1px dashed #3b82f6; font-weight: bold; font-size: 1.2rem; }
 
 .checkout-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
-
-/* Sección Resumen */
 .summary-section { background: white; padding: 2rem; border-radius: 12px; border: 1px solid #e2e8f0; }
 .summary-section h3 { margin-top: 0; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem; }
 .order-items { display: flex; flex-direction: column; gap: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem; margin-bottom: 1rem; }
@@ -105,7 +145,6 @@ const procesarPago = () => {
 .order-totals div { display: flex; justify-content: space-between; color: #475569; }
 .grand-total { font-size: 1.3rem; font-weight: 800; color: #10b981 !important; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 2px dashed #cbd5e1; }
 
-/* Sección Método de Pago */
 .payment-section { background: white; padding: 2rem; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 1.5rem; }
 .payment-section h3 { margin: 0; color: #0f172a; }
 .payment-methods { display: flex; flex-direction: column; gap: 1rem; }
