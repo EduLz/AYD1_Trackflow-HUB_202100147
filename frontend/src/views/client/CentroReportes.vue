@@ -9,7 +9,7 @@
       <button :class="['tab-btn', { active: pestanaActiva === 'nuevo' }]" @click="pestanaActiva = 'nuevo'">
         Crear Nuevo Reporte
       </button>
-      <button :class="['tab-btn', { active: pestanaActiva === 'historial' }]" @click="pestanaActiva = 'historial'">
+      <button :class="['tab-btn', { active: pestanaActiva === 'historial' }]" @click="cargarHistorial">
         Historial de Reportes
       </button>
     </div>
@@ -52,46 +52,64 @@
     </div>
 
     <div v-if="pestanaActiva === 'historial'" class="reports-list">
-      <div class="report-card">
+      
+      <div v-if="cargandoHistorial" class="loading-state">
+        Cargando historial de reportes...
+      </div>
+      
+      <div v-else-if="reportes.length === 0" class="empty-state">
+        No ha generado ningún reporte.
+      </div>
+
+      <div v-else v-for="reporte in reportes" :key="reporte.id_reporte" class="report-card">
         <div class="report-header">
           <div class="report-id">
-            <h4>Ticket #REP-0010</h4>
-            <span class="report-date">15/08/2026</span>
+            <h4>Ticket #REP-{{ reporte.id_reporte.toString().padStart(4, '0') }}</h4>
+            <span class="report-date">{{ formatearFecha(reporte.fecha_reporte) }}</span>
           </div>
-          <span class="status-badge en-estudio">En estudio</span>
+          <span class="status-badge" :class="obtenerClaseEstado(reporte.estado)">
+            {{ reporte.estado.replace('_', ' ') }}
+          </span>
         </div>
+        
         <div class="report-body">
-          <p><strong>Servicio:</strong> TRK-55102 | TransXpress</p>
-          <p><strong>Motivo:</strong> Retrasos no justificados</p>
-          <p class="desc-preview">"El camión llegó 4 horas tarde al punto de recolección..."</p>
+          <p><strong>Servicio Afectado:</strong> Reserva #{{ reporte.id_reservacion }} ({{ reporte.tipo_reporte.replace('SERVICIO_', '') }})</p>
+          <p><strong>Motivo:</strong> {{ reporte.motivo }}</p>
+          <p class="desc-preview">"{{ reporte.descripcion }}"</p>
+          
+          <div v-if="reporte.evidencias && reporte.evidencias.length > 0" class="evidencias-container">
+            <p><strong>Evidencias adjuntas:</strong></p>
+            <div class="evidencias-gallery">
+              <a v-for="evidencia in reporte.evidencias" :key="evidencia.id_evidencia" :href="API_URL + evidencia.url" target="_blank" class="evidencia-link">
+                <span v-if="evidencia.tipo === 'FOTO'">📷 Ver Foto</span>
+                <span v-else>📄 Ver Archivo</span>
+              </a>
+            </div>
+          </div>
+
+          <div v-if="reporte.accion_tomada" class="admin-response">
+            <strong>Respuesta Administrativa ({{ formatearFecha(reporte.fecha_resolucion) }}):</strong>
+            <p>{{ reporte.accion_tomada }}</p>
+          </div>
+
         </div>
       </div>
 
-      <div class="report-card">
-        <div class="report-header">
-          <div class="report-id">
-            <h4>Ticket #REP-0005</h4>
-            <span class="report-date">02/08/2026</span>
-          </div>
-          <span class="status-badge aceptado">Aceptado</span>
-        </div>
-        <div class="report-body">
-          <p><strong>Servicio:</strong> ENV-10900 | GuateBox Logistics</p>
-          <p><strong>Motivo:</strong> Cobro no acordado</p>
-          <p class="desc-preview">"El repartidor solicitó Q25 adicionales en efectivo..."</p>
-        </div>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const pestanaActiva = ref('nuevo');
 const archivoAdjunto = ref(null);
 const servicioSeleccionado = ref('');
 const motivosDisponibles = ref([]);
+const reportes = ref([]);
+const cargandoHistorial = ref(false);
 
 const motivosEnvio = [
   'Operador no realizó la recolección a tiempo',
@@ -112,7 +130,7 @@ const nuevoReporte = ref({
   descripcion: ''
 });
 
-// Cambia los motivos dinámicamente según el PDF
+// Cambia los motivos dinámicamente
 const actualizarMotivos = () => {
   nuevoReporte.value.motivo = '';
   if (servicioSeleccionado.value.includes('ENVIO')) {
@@ -127,12 +145,57 @@ const subirEvidencia = (event) => {
 };
 
 const enviarReporte = () => {
+  // Aquí irá la lógica POST de tu nuevo reporte
   alert("Reporte 'Enviado' exitosamente. Pasará a revisión del administrador.");
   servicioSeleccionado.value = '';
   nuevoReporte.value = { motivo: '', descripcion: '' };
   archivoAdjunto.value = null;
-  pestanaActiva.value = 'historial';
+  // Cambiamos a historial y lo recargamos
+  cargarHistorial();
 };
+
+// === NUEVA LÓGICA PARA EL GET /api/clientes/reportes ===
+
+const cargarHistorial = async () => {
+  pestanaActiva.value = 'historial';
+  cargandoHistorial.value = true;
+  
+  try {
+    const token = localStorage.getItem('tf_jwt');
+    const response = await fetch(`${API_URL}/api/clientes/reportes`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      reportes.value = await response.json();
+    } else {
+      console.error("Error al obtener los reportes");
+    }
+  } catch (error) {
+    console.error("Error de conexión:", error);
+  } finally {
+    cargandoHistorial.value = false;
+  }
+};
+
+const formatearFecha = (fechaStr) => {
+  if (!fechaStr) return 'Pendiente';
+  const opciones = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+  return new Date(fechaStr).toLocaleDateString('es-GT', opciones);
+};
+
+const obtenerClaseEstado = (estado) => {
+  const est = estado?.toUpperCase();
+  if (est === 'ENVIADO') return 'enviado';
+  if (est === 'EN_ESTUDIO' || est === 'REVISANDO') return 'en-estudio';
+  if (est === 'ACEPTADO' || est === 'RESUELTO') return 'aceptado';
+  if (est === 'RECHAZADO') return 'rechazado';
+  return 'en-estudio'; // default
+};
+
+onMounted(() => {
+  // Opcional: Cargar historial por defecto si quisieras iniciar en esa pestaña
+});
 </script>
 
 <style scoped>
@@ -161,9 +224,9 @@ const enviarReporte = () => {
 .btn-submit:hover { background-color: #dc2626; }
 
 .reports-list { display: flex; flex-direction: column; gap: 1rem; max-width: 800px; }
-.report-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+.report-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 .report-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; background-color: #f8fafc; border-bottom: 1px solid #e2e8f0; }
-.report-id h4 { margin: 0; color: #0f172a; }
+.report-id h4 { margin: 0; color: #0f172a; font-size: 1.1rem; }
 .report-date { font-size: 0.8rem; color: #64748b; }
 
 .status-badge { padding: 0.3rem 0.8rem; border-radius: 50px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; }
@@ -173,6 +236,17 @@ const enviarReporte = () => {
 .status-badge.rechazado { background-color: #fee2e2; color: #b91c1c; }
 
 .report-body { padding: 1.5rem; }
-.report-body p { margin: 0.3rem 0; color: #475569; font-size: 0.95rem; }
-.desc-preview { font-style: italic; background-color: #f1f5f9; padding: 0.8rem; border-radius: 6px; margin-top: 1rem !important; }
+.report-body p { margin: 0.4rem 0; color: #475569; font-size: 0.95rem; }
+.desc-preview { font-style: italic; background-color: #f1f5f9; padding: 1rem; border-radius: 6px; margin-top: 1rem !important; border-left: 4px solid #cbd5e1; }
+
+.evidencias-container { margin-top: 1.5rem; }
+.evidencias-gallery { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem; }
+.evidencia-link { display: inline-flex; align-items: center; justify-content: center; background-color: #f8fafc; border: 1px solid #cbd5e1; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; color: #3b82f6; font-size: 0.85rem; font-weight: 600; transition: background 0.2s; }
+.evidencia-link:hover { background-color: #eff6ff; border-color: #93c5fd; }
+
+.admin-response { margin-top: 1.5rem; background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 1rem; border-radius: 6px; }
+.admin-response strong { color: #166534; display: block; margin-bottom: 0.3rem; }
+.admin-response p { color: #15803d; margin: 0; }
+
+.loading-state, .empty-state { text-align: center; padding: 3rem; background: white; border-radius: 8px; border: 1px dashed #cbd5e1; color: #64748b; }
 </style>
