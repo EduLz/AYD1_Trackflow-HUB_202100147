@@ -32,18 +32,18 @@
         <form @submit.prevent="vincularTarjeta">
           <div class="form-group full-width">
             <label>Número de Tarjeta (16 dígitos)</label>
-            <input type="text" v-model="nuevaTarjeta.numero_tarjeta" maxlength="16" class="input-field" placeholder="Ej: 4111222233334444" required />
-            <span v-if="errorLuhn" class="error-text">El número de tarjeta es inválido </span>
+            <input type="text" v-model="nuevaTarjeta.numero_tarjeta" maxlength="16" class="input-field" placeholder="Ej: 4532015112830366" required />
+            <span v-if="errorLuhn" class="error-text">El número de tarjeta es inválido según Luhn.</span>
           </div>
           
           <div class="form-row">
             <div class="form-group">
               <label>Nombre en la Tarjeta</label>
-              <input type="text" v-model="nuevaTarjeta.nombre_titular" class="input-field" placeholder="Ej: Juan Perez" required />
+              <input type="text" v-model="nuevaTarjeta.nombre_titular" class="input-field" placeholder="Ej: Luis Gonzalez" required />
             </div>
             <div class="form-group">
-              <label>Vencimiento (MM/AA)</label>
-              <input type="text" v-model="nuevaTarjeta.fecha_vencimiento" maxlength="5" class="input-field" placeholder="12/28" required />
+              <label>Vencimiento (MM/YYYY)</label>
+              <input type="text" v-model="nuevaTarjeta.fecha_vencimiento" maxlength="7" class="input-field" placeholder="12/2029" required />
             </div>
             <div class="form-group">
               <label>CVV</label>
@@ -66,7 +66,7 @@
         
         <div v-for="tarjeta in tarjetas" :key="tarjeta.id_metodo_pago" class="credit-card-item" :class="{ 'inactive-card': tarjeta.estado === 'INACTIVO' }">
           <div class="card-chip"></div>
-          <div class="card-number">**** **** **** {{ tarjeta.numero_tarjeta.slice(-4) }}</div>
+          <div class="card-number">**** **** **** {{ tarjeta.numero_tarjeta ? tarjeta.numero_tarjeta.slice(-4) : '0000' }}</div>
           <div class="card-details">
             <div class="card-name">{{ tarjeta.nombre_titular }}</div>
             <div class="card-expiry">{{ tarjeta.fecha_vencimiento }}</div>
@@ -100,12 +100,12 @@ const nuevaTarjeta = ref({
   cvv: ''
 });
 
-// GET Tarjetas
+// GET Tarjetas - Ajustado a la ruta base payment/card
 const cargarTarjetas = async () => {
   cargando.value = true;
   try {
     const token = localStorage.getItem('tf_jwt');
-    const response = await fetch(`${API_URL}/api/clientes/tarjetas`, {
+    const response = await fetch(`${API_URL}/api/clientes/payment/card`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (response.ok) {
@@ -123,7 +123,7 @@ onMounted(() => {
   cargarTarjetas();
 });
 
-// Validación Algoritmo Luhn
+// Validación Algoritmo Luhn manual
 const validarAlgoritmoLuhn = (numeroStr) => {
   const numeroLimpio = numeroStr.replace(/\s+/g, '');
   if (!/^\d+$/.test(numeroLimpio)) return false;
@@ -142,7 +142,7 @@ const validarAlgoritmoLuhn = (numeroStr) => {
   return (suma % 10 === 0);
 };
 
-// POST Tarjeta
+// POST Tarjeta - Conectado exactamente a /api/clientes/payment/card
 const vincularTarjeta = async () => {
   errorLuhn.value = false;
   if (!validarAlgoritmoLuhn(nuevaTarjeta.value.numero_tarjeta)) {
@@ -153,7 +153,7 @@ const vincularTarjeta = async () => {
   procesando.value = true;
   try {
     const token = localStorage.getItem('tf_jwt');
-    const response = await fetch(`${API_URL}/api/clientes/tarjetas`, {
+    const response = await fetch(`${API_URL}/api/clientes/payment/card`, {
       method: 'POST',
       headers: { 
         'Authorization': `Bearer ${token}`,
@@ -166,9 +166,9 @@ const vincularTarjeta = async () => {
       alert("Tarjeta vinculada exitosamente.");
       nuevaTarjeta.value = { numero_tarjeta: '', nombre_titular: '', fecha_vencimiento: '', cvv: '' };
       mostrarFormulario.value = false;
-      cargarTarjetas();
+      cargarTarjetas(); // Recarga la lista
     } else {
-      alert("Error al vincular tarjeta en el servidor.");
+      alert("Error al vincular tarjeta en el servidor. Verifique los datos.");
     }
   } catch (error) {
     console.error(error);
@@ -177,13 +177,13 @@ const vincularTarjeta = async () => {
   }
 };
 
-// PATCH Desactivar
+// PATCH Desactivar - Ajustado asumiendo que sigue la misma estructura REST
 const desactivarTarjeta = async (id) => {
   if (!confirm("¿Está seguro que desea desactivar esta tarjeta? No podrá usarla para pagos.")) return;
   
   try {
     const token = localStorage.getItem('tf_jwt');
-    const response = await fetch(`${API_URL}/api/clientes/tarjetas/${id}/desactivar`, {
+    const response = await fetch(`${API_URL}/api/clientes/payment/card/${id}/deactivate`, {
       method: 'PATCH',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -197,7 +197,7 @@ const desactivarTarjeta = async (id) => {
   }
 };
 
-// Eliminar (Visual por ahora, asumiendo que no hay DELETE en el backend yet)
+// Eliminar visual (Front-end local)
 const eliminarTarjeta = (id) => {
   if(confirm("¿Seguro que desea remover esta tarjeta de la vista?")) {
     tarjetas.value = tarjetas.value.filter(t => t.id_metodo_pago !== id);
@@ -206,13 +206,11 @@ const eliminarTarjeta = (id) => {
 </script>
 
 <style scoped>
-/* Contenedores Base */
 .modulo-container { display: flex; flex-direction: column; gap: 2rem; }
 .content-header h1 { font-size: 1.8rem; color: #1e293b; margin-bottom: 0.5rem; margin-top: 0; }
 .content-header p { color: #64748b; margin: 0; }
 .wallet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
 
-/* Tarjetas Informativas */
 .balance-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white; padding: 2rem; border-radius: 16px; display: flex; flex-direction: column; justify-content: center; }
 .balance-card h3 { margin: 0 0 1rem 0; font-size: 1.1rem; color: #94a3b8; }
 .balance-amount { font-size: 2.5rem; font-weight: bold; color: #10b981; margin-bottom: 1rem; }
@@ -224,12 +222,10 @@ const eliminarTarjeta = (id) => {
 .btn-outline-primary { padding: 0.8rem 1.5rem; border: 1px solid #3b82f6; color: #3b82f6; background: transparent; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
 .btn-outline-primary:hover { background: #eff6ff; }
 
-/* Sección Tarjetas */
 .section-title-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem; margin-bottom: 1.5rem; }
 .section-title-bar h2 { margin: 0; font-size: 1.4rem; color: #1e293b; }
 .btn-add-card { background-color: #3b82f6; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; font-weight: 600; cursor: pointer; }
 
-/* Formulario */
 .add-card-form { background: #f8fafc; border: 1px solid #e2e8f0; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; }
 .add-card-form h3 { margin: 0 0 1.5rem 0; color: #0f172a; }
 .form-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem; }
@@ -244,7 +240,6 @@ const eliminarTarjeta = (id) => {
 .btn-save:hover { background-color: #059669; }
 .btn-save:disabled { background-color: #94a3b8; cursor: not-allowed; }
 
-/* Grid de Tarjetas */
 .saved-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
 .credit-card-item { background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; padding: 1.5rem; border-radius: 12px; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 1.5rem; transition: opacity 0.3s; }
 .inactive-card { opacity: 0.6; filter: grayscale(100%); }
