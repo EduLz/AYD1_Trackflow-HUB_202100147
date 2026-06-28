@@ -42,8 +42,10 @@ export const API = {
     // Reportes
     reportes:       `${BASE_URL}/api/operadores/reportes`,
     enviarReporte:  `${BASE_URL}/api/operadores/reportar-cliente`, // Pendiente
-    // Reservaciones (Calendario) - Pendiente
+    // Reservaciones (Calendario)
     reservaciones:  `${BASE_URL}/api/operadores/reservaciones`,
+    iniciarReservaOperador: (id) => `${BASE_URL}/api/operadores/reservaciones/${id}/iniciar`,
+    finalizarReservaOperador: (id) => `${BASE_URL}/api/operadores/reservaciones/${id}/finalizar`,
     // Fotos estaticas servidas por el backend
     fotoUrl:        (filename) => `${BASE_URL}/uploads/${filename}`,
   },
