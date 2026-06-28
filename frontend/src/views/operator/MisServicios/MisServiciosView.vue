@@ -48,7 +48,7 @@
                 </td>
                 <td>
                   <div class="acciones">
-                    <button class="btn-accion btn-editar" @click="abrirEdicion(s)" :disabled="editandoId === s.id_servicio">
+                    <button v-if="s.estado !== 'ELIMINADO'" class="btn-accion btn-editar" @click="abrirEdicion(s)" :disabled="editandoId === s.id_servicio">
                       Editar
                     </button>
                     <button
@@ -65,7 +65,7 @@
                     >
                       Activar
                     </button>
-                    <button class="btn-accion btn-eliminar" @click="eliminar(s)">
+                    <button v-if="s.estado !== 'ELIMINADO'" class="btn-accion btn-eliminar" @click="eliminar(s)">
                       Eliminar
                     </button>
                   </div>

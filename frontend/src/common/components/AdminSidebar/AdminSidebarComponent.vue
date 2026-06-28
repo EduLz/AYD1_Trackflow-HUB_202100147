@@ -16,6 +16,9 @@
         <router-link :to="{ name: 'admin-cambio-perfil' }" class="menu-item" active-class="active">
           Solicitudes Cambio de Perfil
         </router-link>
+        <router-link :to="{ name: 'admin-reportes' }" class="menu-item" active-class="active">
+          Gestión de Reportes
+        </router-link>
       </nav>
 
     </div>

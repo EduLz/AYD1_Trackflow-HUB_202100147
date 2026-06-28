@@ -17,6 +17,7 @@ import CrearAdministradorView  from '../views/admin/CrearAdministrador/CrearAdmi
 import SolicitudesRegistroView from '../views/admin/SolicitudesRegistro/SolicitudesRegistroView.vue';
 import ReunionesVirtualesView  from '../views/admin/ReunionesVirtuales/ReunionesVirtualesView.vue';
 import AdminSolicitudesPerfilView from '../views/admin/SolicitudesCambioPerfil/AdminSolicitudesPerfilView.vue';
+import AdminGestionReportesView from '../views/admin/GestionReportes/AdminGestionReportesView.vue';
 
 // Modulo Operador (v2.0.0)
 import MisServiciosView       from '../views/operator/MisServicios/MisServiciosView.vue';
@@ -26,6 +27,7 @@ import CalificacionesView     from '../views/operator/Calificaciones/Calificacio
 import CuponesView            from '../views/operator/Cupones/CuponesView.vue';
 import PerfilOperadorView     from '../views/operator/Perfil/PerfilOperadorView.vue';
 import ReportesOperadorView   from '../views/operator/Reportes/ReportesOperadorView.vue';
+import OperadorQuejasReclamosView from '../views/operator/Reportes/OperadorQuejasReclamosView.vue';
 
 // Vistas del Modulo Empresa de Transporte (v2.0.0)
 import EmpresaRutasView   from '../views/company/Rutas/EmpresaRutas.vue';
@@ -46,6 +48,7 @@ const router = createRouter({
     { path: '/admin/crear-administrador', name: 'admin-crear-administrador', component: CrearAdministradorView,  meta: { role: 'ADMIN' } },
     { path: '/admin/reuniones',           name: 'admin-reuniones',           component: ReunionesVirtualesView,  meta: { role: 'ADMIN' } },
     { path: '/admin/cambio-perfil',       name: 'admin-cambio-perfil',       component: AdminSolicitudesPerfilView, meta: { role: 'ADMIN' } },
+    { path: '/admin/reportes',            name: 'admin-reportes',            component: AdminGestionReportesView, meta: { role: 'ADMIN' } },
 
     // --- Modulo Operador (v2.0.0) ---
     { path: '/operator/dashboard',           name: 'operator-dashboard',          component: OperatorDashboard,       meta: { role: 'OPERADOR' } },
@@ -56,6 +59,7 @@ const router = createRouter({
     { path: '/operator/cupones',             name: 'operator-cupones',            component: CuponesView,             meta: { role: 'OPERADOR' } },
     { path: '/operator/perfil',              name: 'operator-perfil',             component: PerfilOperadorView,      meta: { role: 'OPERADOR' } },
     { path: '/operator/reportes',            name: 'operator-reportes',           component: ReportesOperadorView,    meta: { role: 'OPERADOR' } },
+    { path: '/operator/quejas-reclamos',     name: 'operator-quejas',             component: OperadorQuejasReclamosView, meta: { role: 'OPERADOR' } },
 
     // --- Modulo Empresa de Transporte (v2.0.0) ---
     { path: '/company/dashboard', name: 'company-dashboard', component: CompanyDashboard, meta: { role: 'EMPRESA' } },

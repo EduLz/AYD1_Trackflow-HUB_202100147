@@ -56,6 +56,15 @@
                 </div>
               </div>
 
+              <div class="envio-acciones" v-if="res.estado === 'PENDIENTE' || res.estado === 'EN_TRANSITO'">
+                <button v-if="res.estado === 'PENDIENTE'" class="btn-primary btn-sm" @click="iniciarReserva(res.id_reservacion)">
+                  Iniciar Envío
+                </button>
+                <button v-if="res.estado === 'EN_TRANSITO'" class="btn-success btn-sm" @click="finalizarReserva(res.id_reservacion)">
+                  Finalizar Envío
+                </button>
+              </div>
+
             </div>
           </div>
         </div>
@@ -135,6 +144,34 @@ export default {
       }
     };
 
+    const iniciarReserva = async (id) => {
+      try {
+        const res = await fetch(API.operador.iniciarReservaOperador(id), {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${authStore.token}` }
+        });
+        if (!res.ok) throw new Error('Error al iniciar el envío');
+        mostrarToast('Envío iniciado con éxito.', 'exito');
+        cargar();
+      } catch (error) {
+        mostrarToast(error.message, 'error');
+      }
+    };
+
+    const finalizarReserva = async (id) => {
+      try {
+        const res = await fetch(API.operador.finalizarReservaOperador(id), {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${authStore.token}` }
+        });
+        if (!res.ok) throw new Error('Error al finalizar el envío');
+        mostrarToast('Envío finalizado con éxito.', 'exito');
+        cargar();
+      } catch (error) {
+        mostrarToast(error.message, 'error');
+      }
+    };
+
     // Servicios unicos para el filtro individual
     const serviciosDisponibles = computed(() => {
       const set = new Set(reservaciones.value.map(r => r.nombre_servicio).filter(Boolean));
@@ -167,7 +204,7 @@ export default {
 
     return {
       cargando, mesFiltro, servicioFiltro, serviciosDisponibles, diasAgrupados, toast,
-      formatearDia, cargar
+      formatearDia, cargar, iniciarReserva, finalizarReserva
     };
   }
 };
@@ -218,6 +255,9 @@ export default {
                  font-weight: 600; 
                  cursor: pointer; 
                 }
+.btn-primary { background-color: #2563eb; color: #fff; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; }
+.btn-success { background-color: #16a34a; color: #fff; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; }
+.btn-sm { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
 .op-estado { text-align: center; 
              padding: 3rem; 
              color: var(--text-muted); 
@@ -299,6 +339,8 @@ export default {
 .val { font-size: 0.83rem; 
        color: var(--text-main); 
     }
+
+.envio-acciones { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
 
 /* Badges EstadoReservacion */
 .badge-estado { display: inline-block; 
