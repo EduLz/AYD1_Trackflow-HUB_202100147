@@ -1,6 +1,6 @@
 <template>
   <div class="dashboard-wrapper">
-    <Upperbar @toggle-carrito="mostrarCarrito = !mostrarCarrito" />
+    <ClientUpperbar @toggle-carrito="mostrarCarrito = !mostrarCarrito" />
     
     <div class="dashboard-main-area">
       <ClientSidebar 
@@ -57,7 +57,8 @@
 
 <script setup>
 import { ref } from 'vue';
-import Upperbar from '../../common/components/Upperbar/UpperbarComponent.vue';
+// Importamos el NUEVO componente (Verifica que la ruta sea correcta según donde lo hayas guardado)
+import ClientUpperbar from '../../common/components/Upperbar/ClientUpperbar.vue';
 import ClientSidebar from '../../common/components/ClientSidebar/ClientSidebarComponent.vue';
 import CarritoResumen from '../../common/components/CarritoResumen/CarritoResumen.vue';
 import BuscarEnvios from './BuscarEnvios.vue';
@@ -98,7 +99,10 @@ const irAlCheckout = () => {
 .dashboard-main-area {
   display: flex;
   flex: 1;
-  height: calc(100vh - 70px);
+  /* FIX: Se agrega margen superior para compensar los 60px del Upperbar fixed 
+     Esto evita que el contenido (como las barras de búsqueda) se esconda detrás del nav */
+  margin-top: 60px;
+  height: calc(100vh - 60px); 
   overflow: hidden;
 }
 

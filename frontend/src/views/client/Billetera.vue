@@ -74,7 +74,7 @@
           <div class="card-actions">
             <span v-if="!tarjeta.activo" class="badge-inactive">Inactiva</span>
             <button v-if="tarjeta.activo" class="btn-deactivate" @click="desactivarTarjeta(tarjeta.id_metodo)">Desactivar</button>
-            <button class="btn-delete-card" @click="eliminarTarjeta(tarjeta.id_metodo)">Eliminar</button>
+            
           </div>
         </div>
       </div>
@@ -197,12 +197,7 @@ const desactivarTarjeta = async (id) => {
   }
 };
 
-// Eliminar visual (Front-end local) - Ajustado para usar id_metodo
-const eliminarTarjeta = (id) => {
-  if(confirm("¿Seguro que desea remover esta tarjeta de la vista?")) {
-    tarjetas.value = tarjetas.value.filter(t => t.id_metodo !== id);
-  }
-};
+
 </script>
 
 <style scoped>
