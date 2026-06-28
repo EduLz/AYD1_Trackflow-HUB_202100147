@@ -60,6 +60,7 @@ const getShippingServices = async (filters) => {
             s.capacidad_carga_kg,
             s.precio_envio,
             s.descripcion,
+            s.fecha_creacion,
             es.nombre AS estado,
             s.calificacion_prom,
             s.total_calificaciones,
