@@ -4,7 +4,7 @@ const upload = require("../middlewares/upload.middleware");
 const router = express.Router();
 const { registerCliente, getShippingServices, registerCard, getPaymentMethods,
         deactivatePaymentMethod, createReservation, rateShippingService, cancelReservation,
-        createReport, getMyReports, getMyCoupons } = require("../controllers/client.controller");
+        createReport, getMyReports, getMyCoupons, getMyReservations } = require("../controllers/client.controller");
 const { verifyToken, requireRole } = require("../middlewares/auth.middleware");
 
 router.post("/register", registerCliente);
@@ -18,5 +18,6 @@ router.patch("/reservations/:id/cancelar", verifyToken, requireRole(2), cancelRe
 router.post("/reportes", verifyToken, requireRole(2), upload.array("evidencias", 5), createReport);
 router.get("/reportes", verifyToken, requireRole(2), getMyReports);
 router.get("/cupones", verifyToken, requireRole(2), getMyCoupons);
+router.get("/reservaciones", verifyToken, requireRole(2), getMyReservations);
 
 module.exports = router;
