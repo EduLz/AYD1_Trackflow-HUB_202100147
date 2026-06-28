@@ -856,6 +856,71 @@ const getReservationsByClient = async (id_cliente) => {
     return result.recordset;
 };
 
+const getCartItems = async (id_cliente) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_cliente", id_cliente)
+        .query(`
+            SELECT 
+                ci.id_item,
+                ci.tipo_servicio,
+                ci.fecha_inicio,
+                ci.fecha_fin,
+                ci.id_servicio_env,
+                ci.id_ruta,
+                s.nombre AS nombre_envio,
+                s.precio_envio,
+                r.origen,
+                r.destino,
+                r.precio AS precio_transporte
+            FROM CarritoItem ci
+            LEFT JOIN ServicioEnvio s ON s.id_servicio = ci.id_servicio_env
+            LEFT JOIN Ruta r         ON r.id_ruta = ci.id_ruta
+            WHERE ci.id_cliente = @id_cliente
+            ORDER BY ci.fecha_agregado DESC
+        `);
+    return result.recordset;
+};
+
+const addItemToCart = async (data) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_cliente", data.id_cliente)
+        .input("id_servicio_env", data.id_servicio_env || null)
+        .input("id_ruta", data.id_ruta || null)
+        .input("tipo_servicio", data.tipo_servicio)
+        .input("fecha_inicio", data.fecha_inicio)
+        .input("fecha_fin", data.fecha_fin || null)
+        .query(`
+            INSERT INTO CarritoItem 
+            (id_cliente, id_servicio_env, id_ruta, tipo_servicio, fecha_inicio, fecha_fin)
+            OUTPUT INSERTED.*
+            VALUES 
+            (@id_cliente, @id_servicio_env, @id_ruta, @tipo_servicio, @fecha_inicio, @fecha_fin)
+        `);
+    return result.recordset[0];
+};
+
+const removeItemFromCart = async (id_item, id_cliente) => {
+    const pool = await connectDB();
+    await pool.request()
+        .input("id_item", id_item)
+        .input("id_cliente", id_cliente)
+        .query(`
+            DELETE FROM CarritoItem 
+            WHERE id_item = @id_item AND id_cliente = @id_cliente
+        `);
+};
+
+const clearCartTransaction = async (transaction, id_cliente) => {
+    await new sql.Request(transaction)
+        .input("id_cliente", id_cliente)
+        .query(`
+            DELETE FROM CarritoItem 
+            WHERE id_cliente = @id_cliente
+        `);
+};
+
 module.exports = {
     createCliente,
     getShippingServices,
@@ -889,7 +954,9 @@ module.exports = {
     getClientCoupon,
     useCouponTransaction,
     increaseCouponUsesTransaction,
-    getReservationsByClient
+    getReservationsByClient,
+    getCartItems,
+    addItemToCart,
+    removeItemFromCart,
+    clearCartTransaction
 };
-
-        
