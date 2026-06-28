@@ -814,6 +814,48 @@ const increaseCouponUsesTransaction = async (transaction, id_cupon) => {
         `);
 };
 
+const getReservationsByClient = async (id_cliente) => {
+
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_cliente", id_cliente)
+        .query(`
+            SELECT
+                r.id_reservacion,
+                es.nombre AS estado,
+                r.tipo_servicio,
+                r.fecha_inicio,
+                r.fecha_fin,
+                r.precio_total,
+                r.descuento_aplicado,
+                r.fecha_reservacion,
+                s.id_servicio,
+                s.nombre AS servicio,
+                s.zona_cobertura,
+                s.precio_envio,
+                op.id_operador,
+                op.nombre AS operador_nombre,
+                op.apellido AS operador_apellido,
+                c.codigo AS cupon,
+                cal.puntuacion,
+                cal.comentario
+            FROM Reservacion r
+            INNER JOIN EstadoReservacion es
+                ON es.id_estado = r.id_estado
+            INNER JOIN ServicioEnvio s
+                ON s.id_servicio = r.id_servicio_env
+            INNER JOIN OperadorLogistico op
+                ON op.id_operador = s.id_operador
+            LEFT JOIN Cupon c
+                ON c.id_cupon = r.id_cupon_aplicado
+            LEFT JOIN Calificacion cal
+                ON cal.id_reservacion = r.id_reservacion
+            WHERE r.id_cliente = @id_cliente
+            ORDER BY r.fecha_reservacion DESC
+        `);
+    return result.recordset;
+};
+
 module.exports = {
     createCliente,
     getShippingServices,
@@ -846,7 +888,8 @@ module.exports = {
     getAvailableCoupons,
     getClientCoupon,
     useCouponTransaction,
-    increaseCouponUsesTransaction
+    increaseCouponUsesTransaction,
+    getReservationsByClient
 };
 
         
