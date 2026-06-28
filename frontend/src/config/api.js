@@ -19,6 +19,9 @@ export const API = {
     resolverSolicitudPerfil: (id) => `${BASE_URL}/api/admin/profile-change-requests/${id}`,
     getSolicitudesPerfilEmpresa: `${BASE_URL}/api/admin/company-profile-change-requests`,
     resolverSolicitudPerfilEmpresa: (id) => `${BASE_URL}/api/admin/company-profile-change-requests/${id}`,
+    // Reportes
+    getReportes: `${BASE_URL}/api/admin/reportes`,
+    cambiarEstadoReporte: (id) => `${BASE_URL}/api/admin/reportes/${id}`,
   },
   reuniones: {
     crear: `${BASE_URL}/api/reuniones`,
@@ -42,8 +45,10 @@ export const API = {
     // Reportes
     reportes:       `${BASE_URL}/api/operadores/reportes`,
     enviarReporte:  `${BASE_URL}/api/operadores/reportar-cliente`, // Pendiente
-    // Reservaciones (Calendario) - Pendiente
+    // Reservaciones (Calendario)
     reservaciones:  `${BASE_URL}/api/operadores/reservaciones`,
+    iniciarReservaOperador: (id) => `${BASE_URL}/api/operadores/reservaciones/${id}/iniciar`,
+    finalizarReservaOperador: (id) => `${BASE_URL}/api/operadores/reservaciones/${id}/finalizar`,
     // Fotos estaticas servidas por el backend
     fotoUrl:        (filename) => `${BASE_URL}/uploads/${filename}`,
   },
