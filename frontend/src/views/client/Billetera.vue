@@ -64,17 +64,17 @@
           No tiene tarjetas vinculadas.
         </div>
         
-        <div v-for="tarjeta in tarjetas" :key="tarjeta.id_metodo_pago" class="credit-card-item" :class="{ 'inactive-card': tarjeta.estado === 'INACTIVO' }">
+        <div v-for="tarjeta in tarjetas" :key="tarjeta.id_metodo" class="credit-card-item" :class="{ 'inactive-card': !tarjeta.activo }">
           <div class="card-chip"></div>
-          <div class="card-number">**** **** **** {{ tarjeta.numero_tarjeta ? tarjeta.numero_tarjeta.slice(-4) : '0000' }}</div>
+          <div class="card-number">**** **** **** {{ tarjeta.numero_ultimos4 || '0000' }}</div>
           <div class="card-details">
             <div class="card-name">{{ tarjeta.nombre_titular }}</div>
             <div class="card-expiry">{{ tarjeta.fecha_vencimiento }}</div>
           </div>
           <div class="card-actions">
-            <span v-if="tarjeta.estado === 'INACTIVO'" class="badge-inactive">Inactiva</span>
-            <button v-if="tarjeta.estado !== 'INACTIVO'" class="btn-deactivate" @click="desactivarTarjeta(tarjeta.id_metodo_pago)">Desactivar</button>
-            <button class="btn-delete-card" @click="eliminarTarjeta(tarjeta.id_metodo_pago)">Eliminar</button>
+            <span v-if="!tarjeta.activo" class="badge-inactive">Inactiva</span>
+            <button v-if="tarjeta.activo" class="btn-deactivate" @click="desactivarTarjeta(tarjeta.id_metodo)">Desactivar</button>
+            <button class="btn-delete-card" @click="eliminarTarjeta(tarjeta.id_metodo)">Eliminar</button>
           </div>
         </div>
       </div>
@@ -100,12 +100,12 @@ const nuevaTarjeta = ref({
   cvv: ''
 });
 
-// GET Tarjetas - Ajustado a la ruta base payment/card
+// GET Tarjetas - Ajustado a la ruta correcta: /api/clientes/payment
 const cargarTarjetas = async () => {
   cargando.value = true;
   try {
     const token = localStorage.getItem('tf_jwt');
-    const response = await fetch(`${API_URL}/api/clientes/payment/card`, {
+    const response = await fetch(`${API_URL}/api/clientes/payment`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (response.ok) {
@@ -142,7 +142,7 @@ const validarAlgoritmoLuhn = (numeroStr) => {
   return (suma % 10 === 0);
 };
 
-// POST Tarjeta - Conectado exactamente a /api/clientes/payment/card
+// POST Tarjeta - Intacto, como solicitaste
 const vincularTarjeta = async () => {
   errorLuhn.value = false;
   if (!validarAlgoritmoLuhn(nuevaTarjeta.value.numero_tarjeta)) {
@@ -177,30 +177,30 @@ const vincularTarjeta = async () => {
   }
 };
 
-// PATCH Desactivar - Ajustado asumiendo que sigue la misma estructura REST
+// PATCH Desactivar - Ajustado a la ruta correcta: /api/clientes/payment/:id/deactivate
 const desactivarTarjeta = async (id) => {
   if (!confirm("¿Está seguro que desea desactivar esta tarjeta? No podrá usarla para pagos.")) return;
   
   try {
     const token = localStorage.getItem('tf_jwt');
-    const response = await fetch(`${API_URL}/api/clientes/payment/card/${id}/deactivate`, {
+    const response = await fetch(`${API_URL}/api/clientes/payment/${id}/deactivate`, {
       method: 'PATCH',
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
     if (response.ok) {
       alert("Tarjeta desactivada.");
-      cargarTarjetas();
+      cargarTarjetas(); // Recarga las tarjetas para reflejar el cambio de estado
     }
   } catch (error) {
-    console.error(error);
+    console.error("Error al desactivar la tarjeta:", error);
   }
 };
 
-// Eliminar visual (Front-end local)
+// Eliminar visual (Front-end local) - Ajustado para usar id_metodo
 const eliminarTarjeta = (id) => {
   if(confirm("¿Seguro que desea remover esta tarjeta de la vista?")) {
-    tarjetas.value = tarjetas.value.filter(t => t.id_metodo_pago !== id);
+    tarjetas.value = tarjetas.value.filter(t => t.id_metodo !== id);
   }
 };
 </script>
