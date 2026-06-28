@@ -71,10 +71,15 @@
             <div class="card-name">{{ tarjeta.nombre_titular }}</div>
             <div class="card-expiry">{{ tarjeta.fecha_vencimiento }}</div>
           </div>
+          
+          <div class="card-balance">
+            <span class="balance-label">Saldo de Tarjeta:</span> 
+            <span>Q{{ Number(tarjeta.saldo || 0).toFixed(2) }}</span>
+          </div>
+
           <div class="card-actions">
             <span v-if="!tarjeta.activo" class="badge-inactive">Inactiva</span>
             <button v-if="tarjeta.activo" class="btn-deactivate" @click="desactivarTarjeta(tarjeta.id_metodo)">Desactivar</button>
-            
           </div>
         </div>
       </div>
@@ -83,10 +88,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-const saldoDisponible = ref(1000.00);
 const mostrarFormulario = ref(false);
 const errorLuhn = ref(false);
 const cargando = ref(true);
@@ -100,7 +104,7 @@ const nuevaTarjeta = ref({
   cvv: ''
 });
 
-// GET Tarjetas - Ajustado a la ruta correcta: /api/clientes/payment
+// GET Tarjetas
 const cargarTarjetas = async () => {
   cargando.value = true;
   try {
@@ -123,6 +127,13 @@ onMounted(() => {
   cargarTarjetas();
 });
 
+// Propiedad computada para sumar el saldo total de las tarjetas activas
+const saldoDisponible = computed(() => {
+  return tarjetas.value
+    .filter(tarjeta => tarjeta.activo)
+    .reduce((total, tarjeta) => total + (Number(tarjeta.saldo) || 0), 0);
+});
+
 // Validación Algoritmo Luhn manual
 const validarAlgoritmoLuhn = (numeroStr) => {
   const numeroLimpio = numeroStr.replace(/\s+/g, '');
@@ -142,7 +153,7 @@ const validarAlgoritmoLuhn = (numeroStr) => {
   return (suma % 10 === 0);
 };
 
-// POST Tarjeta - Intacto, como solicitaste
+// POST Tarjeta
 const vincularTarjeta = async () => {
   errorLuhn.value = false;
   if (!validarAlgoritmoLuhn(nuevaTarjeta.value.numero_tarjeta)) {
@@ -166,7 +177,7 @@ const vincularTarjeta = async () => {
       alert("Tarjeta vinculada exitosamente.");
       nuevaTarjeta.value = { numero_tarjeta: '', nombre_titular: '', fecha_vencimiento: '', cvv: '' };
       mostrarFormulario.value = false;
-      cargarTarjetas(); // Recarga la lista
+      cargarTarjetas(); 
     } else {
       alert("Error al vincular tarjeta en el servidor. Verifique los datos.");
     }
@@ -177,7 +188,7 @@ const vincularTarjeta = async () => {
   }
 };
 
-// PATCH Desactivar - Ajustado a la ruta correcta: /api/clientes/payment/:id/deactivate
+// PATCH Desactivar
 const desactivarTarjeta = async (id) => {
   if (!confirm("¿Está seguro que desea desactivar esta tarjeta? No podrá usarla para pagos.")) return;
   
@@ -190,14 +201,12 @@ const desactivarTarjeta = async (id) => {
 
     if (response.ok) {
       alert("Tarjeta desactivada.");
-      cargarTarjetas(); // Recarga las tarjetas para reflejar el cambio de estado
+      cargarTarjetas(); 
     }
   } catch (error) {
     console.error("Error al desactivar la tarjeta:", error);
   }
 };
-
-
 </script>
 
 <style scoped>
@@ -236,17 +245,19 @@ const desactivarTarjeta = async (id) => {
 .btn-save:disabled { background-color: #94a3b8; cursor: not-allowed; }
 
 .saved-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
-.credit-card-item { background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; padding: 1.5rem; border-radius: 12px; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 1.5rem; transition: opacity 0.3s; }
+.credit-card-item { background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; padding: 1.5rem; border-radius: 12px; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 1.2rem; transition: opacity 0.3s; }
 .inactive-card { opacity: 0.6; filter: grayscale(100%); }
 .card-chip { width: 40px; height: 30px; background: #fbbf24; border-radius: 4px; opacity: 0.8; }
 .card-number { font-size: 1.4rem; letter-spacing: 2px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
-.card-details { display: flex; justify-content: space-between; font-size: 0.9rem; text-transform: uppercase; }
+.card-details { display: flex; justify-content: space-between; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 0.5rem; }
+
+/* Nuevos estilos para el saldo de la tarjeta */
+.card-balance { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 0.8rem; font-size: 1.1rem; font-weight: 700; }
+.balance-label { font-size: 0.8rem; font-weight: 400; opacity: 0.8; text-transform: uppercase; }
 
 .card-actions { position: absolute; top: 1rem; right: 1rem; display: flex; gap: 0.5rem; }
 .btn-deactivate { background: rgba(255, 255, 255, 0.2); color: white; border: 1px solid white; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.7rem; cursor: pointer; }
 .btn-deactivate:hover { background: white; color: #1e40af; }
-.btn-delete-card { background: rgba(239, 68, 68, 0.8); color: white; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.7rem; cursor: pointer; }
-.btn-delete-card:hover { background: #dc2626; }
 .badge-inactive { font-size: 0.7rem; font-weight: bold; background: #ef4444; padding: 0.2rem 0.5rem; border-radius: 4px; }
 
 .loading-state, .empty-state { grid-column: 1 / -1; text-align: center; color: #94a3b8; padding: 2rem; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1; }
