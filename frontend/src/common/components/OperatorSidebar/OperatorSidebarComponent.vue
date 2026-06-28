@@ -33,6 +33,9 @@
         <router-link :to="{ name: 'operator-reportes' }" class="menu-item" active-class="active">
           Reportes y Estadísticas
         </router-link>
+        <router-link :to="{ name: 'operator-quejas' }" class="menu-item" active-class="active">
+          Quejas y Reclamos
+        </router-link>
       </nav>
 
     </div>
