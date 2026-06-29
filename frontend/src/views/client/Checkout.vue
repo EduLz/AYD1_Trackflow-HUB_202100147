@@ -36,12 +36,20 @@
           </div>
 
           <div class="order-totals">
-            <div class="subtotal"><span>Subtotal:</span> <span>Q{{ calcularSubtotal.toFixed(2) }}</span></div>
+            <div class="subtotal">
+              <span>Subtotal:</span> 
+              <span :class="{ 'precio-tachado': calcularDescuento > 0 }">
+                Q{{ calcularSubtotal.toFixed(2) }}
+              </span>
+            </div>
+            
             <div class="fee"><span>Cargos por Servicio:</span> <span>Q0.00</span></div>
+            
             <div v-if="calcularDescuento > 0" class="discount-row">
               <span>Descuento Aplicado:</span> 
               <span>- Q{{ calcularDescuento.toFixed(2) }}</span>
             </div>
+            
             <div class="grand-total">
               <span>Total a Pagar:</span> 
               <span>Q{{ calcularTotal.toFixed(2) }}</span>
@@ -88,21 +96,28 @@
         <h3>Seleccione Método de Pago</h3>
         
         <div class="payment-methods">
-          <label class="method-card" :class="{ selected: metodoPago === 1 }">
-            <input type="radio" :value="1" v-model="metodoPago" />
+          
+          <label 
+            v-for="tarjeta in tarjetasGuardadas" 
+            :key="tarjeta.id_metodo_pago"
+            class="method-card" 
+            :class="{ selected: metodoPago === tarjeta.id_metodo_pago }"
+          >
+            <input type="radio" :value="tarjeta.id_metodo_pago" v-model="metodoPago" />
             <div class="method-info">
-              <span class="method-name">TrackFlow Wallet</span>
-              <span class="method-desc">Saldo disponible: <strong>Q{{ saldoWallet.toFixed(2) }}</strong></span>
+              <span class="method-name">{{ tarjeta.nombre }}</span>
+              <span class="method-desc">Saldo disponible: <strong>Q{{ tarjeta.saldo.toFixed(2) }}</strong></span>
             </div>
           </label>
 
-          <label class="method-card" :class="{ selected: metodoPago === 2 }">
-            <input type="radio" :value="2" v-model="metodoPago" />
+          <label class="method-card" :class="{ selected: metodoPago === 99 }">
+            <input type="radio" :value="99" v-model="metodoPago" />
             <div class="method-info">
-              <span class="method-name">Tarjeta de Crédito</span>
-              <span class="method-desc">Cualquier tarjeta guardada</span>
+              <span class="method-name">TrackFlow Wallet</span>
+              <span class="method-desc">Método de pago alternativo</span>
             </div>
           </label>
+
         </div>
 
         <button 
@@ -132,8 +147,13 @@ const itemsCarrito = ref([]);
 const cuponesDisponibles = ref([]);
 
 const idCuponSeleccionado = ref(null);
-const metodoPago = ref(1); // 1: Wallet, 2: Tarjeta (Según payload backend)
-const saldoWallet = ref(1000.00); // Esto idealmente también vendría de un endpoint de perfil
+const metodoPago = ref(1); // Se inicializa con el ID de la primera tarjeta
+
+// Mock de Tarjetas (Se asume que en el futuro esto podría venir de un endpoint del perfil)
+const tarjetasGuardadas = ref([
+  { id_metodo_pago: 1, nombre: 'Tarjeta Visa terminada en 4242', saldo: 1500.00 },
+  { id_metodo_pago: 2, nombre: 'Tarjeta Mastercard terminada en 8901', saldo: 120.00 }
+]);
 
 // --- UTILIDADES ---
 const formatearFecha = (fechaStr) => {
@@ -167,7 +187,7 @@ const calcularDescuento = computed(() => {
 
 const calcularTotal = computed(() => {
   const total = calcularSubtotal.value - calcularDescuento.value;
-  return total < 0 ? 0 : total; // Evita totales negativos si el cupón fijo es mayor al subtotal
+  return total < 0 ? 0 : total; 
 });
 
 
@@ -178,23 +198,19 @@ const cargarDatosCheckout = async () => {
     const token = localStorage.getItem('tf_jwt');
     const headers = { 'Authorization': `Bearer ${token}` };
 
-    // Ejecutamos ambas peticiones al mismo tiempo para mayor rapidez
     const [resCarrito, resCupones] = await Promise.all([
       fetch(`${API_URL}/api/clientes/cart`, { headers }),
       fetch(`${API_URL}/api/clientes/cupones`, { headers })
     ]);
 
-    // Procesar Carrito
     if (resCarrito.ok) {
       const dataCarrito = await resCarrito.json();
       itemsCarrito.value = dataCarrito.carrito || [];
     }
 
-    // Procesar Cupones
     if (resCupones.ok) {
       const dataCupones = await resCupones.json();
-      // Filtramos para mostrar solo los que tienen estado DISPONIBLE
-      cuponesDisponibles.value = (dataCupones.cupones || []).filter(c => c.estado === 'DISPONIBLE');
+      cuponesDisponibles.value = dataCupones.cupones || [];
     }
 
   } catch (error) {
@@ -212,9 +228,11 @@ onMounted(() => {
 
 // --- PROCESAMIENTO DE PAGO (POST) ---
 const procesarPago = async () => {
-  // Validación de saldo simulada
-  if (metodoPago.value === 1 && saldoWallet.value < calcularTotal.value) {
-    alert("Error: Saldo insuficiente en su Billetera TrackFlow. Recargue saldo o seleccione Tarjeta.");
+  // Validación: Verificamos si el usuario seleccionó una tarjeta y si tiene saldo suficiente
+  const tarjetaSeleccionada = tarjetasGuardadas.value.find(t => t.id_metodo_pago === metodoPago.value);
+  
+  if (tarjetaSeleccionada && tarjetaSeleccionada.saldo < calcularTotal.value) {
+    alert(`Error: Saldo insuficiente en la ${tarjetaSeleccionada.nombre}. Elija otro método de pago.`);
     return;
   }
   
@@ -223,9 +241,8 @@ const procesarPago = async () => {
   try {
     const token = localStorage.getItem('tf_jwt');
     
-    // Payload exacto solicitado por el backend
     const payload = {
-      id_metodo_pago: metodoPago.value,
+      id_metodo_pago: metodoPago.value, // Envía el ID de la tarjeta seleccionada (o 99 si es TrackFlow Wallet)
       id_cupon: idCuponSeleccionado.value || null
     };
 
@@ -240,7 +257,7 @@ const procesarPago = async () => {
 
     if (response.ok) {
       alert("¡Pago Procesado Exitosamente! Sus reservaciones ahora están confirmadas.");
-      emit('pagoExitoso'); // Para que el componente padre cierre el checkout o redirija
+      emit('pagoExitoso'); 
       emit('regresar');
     } else {
       const errorData = await response.json().catch(() => ({}));
@@ -285,7 +302,11 @@ const procesarPago = async () => {
 
 .order-totals { display: flex; flex-direction: column; gap: 0.6rem; }
 .order-totals div { display: flex; justify-content: space-between; color: #475569; font-size: 1.05rem;}
-.discount-row { color: #ef4444 !important; font-weight: 600; }
+
+/* Estilo específico para el precio tachado en rojo cuando hay descuento */
+.precio-tachado { text-decoration: line-through; color: #ef4444; font-size: 0.9rem; }
+
+.discount-row { color: #10b981 !important; font-weight: 600; }
 .grand-total { font-size: 1.4rem !important; font-weight: 900; color: #10b981 !important; margin-top: 0.5rem; padding-top: 1rem; border-top: 2px dashed #cbd5e1; }
 
 /* Sección de Cupones */
