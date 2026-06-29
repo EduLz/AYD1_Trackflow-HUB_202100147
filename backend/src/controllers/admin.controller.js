@@ -3,8 +3,11 @@ const adminService = require("../services/admin.services");
 const authService = require("../services/auth.services");
 const operadorService = require("../services/operator.services");
 const companyService = require("../services/company.services");
+const emailService = require("../services/email.services");
 const { encryptPassword } = require("../utils/password");
 const { generateToken } = require("../utils/jwt");
+const { connectDB } = require("../config/database");
+const sql = require("mssql");
 
 const getSolicitudes = async (req, res) => {
 
@@ -223,7 +226,6 @@ const cambiarEstadoReporte = async (req, res) => {
         const { id } = req.params;
         const id_estado = Number(req.body.id_estado);
 
-        // ENVIADO=1, EN_REVISION=2, ACEPTADO=3, RECHAZADO=4
         if (![1, 2, 3, 4].includes(id_estado)) {
             return res.status(400).json({ message: "Estado de reporte invalido" });
         }
@@ -238,6 +240,93 @@ const cambiarEstadoReporte = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+
+const getUsers = async (req, res) => {
+    try {
+        const { rol } = req.query; 
+        const usuarios = await adminService.getUsuariosPanel(rol || null);
+        return res.status(200).json({ 
+            total: usuarios.length,
+            usuarios 
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+const editUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { correo, id_estado } = req.body;
+
+        if (!correo || !id_estado) {
+            return res.status(400).json({ message: "El correo y el estado son obligatorios" });
+        }
+
+        const usuarioActualizado = await adminService.updateUsuarioBase(id, correo, id_estado);
+        return res.status(200).json({ 
+            message: "Usuario modificado correctamente por el administrador", 
+            usuario: usuarioActualizado 
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+const vetoUser = async (req, res) => {
+    const pool = await connectDB();
+    const transaction = new sql.Transaction(pool);
+    
+    try {
+        const { id_usuario, motivo } = req.body;
+
+        if (!id_usuario || !motivo || motivo.trim() === "") {
+            return res.status(400).json({ 
+                message: "El ID del usuario y el motivo del veto son obligatorios" 
+            });
+        }
+        const id_admin_usuario = req.user.id_usuario; 
+        
+        const adminRes = await pool.request()
+            .input("id_user", id_admin_usuario)
+            .query("SELECT id_admin FROM Administrador WHERE id_usuario = @id_user");
+        
+        if (adminRes.recordset.length === 0) {
+            return res.status(403).json({ message: "No tienes permisos de administrador" });
+        }
+        const id_admin = adminRes.recordset[0].id_admin;
+
+        const userRes = await pool.request()
+            .input("id_usuario", id_usuario)
+            .query("SELECT correo FROM Usuario WHERE id_usuario = @id_usuario");
+        
+        const correoUsuario = userRes.recordset.length > 0 ? userRes.recordset[0].correo : null;
+        await transaction.begin();
+        await adminService.vetoUserTransaction(transaction, {
+            id_usuario,
+            id_admin,
+            motivo
+        });
+        await transaction.commit();
+        if (correoUsuario) {
+            emailService.sendVetoEmail(correoUsuario, motivo).catch(err => 
+                console.error("Error al enviar el correo de veto:", err.message)
+            );
+        }
+
+        return res.status(200).json({ 
+            message: "Usuario vetado de la plataforma exitosamente y notificación enviada" 
+        });
+
+    } catch (error) {
+        if (transaction && transaction._begun) {
+            await transaction.rollback();
+        }
+        console.error("Error en vetoUser:", error);
+        return res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     getSolicitudes,
     approveSolicitud,
@@ -249,5 +338,8 @@ module.exports = {
     getPendingCompanyProfileRequests,
     resolveCompanyProfileRequest,
     listarReportes,
-    cambiarEstadoReporte
+    cambiarEstadoReporte,
+    getUsers,
+    editUser,
+    vetoUser
 };
