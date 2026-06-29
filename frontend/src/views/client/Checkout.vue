@@ -7,7 +7,6 @@
       <p>Verifique sus servicios y seleccione un método de pago para confirmar su reservación.</p>
     </div>
 
-    <!-- Pantallas de Carga y Procesamiento -->
     <div v-if="cargandoDatos" class="loading-state">
       Cargando información de su orden...
     </div>
@@ -15,10 +14,8 @@
       Procesando transacción, por favor no cierre esta ventana...
     </div>
 
-    <!-- Pantalla Principal de Checkout -->
     <div v-else class="checkout-grid">
       
-      <!-- COLUMNA IZQUIERDA: Resumen y Cupones -->
       <div class="summary-column">
         
         <div class="summary-section">
@@ -60,7 +57,6 @@
           </div>
         </div>
 
-        <!-- Sección de Cupones -->
         <div class="coupons-section" v-if="cuponesDisponibles.length > 0">
           <h3>Cupones Disponibles</h3>
           <p class="coupons-desc">Seleccione un cupón para aplicar a su orden.</p>
@@ -95,17 +91,15 @@
         </div>
       </div>
 
-      <!-- COLUMNA DERECHA: Pago -->
       <div class="payment-section">
         <h3>Seleccione Método de Pago</h3>
         
         <div v-if="tarjetasGuardadas.length === 0" class="empty-msg" style="margin-bottom: 1rem;">
-          No tiene métodos de pago registrados.
+          No tiene métodos de pago registrados o activos.
         </div>
 
         <div class="payment-methods" v-else>
           
-          <!-- Lista de Tarjetas Dinámicas -->
           <label 
             v-for="tarjeta in tarjetasGuardadas" 
             :key="tarjeta.id_metodo"
@@ -207,17 +201,19 @@ const cargarDatosCheckout = async () => {
       itemsCarrito.value = dataCarrito.carrito || [];
     }
 
-    // 2. Procesar Cupones (Aplicando validación estricta de DISPONIBLE)
+    // 2. Procesar Cupones
     if (resCupones.ok) {
       const dataCupones = await resCupones.json();
       cuponesDisponibles.value = (dataCupones.cupones || []).filter(c => c.estado === 'DISPONIBLE');
     }
 
-    // 3. Procesar Métodos de Pago
+    // 3. Procesar Métodos de Pago (Filtrando solo las ACTIVAS)
     if (resPagos.ok) {
       const dataPagos = await resPagos.json();
-      tarjetasGuardadas.value = dataPagos || [];
-      // Autoseleccionar la primera tarjeta si hay alguna disponible
+      // Filtrar el arreglo para tomar únicamente las tarjetas donde activo === true
+      tarjetasGuardadas.value = (dataPagos || []).filter(tarjeta => tarjeta.activo === true);
+      
+      // Autoseleccionar la primera tarjeta si hay alguna disponible y activa
       if (tarjetasGuardadas.value.length > 0) {
         metodoPago.value = tarjetasGuardadas.value[0].id_metodo;
       }
@@ -257,7 +253,7 @@ const procesarPago = async () => {
     const token = localStorage.getItem('tf_jwt');
     
     const payload = {
-      id_metodo_pago: metodoPago.value, // Toma el id_metodo dinámico
+      id_metodo_pago: metodoPago.value,
       id_cupon: idCuponSeleccionado.value || null
     };
 
