@@ -27,12 +27,41 @@
         </router-link>
       </nav>
 
+      <nav class="nav-group">
+        <div class="menu-title dropdown-toggle" @click="toggleEstadisticas">
+          Estadísticas y Reportes
+          <span class="dropdown-icon">{{ isEstadisticasOpen ? '▼' : '▶' }}</span>
+        </div>
+        <div class="dropdown-content" v-show="isEstadisticasOpen">
+          <router-link :to="{ name: 'admin-reporte-logs' }" class="menu-item sub-item" active-class="active">
+            Logs de Registros y Vetos
+          </router-link>
+          <!-- Se irán agregando las demás opciones aquí paso a paso -->
+        </div>
+      </nav>
+
     </div>
   </aside>
 </template>
 
 <script>
-export default { name: 'AdminSidebarComponent' };
+import { ref } from 'vue';
+
+export default {
+  name: 'AdminSidebarComponent',
+  setup() {
+    const isEstadisticasOpen = ref(false);
+
+    const toggleEstadisticas = () => {
+      isEstadisticasOpen.value = !isEstadisticasOpen.value;
+    };
+
+    return {
+      isEstadisticasOpen,
+      toggleEstadisticas
+    };
+  }
+};
 </script>
 
 <style src="./admin-sidebar.css" scoped></style>

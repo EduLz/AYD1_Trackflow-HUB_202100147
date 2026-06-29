@@ -15,4 +15,10 @@
 .menu-title { font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; padding-left: 0.5rem; margin-bottom: 0.5rem; }
 .menu-item { color: var(--text-main); text-decoration: none; padding: 0.7rem 1rem; border-radius: var(--radius-sm); font-size: 0.88rem; font-weight: 600; display: flex; align-items: center; gap: 0.6rem; }
 .menu-item:hover { background-color: #f8fafc; }
-.admin-theme .menu-item.active { background-color: #eff6ff; color: var(--color-admin); font-weight: 700; }
+.admin-theme .menu-item.active { background-color: #eff6ff; color: var(--color-admin); font-weight: 700; }
+
+.dropdown-toggle { cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding-right: 0.5rem; }
+.dropdown-toggle:hover { color: var(--text-main); }
+.dropdown-icon { font-size: 0.6rem; color: #94a3b8; }
+.dropdown-content { display: flex; flex-direction: column; gap: 0.2rem; margin-bottom: 1rem; }
+.sub-item { padding-left: 2rem; font-size: 0.8rem; }
