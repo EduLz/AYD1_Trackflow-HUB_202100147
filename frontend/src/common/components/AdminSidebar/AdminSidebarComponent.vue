@@ -51,6 +51,9 @@
           <router-link :to="{ name: 'admin-reporte-estados' }" class="menu-item sub-item" active-class="active">
             Gráfica: Estado de Reportes
           </router-link>
+          <router-link :to="{ name: 'admin-reporte-gasto' }" class="menu-item sub-item" active-class="active">
+            Top Usuarios por Gasto
+          </router-link>
           <!-- Se irán agregando las demás opciones aquí paso a paso -->
         </div>
       </nav>
