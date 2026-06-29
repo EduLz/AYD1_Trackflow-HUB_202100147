@@ -636,6 +636,25 @@ const removeFromCart = async (req, res) => {
     }
 };
 
+const searchTransportServices = async (req, res) => {
+    try {
+        const { search, fecha } = req.query;
+
+        const services =
+            await clienteService.searchTransportServices({
+                search,
+                fecha
+            });
+
+        return res.status(200).json(services);
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     registerCliente,
     getShippingServices,
@@ -651,5 +670,6 @@ module.exports = {
     getMyReservations,
     getCart,
     addToCart,
-    removeFromCart
+    removeFromCart,
+    searchTransportServices
 };

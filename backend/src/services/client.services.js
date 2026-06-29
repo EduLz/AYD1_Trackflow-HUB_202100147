@@ -922,6 +922,53 @@ const clearCartTransaction = async (transaction, id_cliente) => {
         `);
 };
 
+const searchTransportServices = async ({ search, fecha }) => {
+
+    const pool = await connectDB();
+    console.log("Buscando rutas:", { search, fecha });
+
+    const result = await pool.request()
+        .input("search", search || null)
+        .input("fecha", fecha || null)
+        .query(`
+            SELECT
+                r.id_ruta,
+                e.nombre_empresa,
+                r.origen,
+                r.destino,
+                r.tipo_servicio,
+                r.hora_inicio,
+                r.tiempo_estimado_hrs,
+                r.precio,
+                v.placa,
+                v.tipo AS tipo_vehiculo,
+                CAST(r.fecha_creacion AS DATE) AS fecha,
+                es.nombre AS estado
+            FROM Ruta r
+            INNER JOIN EmpresaTransporte e
+                ON r.id_empresa = e.id_empresa
+            INNER JOIN EstadoServicio es
+                ON r.id_estado = es.id_estado
+            LEFT JOIN RutaVehiculo rv
+                ON r.id_ruta = rv.id_ruta
+            LEFT JOIN Vehiculo v
+                ON rv.id_vehiculo = v.id_vehiculo
+            WHERE es.nombre = 'ACTIVO'
+              AND (
+                    @search IS NULL
+                    OR r.destino LIKE '%' + @search + '%'
+                    OR e.nombre_empresa LIKE '%' + @search + '%'
+                  )
+              AND (
+                    @fecha IS NULL
+                    OR CAST(r.fecha_creacion AS DATE) = @fecha
+                  )
+            ORDER BY r.fecha_creacion DESC
+        `);
+
+    return result.recordset;
+};
+
 module.exports = {
     createCliente,
     getShippingServices,
@@ -959,5 +1006,6 @@ module.exports = {
     getCartItems,
     addItemToCart,
     removeItemFromCart,
-    clearCartTransaction
+    clearCartTransaction,
+    searchTransportServices
 };
