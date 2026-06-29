@@ -36,6 +36,9 @@
           <router-link :to="{ name: 'admin-reporte-logs' }" class="menu-item sub-item" active-class="active">
             Logs de Registros y Vetos
           </router-link>
+          <router-link :to="{ name: 'admin-reporte-usuarios' }" class="menu-item sub-item" active-class="active">
+            Gráfica: Usuarios
+          </router-link>
           <!-- Se irán agregando las demás opciones aquí paso a paso -->
         </div>
       </nav>

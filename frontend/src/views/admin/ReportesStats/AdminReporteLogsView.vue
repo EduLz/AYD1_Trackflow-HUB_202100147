@@ -111,35 +111,145 @@ export default {
 </script>
 
 <style scoped>
-.admin-content { margin-top: 60px; margin-left: 240px; padding: 2rem; min-height: calc(100vh - 60px); background-color: #f8fafc; }
-.admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-.admin-header h1 { font-size: 1.8rem; color: #1e293b; margin-bottom: 0.2rem; }
-.admin-subtitle { color: #64748b; font-size: 0.95rem; }
+.admin-content {
+  margin-top: 60px;
+  margin-left: 240px;
+  padding: 2rem;
+  min-height: calc(100vh - 60px);
+  background-color: #f8fafc;
+}
 
-.header-actions { display: flex; gap: 1rem; }
-.btn-primary { background: #3b82f6; color: #fff; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: background 0.2s; }
-.btn-primary:hover { background: #2563eb; }
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
 
-.table-container { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; padding: 1.5rem; overflow-x: auto; }
+.admin-header h1 {
+  font-size: 1.8rem;
+  color: #1e293b;
+  margin-bottom: 0.2rem;
+}
 
-.data-table { width: 100%; border-collapse: collapse; text-align: left; }
-.data-table th { padding: 0.75rem 1rem; background-color: #f1f5f9; font-weight: 600; color: #475569; font-size: 0.85rem; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; }
-.data-table td { padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; color: #1e293b; }
+.admin-subtitle {
+  color: #64748b;
+  font-size: 0.95rem;
+}
 
-.fw-bold { font-weight: 600; }
-.text-muted { color: #64748b; font-size: 0.85rem; }
-.empty-state { text-align: center; padding: 2rem; color: #94a3b8; font-style: italic; }
+.header-actions {
+  display: flex;
+  gap: 1rem;
+}
 
-.badge { padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
-.badge-registro { background: #e0f2fe; color: #0284c7; }
-.badge-solicitud { background: #fef9c3; color: #a16207; }
-.badge-aceptado { background: #dcfce7; color: #166534; }
-.badge-rechazado { background: #fee2e2; color: #b91c1c; }
-.badge-veto { background: #7f1d1d; color: #fecaca; }
+.btn-primary {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background 0.2s;
+}
 
-.fade-in { animation: fadeIn 0.3s ease-in-out; }
+.btn-primary:hover {
+  background: #2563eb;
+}
+
+.table-container {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  padding: 1.5rem;
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.data-table th {
+  padding: 0.75rem 1rem;
+  background-color: #f1f5f9;
+  font-weight: 600;
+  color: #475569;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.data-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.9rem;
+  color: #1e293b;
+}
+
+.fw-bold {
+  font-weight: 600;
+}
+
+.text-muted {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.badge {
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-registro {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.badge-solicitud {
+  background: #fef9c3;
+  color: #a16207;
+}
+
+.badge-aceptado {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-rechazado {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.badge-veto {
+  background: #7f1d1d;
+  color: #fecaca;
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
   to { opacity: 1; transform: translateY(0); }
 }
 </style>
