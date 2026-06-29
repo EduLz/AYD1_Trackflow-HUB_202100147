@@ -28,37 +28,35 @@
       </nav>
 
       <nav class="nav-group">
-        <div class="menu-title dropdown-toggle" @click="toggleEstadisticas">
-          Estadísticas y Reportes
-          <span class="dropdown-icon">{{ isEstadisticasOpen ? '▼' : '▶' }}</span>
-        </div>
-        <div class="dropdown-content" v-show="isEstadisticasOpen">
-          <router-link :to="{ name: 'admin-reporte-logs' }" class="menu-item sub-item" active-class="active">
-            Logs de Registros y Vetos
-          </router-link>
-          <router-link :to="{ name: 'admin-reporte-usuarios' }" class="menu-item sub-item" active-class="active">
-            Gráfica: Usuarios
-          </router-link>
-          <router-link :to="{ name: 'admin-reporte-zonas' }" class="menu-item sub-item" active-class="active">
-            Gráfica: Zonas de Envíos
-          </router-link>
-          <router-link :to="{ name: 'admin-reporte-servicios' }" class="menu-item sub-item" active-class="active">
-            Gráfica: Servicios
-          </router-link>
-          <router-link :to="{ name: 'admin-reporte-ingresos' }" class="menu-item sub-item" active-class="active">
-            Gráfica: Ingresos
-          </router-link>
-          <router-link :to="{ name: 'admin-reporte-estados' }" class="menu-item sub-item" active-class="active">
-            Gráfica: Estado de Reportes
-          </router-link>
-          <router-link :to="{ name: 'admin-reporte-gasto' }" class="menu-item sub-item" active-class="active">
-            Top Usuarios por Gasto
-          </router-link>
-          <router-link :to="{ name: 'admin-reporte-envios' }" class="menu-item sub-item" active-class="active">
-            Historial de Envíos
-          </router-link>
-          <!-- Se irán agregando las demás opciones aquí paso a paso -->
-        </div>
+        <p class="menu-title">Estadísticas y Reportes</p>
+        <router-link :to="{ name: 'admin-reporte-logs' }" class="menu-item" active-class="active">
+          Logs de Registros y Vetos
+        </router-link>
+        <router-link :to="{ name: 'admin-reporte-usuarios' }" class="menu-item" active-class="active">
+          Gráfica: Usuarios
+        </router-link>
+        <router-link :to="{ name: 'admin-reporte-zonas' }" class="menu-item" active-class="active">
+          Gráfica: Zonas de Envíos
+        </router-link>
+        <router-link :to="{ name: 'admin-reporte-servicios' }" class="menu-item" active-class="active">
+          Gráfica: Servicios
+        </router-link>
+        <router-link :to="{ name: 'admin-reporte-ingresos' }" class="menu-item" active-class="active">
+          Gráfica: Ingresos
+        </router-link>
+        <router-link :to="{ name: 'admin-reporte-estados' }" class="menu-item" active-class="active">
+          Gráfica: Estado de Reportes
+        </router-link>
+        <router-link :to="{ name: 'admin-reporte-gasto' }" class="menu-item" active-class="active">
+          Top Usuarios por Gasto
+        </router-link>
+        <router-link :to="{ name: 'admin-reporte-envios' }" class="menu-item" active-class="active">
+          Historial de Envíos
+        </router-link>
+        <router-link :to="{ name: 'admin-reporte-servicios-transporte' }" class="menu-item" active-class="active">
+          Historial de Servicios de Transporte
+        </router-link>
+        <!-- Se irán agregando las demás opciones aquí paso a paso -->
       </nav>
 
     </div>
@@ -66,22 +64,8 @@
 </template>
 
 <script>
-import { ref } from 'vue';
-
 export default {
-  name: 'AdminSidebarComponent',
-  setup() {
-    const isEstadisticasOpen = ref(false);
-
-    const toggleEstadisticas = () => {
-      isEstadisticasOpen.value = !isEstadisticasOpen.value;
-    };
-
-    return {
-      isEstadisticasOpen,
-      toggleEstadisticas
-    };
-  }
+  name: 'AdminSidebarComponent'
 };
 </script>
 
