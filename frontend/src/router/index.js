@@ -18,6 +18,8 @@ import SolicitudesRegistroView from '../views/admin/SolicitudesRegistro/Solicitu
 import ReunionesVirtualesView  from '../views/admin/ReunionesVirtuales/ReunionesVirtualesView.vue';
 import AdminSolicitudesPerfilView from '../views/admin/SolicitudesCambioPerfil/AdminSolicitudesPerfilView.vue';
 import AdminGestionReportesView from '../views/admin/GestionReportes/AdminGestionReportesView.vue';
+import AdminGestionUsuariosView from '../views/admin/GestionUsuarios/AdminGestionUsuariosView.vue';
+import AdminVisualizacionInfoView from '../views/admin/Visualizacion/AdminVisualizacionInfoView.vue';
 
 // Modulo Operador (v2.0.0)
 import MisServiciosView       from '../views/operator/MisServicios/MisServiciosView.vue';
@@ -49,6 +51,8 @@ const router = createRouter({
     { path: '/admin/reuniones',           name: 'admin-reuniones',           component: ReunionesVirtualesView,  meta: { role: 'ADMIN' } },
     { path: '/admin/cambio-perfil',       name: 'admin-cambio-perfil',       component: AdminSolicitudesPerfilView, meta: { role: 'ADMIN' } },
     { path: '/admin/reportes',            name: 'admin-reportes',            component: AdminGestionReportesView, meta: { role: 'ADMIN' } },
+    { path: '/admin/usuarios',            name: 'admin-usuarios',            component: AdminGestionUsuariosView, meta: { role: 'ADMIN' } },
+    { path: '/admin/visualizacion',       name: 'admin-visualizacion',       component: AdminVisualizacionInfoView, meta: { role: 'ADMIN' } },
 
     // --- Modulo Operador (v2.0.0) ---
     { path: '/operator/dashboard',           name: 'operator-dashboard',          component: OperatorDashboard,       meta: { role: 'OPERADOR' } },
