@@ -54,6 +54,9 @@
           <router-link :to="{ name: 'admin-reporte-gasto' }" class="menu-item sub-item" active-class="active">
             Top Usuarios por Gasto
           </router-link>
+          <router-link :to="{ name: 'admin-reporte-envios' }" class="menu-item sub-item" active-class="active">
+            Historial de Envíos
+          </router-link>
           <!-- Se irán agregando las demás opciones aquí paso a paso -->
         </div>
       </nav>
