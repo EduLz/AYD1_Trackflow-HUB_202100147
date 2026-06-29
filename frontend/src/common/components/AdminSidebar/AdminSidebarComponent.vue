@@ -4,6 +4,9 @@
 
       <nav class="nav-group">
         <p class="menu-title">Usuarios</p>
+        <router-link :to="{ name: 'admin-usuarios' }" class="menu-item" active-class="active">
+          Gestión de Usuarios
+        </router-link>
         <router-link :to="{ name: 'admin-solicitudes' }" class="menu-item" active-class="active">
           Solicitudes de Registro
         </router-link>
