@@ -22,6 +22,9 @@
         <router-link :to="{ name: 'admin-reportes' }" class="menu-item" active-class="active">
           Gestión de Reportes
         </router-link>
+        <router-link :to="{ name: 'admin-visualizacion' }" class="menu-item" active-class="active">
+          Visualización de Información
+        </router-link>
       </nav>
 
     </div>
