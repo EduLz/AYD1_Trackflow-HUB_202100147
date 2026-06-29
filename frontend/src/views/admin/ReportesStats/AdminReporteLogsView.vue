@@ -11,7 +11,7 @@
         </div>
         <div class="header-actions">
           <button class="btn-primary" @click="descargarPDF">
-            <span class="icon">📄</span> Descargar PDF
+           Descargar PDF
           </button>
         </div>
       </div>

@@ -39,6 +39,9 @@
           <router-link :to="{ name: 'admin-reporte-usuarios' }" class="menu-item sub-item" active-class="active">
             Gráfica: Usuarios
           </router-link>
+          <router-link :to="{ name: 'admin-reporte-zonas' }" class="menu-item sub-item" active-class="active">
+            Gráfica: Zonas de Envíos
+          </router-link>
           <!-- Se irán agregando las demás opciones aquí paso a paso -->
         </div>
       </nav>
