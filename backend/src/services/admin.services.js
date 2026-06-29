@@ -1,4 +1,5 @@
 const { connectDB } = require("../config/database");
+const sql = require("mssql");
 
 const approveOperador = async (id_solicitud) => {
 
@@ -179,6 +180,73 @@ const updateReporteEstado = async (id_reporte, id_estado) => {
         `);
     return result.recordset[0];
 };
+
+const getUsuariosPanel = async (nombre_rol = null) => {
+    const pool = await connectDB();
+    const request = pool.request();
+    
+    let query = `
+        SELECT 
+            u.id_usuario,
+            u.correo,
+            u.correo_verificado,
+            eu.nombre AS estado_usuario,
+            r.nombre AS rol,
+            u.fecha_registro
+        FROM Usuario u
+        INNER JOIN Rol r ON r.id_rol = u.id_rol
+        INNER JOIN EstadoUsuario eu ON eu.id_estado = u.id_estado
+    `;
+
+    if (nombre_rol) {
+        query += ` WHERE r.nombre = @nombre_rol`;
+        request.input("nombre_rol", nombre_rol);
+    }
+
+    query += ` ORDER BY u.fecha_registro DESC`;
+
+    const result = await request.query(query);
+    return result.recordset;
+};
+
+const vetoUserTransaction = async (transaction, data) => {
+    await new sql.Request(transaction)
+        .input("id_usuario", data.id_usuario)
+        .query(`
+            UPDATE Usuario 
+            SET id_estado = (SELECT id_estado FROM EstadoUsuario WHERE nombre = 'VETADO')
+            WHERE id_usuario = @id_usuario
+        `);
+
+    await new sql.Request(transaction)
+        .input("id_usuario", data.id_usuario)
+        .input("id_admin", data.id_admin)
+        .input("motivo", data.motivo)
+        .query(`
+            INSERT INTO VetoUsuario (id_usuario, id_admin, motivo)
+            VALUES (@id_usuario, @id_admin, @motivo)
+        `);
+};
+
+const updateUsuarioBase = async (id_usuario, correo, id_estado) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_usuario", id_usuario)
+        .input("correo", correo)
+        .input("id_estado", id_estado)
+        .query(`
+            UPDATE Usuario
+            SET 
+                correo = @correo,
+                id_estado = @id_estado,
+                fecha_actualizacion = GETDATE()
+            OUTPUT INSERTED.*
+            WHERE id_usuario = @id_usuario
+        `);
+    return result.recordset[0];
+};
+
+
 module.exports = {
     approveOperador,
     rejectOperador,
@@ -187,5 +255,8 @@ module.exports = {
     verifyOTP,
     findAdminByUserId,
     getAllReportes,
-    updateReporteEstado
+    updateReporteEstado,
+    getUsuariosPanel,
+    vetoUserTransaction,
+    updateUsuarioBase
 };
