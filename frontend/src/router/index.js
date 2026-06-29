@@ -25,6 +25,7 @@ import AdminReporteUsuariosView from '../views/admin/ReportesStats/AdminReporteU
 import AdminReporteZonasView from '../views/admin/ReportesStats/AdminReporteZonasView.vue';
 import AdminReporteServiciosView from '../views/admin/ReportesStats/AdminReporteServiciosView.vue';
 import AdminReporteIngresosView from '../views/admin/ReportesStats/AdminReporteIngresosView.vue';
+import AdminReporteEstadoReportesView from '../views/admin/ReportesStats/AdminReporteEstadoReportesView.vue';
 
 // Modulo Operador (v2.0.0)
 import MisServiciosView       from '../views/operator/MisServicios/MisServiciosView.vue';
@@ -63,6 +64,7 @@ const router = createRouter({
     { path: '/admin/reportes-estadisticas/zonas', name: 'admin-reporte-zonas', component: AdminReporteZonasView, meta: { role: 'ADMIN' } },
     { path: '/admin/reportes-estadisticas/servicios', name: 'admin-reporte-servicios', component: AdminReporteServiciosView, meta: { role: 'ADMIN' } },
     { path: '/admin/reportes-estadisticas/ingresos', name: 'admin-reporte-ingresos', component: AdminReporteIngresosView, meta: { role: 'ADMIN' } },
+    { path: '/admin/reportes-estadisticas/estado-reportes', name: 'admin-reporte-estados', component: AdminReporteEstadoReportesView, meta: { role: 'ADMIN' } },
 
     // --- Modulo Operador (v2.0.0) ---
     { path: '/operator/dashboard',           name: 'operator-dashboard',          component: OperatorDashboard,       meta: { role: 'OPERADOR' } },

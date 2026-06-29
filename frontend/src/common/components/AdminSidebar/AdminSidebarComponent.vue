@@ -48,6 +48,9 @@
           <router-link :to="{ name: 'admin-reporte-ingresos' }" class="menu-item sub-item" active-class="active">
             Gráfica: Ingresos
           </router-link>
+          <router-link :to="{ name: 'admin-reporte-estados' }" class="menu-item sub-item" active-class="active">
+            Gráfica: Estado de Reportes
+          </router-link>
           <!-- Se irán agregando las demás opciones aquí paso a paso -->
         </div>
       </nav>
