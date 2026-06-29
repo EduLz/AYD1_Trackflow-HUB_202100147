@@ -7,6 +7,7 @@
       <p>Verifique sus servicios y seleccione un método de pago para confirmar su reservación.</p>
     </div>
 
+    <!-- Pantallas de Carga y Procesamiento -->
     <div v-if="cargandoDatos" class="loading-state">
       Cargando información de su orden...
     </div>
@@ -14,8 +15,10 @@
       Procesando transacción, por favor no cierre esta ventana...
     </div>
 
+    <!-- Pantalla Principal de Checkout -->
     <div v-else class="checkout-grid">
       
+      <!-- COLUMNA IZQUIERDA: Resumen y Cupones -->
       <div class="summary-column">
         
         <div class="summary-section">
@@ -57,6 +60,7 @@
           </div>
         </div>
 
+        <!-- Sección de Cupones -->
         <div class="coupons-section" v-if="cuponesDisponibles.length > 0">
           <h3>Cupones Disponibles</h3>
           <p class="coupons-desc">Seleccione un cupón para aplicar a su orden.</p>
@@ -89,32 +93,29 @@
             </label>
           </div>
         </div>
-
       </div>
 
+      <!-- COLUMNA DERECHA: Pago -->
       <div class="payment-section">
         <h3>Seleccione Método de Pago</h3>
         
-        <div class="payment-methods">
+        <div v-if="tarjetasGuardadas.length === 0" class="empty-msg" style="margin-bottom: 1rem;">
+          No tiene métodos de pago registrados.
+        </div>
+
+        <div class="payment-methods" v-else>
           
+          <!-- Lista de Tarjetas Dinámicas -->
           <label 
             v-for="tarjeta in tarjetasGuardadas" 
-            :key="tarjeta.id_metodo_pago"
+            :key="tarjeta.id_metodo"
             class="method-card" 
-            :class="{ selected: metodoPago === tarjeta.id_metodo_pago }"
+            :class="{ selected: metodoPago === tarjeta.id_metodo }"
           >
-            <input type="radio" :value="tarjeta.id_metodo_pago" v-model="metodoPago" />
+            <input type="radio" :value="tarjeta.id_metodo" v-model="metodoPago" />
             <div class="method-info">
-              <span class="method-name">{{ tarjeta.nombre }}</span>
-              <span class="method-desc">Saldo disponible: <strong>Q{{ tarjeta.saldo.toFixed(2) }}</strong></span>
-            </div>
-          </label>
-
-          <label class="method-card" :class="{ selected: metodoPago === 99 }">
-            <input type="radio" :value="99" v-model="metodoPago" />
-            <div class="method-info">
-              <span class="method-name">TrackFlow Wallet</span>
-              <span class="method-desc">Método de pago alternativo</span>
+              <span class="method-name">{{ tarjeta.tipo === 'TARJETA' ? 'Tarjeta terminada en ' + tarjeta.numero_ultimos4 : tarjeta.tipo }}</span>
+              <span class="method-desc">Titular: {{ tarjeta.nombre_titular }} | Saldo: <strong>Q{{ tarjeta.saldo.toFixed(2) }}</strong></span>
             </div>
           </label>
 
@@ -123,7 +124,7 @@
         <button 
           class="btn-pay" 
           @click="procesarPago" 
-          :disabled="itemsCarrito.length === 0"
+          :disabled="itemsCarrito.length === 0 || tarjetasGuardadas.length === 0 || metodoPago === null"
         >
           Confirmar y Pagar Q{{ calcularTotal.toFixed(2) }}
         </button>
@@ -145,15 +146,10 @@ const procesando = ref(false);
 
 const itemsCarrito = ref([]);
 const cuponesDisponibles = ref([]);
+const tarjetasGuardadas = ref([]);
 
 const idCuponSeleccionado = ref(null);
-const metodoPago = ref(1); // Se inicializa con el ID de la primera tarjeta
-
-// Mock de Tarjetas (Se asume que en el futuro esto podría venir de un endpoint del perfil)
-const tarjetasGuardadas = ref([
-  { id_metodo_pago: 1, nombre: 'Tarjeta Visa terminada en 4242', saldo: 1500.00 },
-  { id_metodo_pago: 2, nombre: 'Tarjeta Mastercard terminada en 8901', saldo: 120.00 }
-]);
+const metodoPago = ref(null);
 
 // --- UTILIDADES ---
 const formatearFecha = (fechaStr) => {
@@ -191,31 +187,45 @@ const calcularTotal = computed(() => {
 });
 
 
-// --- LLAMADAS AL BACKEND (GET) ---
+// --- LLAMADAS AL BACKEND (GET MÚLTIPLE) ---
 const cargarDatosCheckout = async () => {
   cargandoDatos.value = true;
   try {
     const token = localStorage.getItem('tf_jwt');
     const headers = { 'Authorization': `Bearer ${token}` };
 
-    const [resCarrito, resCupones] = await Promise.all([
+    // Disparamos las 3 peticiones en paralelo
+    const [resCarrito, resCupones, resPagos] = await Promise.all([
       fetch(`${API_URL}/api/clientes/cart`, { headers }),
-      fetch(`${API_URL}/api/clientes/cupones`, { headers })
+      fetch(`${API_URL}/api/clientes/cupones`, { headers }),
+      fetch(`${API_URL}/api/clientes/payment`, { headers })
     ]);
 
+    // 1. Procesar Carrito
     if (resCarrito.ok) {
       const dataCarrito = await resCarrito.json();
       itemsCarrito.value = dataCarrito.carrito || [];
     }
 
+    // 2. Procesar Cupones (Aplicando validación estricta de DISPONIBLE)
     if (resCupones.ok) {
       const dataCupones = await resCupones.json();
-      cuponesDisponibles.value = dataCupones.cupones || [];
+      cuponesDisponibles.value = (dataCupones.cupones || []).filter(c => c.estado === 'DISPONIBLE');
+    }
+
+    // 3. Procesar Métodos de Pago
+    if (resPagos.ok) {
+      const dataPagos = await resPagos.json();
+      tarjetasGuardadas.value = dataPagos || [];
+      // Autoseleccionar la primera tarjeta si hay alguna disponible
+      if (tarjetasGuardadas.value.length > 0) {
+        metodoPago.value = tarjetasGuardadas.value[0].id_metodo;
+      }
     }
 
   } catch (error) {
     console.error("Error al cargar datos del checkout:", error);
-    alert("Hubo un problema de conexión al obtener su orden o cupones.");
+    alert("Hubo un problema de conexión al obtener su orden, cupones o métodos de pago.");
   } finally {
     cargandoDatos.value = false;
   }
@@ -228,11 +238,16 @@ onMounted(() => {
 
 // --- PROCESAMIENTO DE PAGO (POST) ---
 const procesarPago = async () => {
-  // Validación: Verificamos si el usuario seleccionó una tarjeta y si tiene saldo suficiente
-  const tarjetaSeleccionada = tarjetasGuardadas.value.find(t => t.id_metodo_pago === metodoPago.value);
+  // Validación de saldo de la tarjeta seleccionada
+  const tarjetaSeleccionada = tarjetasGuardadas.value.find(t => t.id_metodo === metodoPago.value);
   
-  if (tarjetaSeleccionada && tarjetaSeleccionada.saldo < calcularTotal.value) {
-    alert(`Error: Saldo insuficiente en la ${tarjetaSeleccionada.nombre}. Elija otro método de pago.`);
+  if (!tarjetaSeleccionada) {
+    alert("Por favor seleccione un método de pago válido.");
+    return;
+  }
+
+  if (tarjetaSeleccionada.saldo < calcularTotal.value) {
+    alert(`Error: Saldo insuficiente en la tarjeta terminada en ${tarjetaSeleccionada.numero_ultimos4}. Elija otro método de pago.`);
     return;
   }
   
@@ -242,7 +257,7 @@ const procesarPago = async () => {
     const token = localStorage.getItem('tf_jwt');
     
     const payload = {
-      id_metodo_pago: metodoPago.value, // Envía el ID de la tarjeta seleccionada (o 99 si es TrackFlow Wallet)
+      id_metodo_pago: metodoPago.value, // Toma el id_metodo dinámico
       id_cupon: idCuponSeleccionado.value || null
     };
 
