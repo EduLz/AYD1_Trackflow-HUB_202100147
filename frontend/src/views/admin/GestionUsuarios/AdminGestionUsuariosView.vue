@@ -46,14 +46,11 @@
                 </span>
               </td>
               <td>
-                <button 
-                  v-if="user.estado !== 'VETADO'" 
-                  class="btn-vetar" 
-                  @click="abrirModalVeto(user)"
-                >
-                  Vetar
-                </button>
-                <button class="btn-editar">Editar</button>
+                <template v-if="user.estado !== 'VETADO'">
+                  <button class="btn-vetar" @click="abrirModalVeto(user)">Vetar</button>
+                  <button class="btn-editar" @click="abrirModalEditar(user)">Editar</button>
+                </template>
+                <span v-else class="text-muted">Sin acciones</span>
               </td>
             </tr>
             <tr v-if="usuariosFiltrados.length === 0">
@@ -81,6 +78,36 @@
             <div class="modal-actions">
               <button type="button" class="btn-cancelar" @click="cerrarModalVeto">Cancelar</button>
               <button type="submit" class="btn-peligro">Confirmar Veto</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Modal para Editar Usuario -->
+      <div v-if="modalEditarVisible" class="modal-overlay">
+        <div class="modal-content">
+          <h2>Editar Usuario</h2>
+          <p>Modifica la información básica del usuario (Mock).</p>
+          <form @submit.prevent="guardarEdicion">
+            <div class="form-group">
+              <label>Nombre *</label>
+              <input type="text" v-model="formEditar.nombre" required />
+            </div>
+            <div class="form-group">
+              <label>Apellido *</label>
+              <input type="text" v-model="formEditar.apellido" required />
+            </div>
+            <div class="form-group">
+              <label>Correo Electrónico *</label>
+              <input type="email" v-model="formEditar.correo" required />
+            </div>
+            <div class="form-group">
+              <label>Rol (No editable)</label>
+              <input type="text" :value="formEditar.rol" disabled />
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="btn-cancelar" @click="cerrarModalEditar">Cancelar</button>
+              <button type="submit" class="btn-primario">Guardar Cambios</button>
             </div>
           </form>
         </div>
@@ -131,7 +158,6 @@ export default {
 
     const confirmarVeto = () => {
       if (usuarioSeleccionado.value && motivoVeto.value.trim() !== '') {
-        // En un caso real haríamos la llamada a la API
         const index = usuariosMock.value.findIndex(u => u.id_usuario === usuarioSeleccionado.value.id_usuario);
         if (index !== -1) {
           usuariosMock.value[index].estado = 'VETADO';
@@ -139,6 +165,29 @@ export default {
         alert(`El usuario ${usuarioSeleccionado.value.nombre} ha sido vetado. Se enviará un correo notificando el motivo.`);
         cerrarModalVeto();
       }
+    };
+
+    const modalEditarVisible = ref(false);
+    const formEditar = ref({ id_usuario: null, nombre: '', apellido: '', correo: '', rol: '' });
+
+    const abrirModalEditar = (user) => {
+      formEditar.value = { ...user };
+      modalEditarVisible.value = true;
+    };
+
+    const cerrarModalEditar = () => {
+      modalEditarVisible.value = false;
+    };
+
+    const guardarEdicion = () => {
+      const index = usuariosMock.value.findIndex(u => u.id_usuario === formEditar.value.id_usuario);
+      if (index !== -1) {
+        usuariosMock.value[index].nombre = formEditar.value.nombre;
+        usuariosMock.value[index].apellido = formEditar.value.apellido;
+        usuariosMock.value[index].correo = formEditar.value.correo;
+      }
+      alert('Información del usuario actualizada correctamente.');
+      cerrarModalEditar();
     };
 
     return {
@@ -149,7 +198,12 @@ export default {
       motivoVeto,
       abrirModalVeto,
       cerrarModalVeto,
-      confirmarVeto
+      confirmarVeto,
+      modalEditarVisible,
+      formEditar,
+      abrirModalEditar,
+      cerrarModalEditar,
+      guardarEdicion
     };
   }
 };
@@ -182,6 +236,7 @@ export default {
 .btn-vetar:hover { color: #b91c1c; }
 .btn-editar { background: none; border: none; color: #3b82f6; cursor: pointer; font-weight: 600; text-decoration: underline; }
 .btn-editar:hover { color: #2563eb; }
+.text-muted { color: #94a3b8; font-size: 0.85rem; font-style: italic; }
 .empty-state { padding: 2rem; color: #64748b; }
 .text-center { text-align: center; }
 
@@ -193,12 +248,17 @@ export default {
 
 .form-group { margin-bottom: 1.5rem; display: flex; flex-direction: column; }
 .form-group label { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem; color: #334155; }
+.form-group input { padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.95rem; outline: none; width: 100%; box-sizing: border-box; }
+.form-group input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+.form-group input:disabled { background-color: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
 .form-group textarea { padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.95rem; outline: none; }
 .form-group textarea:focus { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1); }
 
-.modal-actions { display: flex; justify-content: flex-end; gap: 1rem; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem; }
 .btn-cancelar { padding: 0.6rem 1.2rem; background: #e2e8f0; color: #475569; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
 .btn-cancelar:hover { background: #cbd5e1; }
 .btn-peligro { padding: 0.6rem 1.2rem; background: #ef4444; color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
 .btn-peligro:hover { background: #dc2626; }
+.btn-primario { padding: 0.6rem 1.2rem; background: #3b82f6; color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+.btn-primario:hover { background: #2563eb; }
 </style>
