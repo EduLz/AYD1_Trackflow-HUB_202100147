@@ -21,32 +21,35 @@
 
       <!-- Tabla de usuarios -->
       <div class="table-container">
-        <table class="users-table">
+        <div v-if="cargando" class="empty-state text-center">Cargando usuarios...</div>
+        <table v-else class="users-table">
           <thead>
             <tr>
               <th>ID</th>
-              <th>Nombre Completo</th>
               <th>Correo</th>
+              <th>Verificado</th>
               <th>Rol</th>
               <th>Estado</th>
+              <th>Fecha Registro</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="user in usuariosFiltrados" :key="user.id_usuario">
               <td>{{ user.id_usuario }}</td>
-              <td>{{ user.nombre }} {{ user.apellido }}</td>
               <td>{{ user.correo }}</td>
+              <td>{{ user.correo_verificado ? 'Sí' : 'No' }}</td>
               <td>
                 <span class="badge-rol" :class="'badge-' + user.rol.toLowerCase()">{{ user.rol }}</span>
               </td>
               <td>
-                <span class="badge-estado" :class="user.estado === 'VETADO' ? 'estado-vetado' : 'estado-activo'">
-                  {{ user.estado }}
+                <span class="badge-estado" :class="'estado-' + user.estado_usuario.toLowerCase()">
+                  {{ user.estado_usuario }}
                 </span>
               </td>
+              <td>{{ new Date(user.fecha_registro).toLocaleDateString() }}</td>
               <td>
-                <template v-if="user.estado !== 'VETADO'">
+                <template v-if="user.estado_usuario !== 'VETADO'">
                   <button class="btn-vetar" @click="abrirModalVeto(user)">Vetar</button>
                   <button class="btn-editar" @click="abrirModalEditar(user)">Editar</button>
                 </template>
@@ -54,7 +57,7 @@
               </td>
             </tr>
             <tr v-if="usuariosFiltrados.length === 0">
-              <td colspan="6" class="text-center empty-state">No se encontraron usuarios para el rol seleccionado.</td>
+              <td colspan="7" class="text-center empty-state">No se encontraron usuarios para el rol seleccionado.</td>
             </tr>
           </tbody>
         </table>
@@ -64,7 +67,7 @@
       <div v-if="modalVetoVisible" class="modal-overlay">
         <div class="modal-content">
           <h2>Vetar Usuario</h2>
-          <p>Estás a punto de vetar permanentemente a <strong>{{ usuarioSeleccionado?.nombre }}</strong> de la plataforma.</p>
+          <p>Estás a punto de vetar permanentemente a <strong>{{ usuarioSeleccionado?.correo }}</strong> de la plataforma.</p>
           <form @submit.prevent="confirmarVeto">
             <div class="form-group">
               <label>Motivo del veto *</label>
@@ -87,16 +90,8 @@
       <div v-if="modalEditarVisible" class="modal-overlay">
         <div class="modal-content">
           <h2>Editar Usuario</h2>
-          <p>Modifica la información básica del usuario (Mock).</p>
+          <p>Modifica el correo o el estado base del usuario.</p>
           <form @submit.prevent="guardarEdicion">
-            <div class="form-group">
-              <label>Nombre *</label>
-              <input type="text" v-model="formEditar.nombre" required />
-            </div>
-            <div class="form-group">
-              <label>Apellido *</label>
-              <input type="text" v-model="formEditar.apellido" required />
-            </div>
             <div class="form-group">
               <label>Correo Electrónico *</label>
               <input type="email" v-model="formEditar.correo" required />
@@ -105,6 +100,15 @@
               <label>Rol (No editable)</label>
               <input type="text" :value="formEditar.rol" disabled />
             </div>
+            <div class="form-group">
+              <label>Estado del Usuario *</label>
+              <select v-model="formEditar.id_estado" required>
+                <option value="1">PENDIENTE</option>
+                <option value="2">ACTIVO</option>
+                <option value="3">SUSPENDIDO</option>
+                <option value="4">VETADO</option>
+              </select>
+            </div>
             <div class="modal-actions">
               <button type="button" class="btn-cancelar" @click="cerrarModalEditar">Cancelar</button>
               <button type="submit" class="btn-primario">Guardar Cambios</button>
@@ -112,13 +116,20 @@
           </form>
         </div>
       </div>
+      
+      <!-- Toast -->
+      <div v-if="toast.visible" class="ad-toast" :class="toast.tipo === 'exito' ? 'toast-exito' : 'toast-error'">
+        {{ toast.mensaje }}
+      </div>
 
     </main>
   </div>
 </template>
 
 <script>
-import { ref, computed } from 'vue';
+import { ref, computed, reactive, onMounted } from 'vue';
+import { useAuthStore } from '../../../stores/auth';
+import { API } from '../../../config/api';
 import UpperbarComponent from '../../../common/components/Upperbar/UpperbarComponent.vue';
 import AdminSidebarComponent from '../../../common/components/AdminSidebar/AdminSidebarComponent.vue';
 
@@ -126,19 +137,44 @@ export default {
   name: 'AdminGestionUsuariosView',
   components: { UpperbarComponent, AdminSidebarComponent },
   setup() {
+    const authStore = useAuthStore();
     const rolFiltro = ref('TODOS');
+    const usuarios = ref([]);
+    const cargando = ref(false);
     
-    // Mocks de Usuarios (Clientes, Operadores, Empresas)
-    const usuariosMock = ref([
-      { id_usuario: 1, nombre: 'Juan', apellido: 'Pérez', correo: 'juan.cliente@test.com', rol: 'CLIENTE', estado: 'ACTIVO' },
-      { id_usuario: 2, nombre: 'Transportes', apellido: 'Veloz SA', correo: 'contacto@veloz.com', rol: 'EMPRESA', estado: 'ACTIVO' },
-      { id_usuario: 3, nombre: 'Ana', apellido: 'López', correo: 'ana.operador@test.com', rol: 'OPERADOR', estado: 'ACTIVO' },
-      { id_usuario: 4, nombre: 'Carlos', apellido: 'García', correo: 'carlos.cliente@test.com', rol: 'CLIENTE', estado: 'VETADO' },
-    ]);
+    const toast = reactive({ visible: false, mensaje: '', tipo: 'exito' });
+    const mostrarToast = (mensaje, tipo = 'exito') => {
+      toast.mensaje = mensaje; toast.tipo = tipo; toast.visible = true;
+      setTimeout(() => { toast.visible = false; }, 3500);
+    };
+
+    /*
+    // Mocks originales simplificados 
+    // const usuariosMock = ref([
+    //   { id_usuario: 1, correo: 'juan.cliente@test.com', rol: 'CLIENTE', estado_usuario: 'ACTIVO' },
+    //   { id_usuario: 2, correo: 'contacto@veloz.com', rol: 'EMPRESA', estado_usuario: 'ACTIVO' }
+    // ]);
+    */
+
+    const cargarUsuarios = async () => {
+      cargando.value = true;
+      try {
+        const res = await fetch(API.admin.getUsers, {
+          headers: { Authorization: `Bearer ${authStore.token}` }
+        });
+        if (!res.ok) throw new Error('Error al cargar usuarios');
+        const data = await res.json();
+        usuarios.value = data.usuarios || [];
+      } catch (error) {
+        mostrarToast(error.message, 'error');
+      } finally {
+        cargando.value = false;
+      }
+    };
 
     const usuariosFiltrados = computed(() => {
-      if (rolFiltro.value === 'TODOS') return usuariosMock.value;
-      return usuariosMock.value.filter(u => u.rol === rolFiltro.value);
+      if (rolFiltro.value === 'TODOS') return usuarios.value;
+      return usuarios.value.filter(u => u.rol === rolFiltro.value);
     });
 
     const modalVetoVisible = ref(false);
@@ -156,22 +192,43 @@ export default {
       usuarioSeleccionado.value = null;
     };
 
-    const confirmarVeto = () => {
+    const confirmarVeto = async () => {
       if (usuarioSeleccionado.value && motivoVeto.value.trim() !== '') {
-        const index = usuariosMock.value.findIndex(u => u.id_usuario === usuarioSeleccionado.value.id_usuario);
-        if (index !== -1) {
-          usuariosMock.value[index].estado = 'VETADO';
+        try {
+          const res = await fetch(API.admin.vetoUser, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${authStore.token}` 
+            },
+            body: JSON.stringify({
+              id_usuario: usuarioSeleccionado.value.id_usuario,
+              motivo: motivoVeto.value
+            })
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.message || 'Error al vetar usuario');
+          }
+          mostrarToast(`Usuario ${usuarioSeleccionado.value.correo} ha sido vetado. Se enviará un correo notificando el motivo.`);
+          cerrarModalVeto();
+          cargarUsuarios();
+        } catch (error) {
+          mostrarToast(error.message, 'error');
         }
-        alert(`El usuario ${usuarioSeleccionado.value.nombre} ha sido vetado. Se enviará un correo notificando el motivo.`);
-        cerrarModalVeto();
       }
     };
 
     const modalEditarVisible = ref(false);
-    const formEditar = ref({ id_usuario: null, nombre: '', apellido: '', correo: '', rol: '' });
+    const formEditar = ref({ id_usuario: null, correo: '', rol: '', id_estado: 1 });
+
+    const getEstadoId = (nombreEstado) => {
+      const map = { 'PENDIENTE': 1, 'ACTIVO': 2, 'SUSPENDIDO': 3, 'VETADO': 4 };
+      return map[nombreEstado] || 1;
+    };
 
     const abrirModalEditar = (user) => {
-      formEditar.value = { ...user };
+      formEditar.value = { ...user, id_estado: getEstadoId(user.estado_usuario) };
       modalEditarVisible.value = true;
     };
 
@@ -179,20 +236,38 @@ export default {
       modalEditarVisible.value = false;
     };
 
-    const guardarEdicion = () => {
-      const index = usuariosMock.value.findIndex(u => u.id_usuario === formEditar.value.id_usuario);
-      if (index !== -1) {
-        usuariosMock.value[index].nombre = formEditar.value.nombre;
-        usuariosMock.value[index].apellido = formEditar.value.apellido;
-        usuariosMock.value[index].correo = formEditar.value.correo;
+    const guardarEdicion = async () => {
+      try {
+        const res = await fetch(API.admin.editUser(formEditar.value.id_usuario), {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authStore.token}` 
+          },
+          body: JSON.stringify({
+            correo: formEditar.value.correo,
+            id_estado: Number(formEditar.value.id_estado)
+          })
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.message || 'Error al actualizar usuario');
+        }
+        mostrarToast('Información del usuario actualizada correctamente.');
+        cerrarModalEditar();
+        cargarUsuarios();
+      } catch (error) {
+        mostrarToast(error.message, 'error');
       }
-      alert('Información del usuario actualizada correctamente.');
-      cerrarModalEditar();
     };
+
+    onMounted(cargarUsuarios);
 
     return {
       rolFiltro,
       usuariosFiltrados,
+      cargando,
+      toast,
       modalVetoVisible,
       usuarioSeleccionado,
       motivoVeto,
@@ -269,11 +344,12 @@ export default {
 .badge-estado { padding: 0.25rem 0.6rem; 
                 border-radius: 4px; 
                 font-size: 0.75rem; 
-                font-weight: bold; }
-.estado-activo { background: #dcfce7; 
-                  color: #166534; }
-.estado-vetado { background: #fee2e2; 
-                  color: #b91c1c; }
+                font-weight: bold; 
+                text-transform: uppercase; }
+.estado-activo { background: #dcfce7; color: #166534; }
+.estado-pendiente { background: #fef9c3; color: #a16207; }
+.estado-suspendido { background: #ffedd5; color: #c2410c; }
+.estado-vetado { background: #fee2e2; color: #b91c1c; }
 
 .btn-vetar { background: none; 
              border: none; 
@@ -345,6 +421,16 @@ export default {
                     outline: none; }
 .form-group textarea:focus { border-color: #ef4444; 
                              box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1); }
+.form-group select { padding: 0.75rem; 
+                     border: 1px solid #cbd5e1; 
+                     border-radius: 6px; 
+                     font-family: inherit; 
+                     font-size: 0.95rem; 
+                     outline: none; 
+                     width: 100%; 
+                     box-sizing: border-box; }
+.form-group select:focus { border-color: #3b82f6; 
+                           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
 
 .modal-actions { display: flex; 
                  justify-content: flex-end; 
@@ -374,4 +460,22 @@ export default {
                 font-weight: 600; 
                 cursor: pointer; }
 .btn-primario:hover { background: #2563eb; }
+
+/* Toast */
+.ad-toast { position: fixed; 
+             bottom: 2rem; 
+             right: 1.5rem; 
+             padding: 1rem 1.5rem; 
+             border-radius: var(--radius-sm, 6px); 
+             color: #fff; 
+             font-weight: 600; 
+             box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+             animation: slideInToast 0.3s ease; 
+             z-index: 2000; }
+.toast-exito { background: #16a34a; }
+.toast-error { background: #dc2626; }
+@keyframes slideInToast { 
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; } 
+}
 </style>

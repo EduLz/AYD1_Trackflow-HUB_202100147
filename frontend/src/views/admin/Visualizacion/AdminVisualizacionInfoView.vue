@@ -79,39 +79,41 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th @click="ordenarOperadores('id_reservacion')" class="sortable">
-                ID Envío <span class="sort-icon" v-if="sortKeyOperadores === 'id_reservacion'">{{ sortAscOperadores ? '▲' : '▼' }}</span>
+              <th @click="ordenarOperadores('id_servicio')" class="sortable">
+                ID <span class="sort-icon" v-if="sortKeyOperadores === 'id_servicio'">{{ sortAscOperadores ? '▲' : '▼' }}</span>
               </th>
-              <th @click="ordenarOperadores('operador')" class="sortable">
-                Operador <span class="sort-icon" v-if="sortKeyOperadores === 'operador'">{{ sortAscOperadores ? '▲' : '▼' }}</span>
+              <th @click="ordenarOperadores('nombre_servicio')" class="sortable">
+                Servicio <span class="sort-icon" v-if="sortKeyOperadores === 'nombre_servicio'">{{ sortAscOperadores ? '▲' : '▼' }}</span>
               </th>
-              <th @click="ordenarOperadores('cliente')" class="sortable">
-                Cliente <span class="sort-icon" v-if="sortKeyOperadores === 'cliente'">{{ sortAscOperadores ? '▲' : '▼' }}</span>
+              <th @click="ordenarOperadores('operador_logistico')" class="sortable">
+                Operador <span class="sort-icon" v-if="sortKeyOperadores === 'operador_logistico'">{{ sortAscOperadores ? '▲' : '▼' }}</span>
               </th>
-              <th @click="ordenarOperadores('destino')" class="sortable">
-                Destino / Zona <span class="sort-icon" v-if="sortKeyOperadores === 'destino'">{{ sortAscOperadores ? '▲' : '▼' }}</span>
+              <th @click="ordenarOperadores('zona_cobertura')" class="sortable">
+                Zona de Cobertura <span class="sort-icon" v-if="sortKeyOperadores === 'zona_cobertura'">{{ sortAscOperadores ? '▲' : '▼' }}</span>
               </th>
-              <th @click="ordenarOperadores('fecha_inicio')" class="sortable">
-                Fecha Inicio <span class="sort-icon" v-if="sortKeyOperadores === 'fecha_inicio'">{{ sortAscOperadores ? '▲' : '▼' }}</span>
+              <th @click="ordenarOperadores('precio_envio')" class="sortable">
+                Precio <span class="sort-icon" v-if="sortKeyOperadores === 'precio_envio'">{{ sortAscOperadores ? '▲' : '▼' }}</span>
               </th>
-              <th @click="ordenarOperadores('estado')" class="sortable">
-                Estado <span class="sort-icon" v-if="sortKeyOperadores === 'estado'">{{ sortAscOperadores ? '▲' : '▼' }}</span>
+              <th @click="ordenarOperadores('estado_servicio')" class="sortable">
+                Estado <span class="sort-icon" v-if="sortKeyOperadores === 'estado_servicio'">{{ sortAscOperadores ? '▲' : '▼' }}</span>
               </th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="envio in enviosOrdenados" :key="envio.id_reservacion">
-              <td>{{ envio.id_reservacion }}</td>
-              <td class="fw-bold">{{ envio.operador }}</td>
-              <td>{{ envio.cliente }}</td>
-              <td>{{ envio.destino }}</td>
-              <td>{{ envio.fecha_inicio }}</td>
+            <tr v-for="envio in enviosOrdenados" :key="envio.id_servicio">
+              <td>{{ envio.id_servicio }}</td>
+              <td class="fw-bold">{{ envio.nombre_servicio }}</td>
+              <td>{{ envio.operador_logistico }}</td>
+              <td>{{ envio.zona_cobertura }}</td>
+              <td class="text-right">Q {{ envio.precio_envio.toFixed(2) }}</td>
               <td>
-                <span class="badge" :class="'badge-' + envio.estado.toLowerCase()">{{ envio.estado }}</span>
+                <span class="badge badge-estado" :class="'badge-' + envio.estado_servicio.toLowerCase()">
+                  {{ envio.estado_servicio }}
+                </span>
               </td>
             </tr>
             <tr v-if="enviosOrdenados.length === 0">
-              <td colspan="6" class="empty-state">No hay envíos registrados.</td>
+              <td colspan="6" class="empty-state">No hay servicios registrados.</td>
             </tr>
           </tbody>
         </table>
@@ -121,7 +123,9 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useAuthStore } from '../../../stores/auth';
+import { API } from '../../../config/api';
 import UpperbarComponent from '../../../common/components/Upperbar/UpperbarComponent.vue';
 import AdminSidebarComponent from '../../../common/components/AdminSidebar/AdminSidebarComponent.vue';
 
@@ -129,6 +133,7 @@ export default {
   name: 'AdminVisualizacionInfoView',
   components: { UpperbarComponent, AdminSidebarComponent },
   setup() {
+    const authStore = useAuthStore();
     const tabActual = ref('EMPRESAS');
     
     // Mocks de Rutas de Empresa
@@ -164,15 +169,35 @@ export default {
       return rutas;
     });
 
-    // Mocks de Envíos (Reservaciones con Operador)
-    const sortKeyOperadores = ref('destino');
+    // Servicios de Operadores Logísticos
+    const sortKeyOperadores = ref('zona_cobertura');
     const sortAscOperadores = ref(true);
+    const serviciosOperadores = ref([]);
+
+    /*
     const enviosMock = ref([
       { id_reservacion: 201, operador: 'Juan Perez', cliente: 'Maria Lopez', destino: 'Zona 10, Capital', fecha_inicio: '2026-07-01', estado: 'EN_RUTA' },
       { id_reservacion: 202, operador: 'Ana Guzman', cliente: 'Carlos Ruiz', destino: 'Zona 1, Mixco', fecha_inicio: '2026-07-02', estado: 'PENDIENTE' },
-      { id_reservacion: 203, operador: 'Juan Perez', cliente: 'Luis Torres', destino: 'Zona 15, Capital', fecha_inicio: '2026-07-03', estado: 'ENTREGADO' },
-      { id_reservacion: 204, operador: 'Marcos Silva', cliente: 'Diana Cruz', destino: 'Antigua Guatemala', fecha_inicio: '2026-07-05', estado: 'PENDIENTE' },
     ]);
+    */
+
+    const cargarServiciosOperadores = async () => {
+      try {
+        const res = await fetch(API.admin.getOperatorsServices, {
+          headers: { Authorization: `Bearer ${authStore.token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          serviciosOperadores.value = data.servicios || [];
+        }
+      } catch (error) {
+        console.error("Error cargando servicios de operadores:", error);
+      }
+    };
+
+    onMounted(() => {
+      cargarServiciosOperadores();
+    });
 
     const ordenarOperadores = (key) => {
       if (sortKeyOperadores.value === key) {
@@ -184,7 +209,7 @@ export default {
     };
 
     const enviosOrdenados = computed(() => {
-      let envios = [...enviosMock.value];
+      let envios = [...serviciosOperadores.value];
       let key = sortKeyOperadores.value;
       let asc = sortAscOperadores.value ? 1 : -1;
 
@@ -303,14 +328,15 @@ export default {
          font-size: 0.75rem; 
          font-weight: 600; 
          text-transform: capitalize; }
+.badge-estado { text-transform: uppercase; }
 .badge-ruta { background: #f3e8ff; 
               color: #7e22ce; }
-.badge-en_ruta { background: #fef9c3; 
-                 color: #a16207; }
-.badge-pendiente { background: #e0f2fe; 
-                   color: #0284c7; }
-.badge-entregado { background: #dcfce7; 
-                  color: #166534; }
+.badge-activo { background: #dcfce7; 
+                color: #166534; }
+.badge-suspendido { background: #ffedd5; 
+                    color: #c2410c; }
+.badge-eliminado { background: #fee2e2; 
+                   color: #b91c1c; }
 
 .fade-in { animation: fadeIn 0.3s ease-in-out; }
 @keyframes fadeIn {
