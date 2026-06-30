@@ -61,16 +61,22 @@ export default {
   name: 'AdminReporteLogsView',
   components: { UpperbarComponent, AdminSidebarComponent },
   setup() {
-    const logsMock = ref([
-      { id_log: 1, fecha: '2026-06-25 10:30', tipo_evento: 'REGISTRO', usuario: 'Maria Lopez', rol: 'CLIENTE', detalle: 'Registro completado.' },
-      { id_log: 2, fecha: '2026-06-26 14:15', tipo_evento: 'SOLICITUD', usuario: 'Transportes Veloz', rol: 'EMPRESA', detalle: 'Solicitud de registro enviada.' },
-      { id_log: 3, fecha: '2026-06-26 16:00', tipo_evento: 'ACEPTADO', usuario: 'Transportes Veloz', rol: 'EMPRESA', detalle: 'Aceptado por administrador tras reunión.' },
-      { id_log: 4, fecha: '2026-06-27 09:20', tipo_evento: 'RECHAZADO', usuario: 'Juan Operador', rol: 'OPERADOR', detalle: 'Rechazado: Documentación incompleta.' },
-      { id_log: 5, fecha: '2026-06-28 11:10', tipo_evento: 'VETO', usuario: 'Carlos García', rol: 'CLIENTE', detalle: 'Veto permanente por múltiples reportes de daño.' },
-    ]);
+    const logsMock = ref([]);
+
+    onMounted(async () => {
+      try {
+        const authStore = useAuthStore();
+        const res = await fetch('http://localhost:3000/api/admin/reportes-generales', {
+          headers: { Authorization: `Bearer ${authStore.token}` }
+        });
+        const { estadisticas } = await res.json();
+        logsMock.value = estadisticas.logs_registros || [];
+      } catch (e) {
+        console.error('Error cargando logs:', e);
+      }
+    });
 
     const logsFiltrados = computed(() => {
-      // Por si en el futuro se quiere filtrar, por ahora mostramos todos
       return logsMock.value;
     });
 

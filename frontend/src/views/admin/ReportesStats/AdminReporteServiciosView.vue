@@ -45,22 +45,39 @@ export default {
     Doughnut
   },
   setup() {
-    // Mock data
     const chartData = ref({
-      labels: ['Carga Pesada', 'Carga Liviana', 'Paquetería', 'Mudanza', 'Especial'],
+      labels: [],
       datasets: [
         {
           label: 'Cantidad de Servicios',
-          backgroundColor: [
-            '#3b82f6', // Azul
-            '#10b981', // Verde
-            '#f59e0b', // Amarillo/Naranja
-            '#8b5cf6', // Morado
-            '#ef4444'  // Rojo
-          ],
-          data: [450, 300, 600, 150, 80]
+          backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#84cc16'],
+          data: []
         }
       ]
+    });
+
+    onMounted(async () => {
+      try {
+        const authStore = useAuthStore();
+        const res = await fetch('http://localhost:3000/api/admin/reportes-generales', {
+          headers: { Authorization: `Bearer ${authStore.token}` }
+        });
+        const { estadisticas } = await res.json();
+        const datos = estadisticas.tipos_transporte || [];
+
+        chartData.value = {
+          labels: datos.map(d => d.tipo),
+          datasets: [
+            {
+              label: 'Cantidad de Servicios',
+              backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#84cc16'],
+              data: datos.map(d => Number(d.total))
+            }
+          ]
+        };
+      } catch (e) {
+        console.error('Error cargando gráfica:', e);
+      }
     });
 
     const chartOptions = ref({

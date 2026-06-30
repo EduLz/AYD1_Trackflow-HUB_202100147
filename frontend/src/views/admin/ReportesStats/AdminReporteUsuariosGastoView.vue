@@ -61,14 +61,20 @@ export default {
     AdminSidebarComponent
   },
   setup() {
-    // Mock data para el top de usuarios con mayor gasto
-    const topUsuarios = ref([
-      { id: 1, nombre: 'Empresa Constructora S.A.', correo: 'logistica@constructora.com', envios: 15, gasto: 125000.50 },
-      { id: 2, nombre: 'Distribuidora El Faro', correo: 'envios@elfaro.com.gt', envios: 42, gasto: 85200.00 },
-      { id: 3, nombre: 'Importadora Central', correo: 'admin@impcentral.com', envios: 28, gasto: 54100.75 },
-      { id: 4, nombre: 'Carlos Ruiz', correo: 'cruiz99@gmail.com', envios: 5, gasto: 12500.00 },
-      { id: 5, nombre: 'Muebles Exclusivos', correo: 'ventas@mueblesexclusivos.com', envios: 12, gasto: 9800.00 }
-    ]);
+    const topUsuarios = ref([]);
+
+    onMounted(async () => {
+      try {
+        const authStore = useAuthStore();
+        const res = await fetch('http://localhost:3000/api/admin/reportes-generales', {
+          headers: { Authorization: `Bearer ${authStore.token}` }
+        });
+        const { estadisticas } = await res.json();
+        topUsuarios.value = estadisticas.usuarios_mayor_gasto || [];
+      } catch (e) {
+        console.error('Error cargando top de usuarios:', e);
+      }
+    });
 
     const formatCurrency = (value) => {
       return value.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
