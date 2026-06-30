@@ -20,7 +20,7 @@
     </div>
 
     
-    <div class="wallet-section" v-if="wallets.length > 0">
+    <div class="wallet-section">
 
   <div class="section-title-bar">
   <h2>Mis TrackFlow Wallets</h2>

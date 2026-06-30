@@ -837,26 +837,40 @@ const getReservationsByClient = async (id_cliente) => {
                 se.zona_cobertura,
                 se.precio_envio,
 
+                CONCAT(op.nombre, ' ', op.apellido) AS operador_envio,
+
                 r.id_ruta,
                 rt.origen,
                 rt.destino,
                 rt.tipo_servicio AS tipo_ruta,
-                rt.hora_inicio,
+                CONVERT(VARCHAR(8), rt.hora_inicio, 108) AS hora_inicio,
                 rt.tiempo_estimado_hrs,
                 rt.precio AS precio_transporte,
 
-                et.nombre_empresa,
+                et.nombre_empresa AS empresa_transporte,
+
+                CASE
+                    WHEN r.tipo_servicio = 'ENVIO'
+                        THEN CONCAT(op.nombre, ' ', op.apellido)
+                    WHEN r.tipo_servicio = 'TRANSPORTE'
+                        THEN et.nombre_empresa
+                    ELSE 'No asignado'
+                END AS proveedor,
 
                 c.codigo AS cupon,
                 cal.puntuacion,
                 cal.comentario
 
             FROM Reservacion r
+
             INNER JOIN EstadoReservacion er
                 ON er.id_estado = r.id_estado
 
             LEFT JOIN ServicioEnvio se
                 ON se.id_servicio = r.id_servicio_env
+
+            LEFT JOIN OperadorLogistico op
+                ON op.id_operador = se.id_operador
 
             LEFT JOIN Ruta rt
                 ON rt.id_ruta = r.id_ruta
@@ -871,6 +885,7 @@ const getReservationsByClient = async (id_cliente) => {
                 ON cal.id_reservacion = r.id_reservacion
 
             WHERE r.id_cliente = @id_cliente
+
             ORDER BY r.fecha_reservacion DESC
         `);
 
@@ -905,20 +920,36 @@ const getCartItems = async (id_cliente) => {
 
 const addItemToCart = async (data) => {
     const pool = await connectDB();
+
     const result = await pool.request()
         .input("id_cliente", data.id_cliente)
-        .input("id_servicio_env", data.id_servicio_env || null)
-        .input("id_ruta", data.id_ruta || null)
+        .input("id_servicio_env", data.id_servicio_env ?? null)
+        .input("id_ruta", data.id_ruta ?? null)
         .input("tipo_servicio", data.tipo_servicio)
         .input("fecha_inicio", data.fecha_inicio)
-        .input("fecha_fin", data.fecha_fin || null)
+        .input("fecha_fin", data.fecha_fin ?? null)
         .query(`
             INSERT INTO CarritoItem 
-            (id_cliente, id_servicio_env, id_ruta, tipo_servicio, fecha_inicio, fecha_fin)
+            (
+                id_cliente,
+                id_servicio_env,
+                id_ruta,
+                tipo_servicio,
+                fecha_inicio,
+                fecha_fin
+            )
             OUTPUT INSERTED.*
             VALUES 
-            (@id_cliente, @id_servicio_env, @id_ruta, @tipo_servicio, @fecha_inicio, @fecha_fin)
+            (
+                @id_cliente,
+                @id_servicio_env,
+                @id_ruta,
+                @tipo_servicio,
+                @fecha_inicio,
+                @fecha_fin
+            )
         `);
+
     return result.recordset[0];
 };
 
@@ -1137,6 +1168,30 @@ const getPaymentMethodForCheckout = async (id_metodo) => {
     return result.recordset[0];
 };
 
+const updateRouteRating = async (id_ruta) => {
+    const pool = await connectDB();
+
+    await pool.request()
+        .input("id_ruta", id_ruta)
+        .query(`
+            UPDATE Ruta
+            SET
+                calificacion_prom = stats.promedio,
+                total_calificaciones = stats.total
+            FROM Ruta rt
+            CROSS APPLY (
+                SELECT
+                    AVG(CAST(c.puntuacion AS DECIMAL(5,2))) AS promedio,
+                    COUNT(*) AS total
+                FROM Calificacion c
+                INNER JOIN Reservacion r
+                    ON r.id_reservacion = c.id_reservacion
+                WHERE r.id_ruta = rt.id_ruta
+            ) stats
+            WHERE rt.id_ruta = @id_ruta
+        `);
+};
+
 module.exports = {
     createCliente,
     getShippingServices,
@@ -1178,5 +1233,6 @@ module.exports = {
     searchTransportServices,
     getReportsReceivedAsClient,
     registerWallet,
-    getPaymentMethodForCheckout
+    getPaymentMethodForCheckout,
+    updateRouteRating
 };

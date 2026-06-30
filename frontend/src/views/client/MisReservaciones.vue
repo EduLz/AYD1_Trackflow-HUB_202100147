@@ -28,7 +28,7 @@
         <div class="res-body">
           <div class="res-info">
             <h3>{{ reserva.tipo_servicio }}: {{ reserva.servicio }}</h3>
-            <p><strong>Operador:</strong> {{ reserva.operador_nombre }} {{ reserva.operador_apellido }}</p>
+            <p><strong>{{ reserva.tipo_servicio === 'TRANSPORTE' ? 'Empresa: ' : 'Operador: ' }}</strong>{{ reserva.proveedor || 'No asignado' }}</p>
             <p><strong>Fecha Programada:</strong> {{ formatearFecha(reserva.fecha_inicio) }}</p>
             <p><strong>Total:</strong> Q{{ reserva.precio_total }}</p>
           </div>

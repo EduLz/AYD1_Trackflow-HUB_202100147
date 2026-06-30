@@ -863,6 +863,256 @@ const getReportesDeClientes = async (id_usuario) => {
         `);
     return result.recordset;
 };
+
+const getTransportReservationsByCompany = async ({ id_empresa, mes, id_ruta }) => {
+    const pool = await connectDB();
+    const request = pool.request();
+
+    request.input("id_empresa", id_empresa);
+    request.input("mes", mes || null);
+    request.input("id_ruta", id_ruta || null);
+
+    const result = await request.query(`
+        SELECT
+            r.id_reservacion,
+            r.id_ruta,
+            r.tipo_servicio,
+            CONVERT(VARCHAR(10), r.fecha_inicio, 23) AS fecha_inicio,
+            er.nombre AS estado,
+
+            rt.origen,
+            rt.destino,
+            rt.tipo_servicio AS tipo_ruta,
+            CONVERT(VARCHAR(8), rt.hora_inicio, 108) AS hora_inicio,
+            rt.tiempo_estimado_hrs,
+            rt.precio,
+
+            c.nombre + ' ' + c.apellido AS nombre_cliente,
+            c.telefono,
+            c.direccion_origen
+        FROM Reservacion r
+        INNER JOIN Ruta rt
+            ON rt.id_ruta = r.id_ruta
+        INNER JOIN EstadoReservacion er
+            ON er.id_estado = r.id_estado
+        INNER JOIN Cliente c
+            ON c.id_cliente = r.id_cliente
+        WHERE rt.id_empresa = @id_empresa
+          AND r.tipo_servicio = 'TRANSPORTE'
+          AND (
+                @mes IS NULL
+                OR CONVERT(VARCHAR(7), r.fecha_inicio, 120) = @mes
+          )
+          AND (
+                @id_ruta IS NULL
+                OR r.id_ruta = @id_ruta
+          )
+        ORDER BY r.fecha_inicio ASC
+    `);
+
+    return result.recordset;
+};
+const getTransportReservationByCompany = async (id_reservacion, id_empresa) => {
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_reservacion", id_reservacion)
+        .input("id_empresa", id_empresa)
+        .query(`
+            SELECT
+                r.id_reservacion,
+                r.id_estado,
+                er.nombre AS estado
+            FROM Reservacion r
+            INNER JOIN Ruta rt
+                ON rt.id_ruta = r.id_ruta
+            INNER JOIN EstadoReservacion er
+                ON er.id_estado = r.id_estado
+            WHERE r.id_reservacion = @id_reservacion
+              AND rt.id_empresa = @id_empresa
+              AND r.tipo_servicio = 'TRANSPORTE'
+        `);
+
+    return result.recordset[0];
+};
+
+const updateTransportReservationStatus = async (id_reservacion, id_estado) => {
+    const pool = await connectDB();
+
+    await pool.request()
+        .input("id_reservacion", id_reservacion)
+        .input("id_estado", id_estado)
+        .query(`
+            UPDATE Reservacion
+            SET id_estado = @id_estado
+            WHERE id_reservacion = @id_reservacion
+        `);
+};
+
+const getCompanyByUserId = async (id_usuario) => {
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_usuario", id_usuario)
+        .query(`
+            SELECT *
+            FROM EmpresaTransporte
+            WHERE id_usuario = @id_usuario
+        `);
+
+    return result.recordset[0];
+};
+
+const getRoutesForReservationFilter = async (id_empresa) => {
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_empresa", id_empresa)
+        .query(`
+            SELECT
+                id_ruta,
+                CONCAT(origen, ' a ', destino, ' - ', tipo_servicio) AS nombre_ruta
+            FROM Ruta
+            WHERE id_empresa = @id_empresa
+            ORDER BY origen, destino
+        `);
+
+    return result.recordset;
+};
+
+const getRouteRatingsByCompany = async ({ id_empresa, id_ruta, puntuacion }) => {
+    const pool = await connectDB();
+    const request = pool.request();
+
+    request.input("id_empresa", id_empresa);
+    request.input("id_ruta", id_ruta || null);
+    request.input("puntuacion", puntuacion || null);
+
+    const result = await request.query(`
+        SELECT
+            cal.id_calificacion,
+            cal.id_reservacion,
+            cal.puntuacion,
+            cal.comentario,
+            cal.fecha_calificacion,
+
+            r.id_ruta,
+            rt.origen,
+            rt.destino,
+            rt.tipo_servicio AS tipo_ruta,
+
+            c.nombre + ' ' + c.apellido AS nombre_cliente,
+
+            rc.respuesta,
+            rc.fecha_respuesta
+
+        FROM Calificacion cal
+        INNER JOIN Reservacion r
+            ON r.id_reservacion = cal.id_reservacion
+        INNER JOIN Ruta rt
+            ON rt.id_ruta = r.id_ruta
+        INNER JOIN Cliente c
+            ON c.id_cliente = r.id_cliente
+        LEFT JOIN RespuestaCalificacion rc
+            ON rc.id_calificacion = cal.id_calificacion
+
+        WHERE rt.id_empresa = @id_empresa
+          AND r.tipo_servicio = 'TRANSPORTE'
+          AND (@id_ruta IS NULL OR r.id_ruta = @id_ruta)
+          AND (@puntuacion IS NULL OR cal.puntuacion = @puntuacion)
+
+        ORDER BY cal.fecha_calificacion DESC
+    `);
+
+    return result.recordset;
+};
+
+const getRouteRatingByCompany = async (id_calificacion, id_empresa) => {
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_calificacion", id_calificacion)
+        .input("id_empresa", id_empresa)
+        .query(`
+            SELECT
+                cal.*
+            FROM Calificacion cal
+            INNER JOIN Reservacion r
+                ON r.id_reservacion = cal.id_reservacion
+            INNER JOIN Ruta rt
+                ON rt.id_ruta = r.id_ruta
+            WHERE cal.id_calificacion = @id_calificacion
+              AND rt.id_empresa = @id_empresa
+              AND r.tipo_servicio = 'TRANSPORTE'
+        `);
+
+    return result.recordset[0];
+};
+
+const ratingResponseExists = async (id_calificacion) => {
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_calificacion", id_calificacion)
+        .query(`
+            SELECT *
+            FROM RespuestaCalificacion
+            WHERE id_calificacion = @id_calificacion
+        `);
+
+    return result.recordset[0];
+};
+
+const createRatingResponse = async ({ id_calificacion, respuesta }) => {
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_calificacion", id_calificacion)
+        .input("respuesta", respuesta)
+        .query(`
+            INSERT INTO RespuestaCalificacion
+            (
+                id_calificacion,
+                respuesta
+            )
+            OUTPUT INSERTED.*
+            VALUES
+            (
+                @id_calificacion,
+                @respuesta
+            )
+        `);
+
+    return result.recordset[0];
+};
+
+const getRatingsSummary = async (id_empresa) => {
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_empresa", id_empresa)
+        .query(`
+            SELECT
+                CAST(
+                    ISNULL(AVG(CAST(cal.puntuacion AS DECIMAL(5,2))), 0)
+                    AS DECIMAL(5,2)
+                ) AS promedio_general,
+
+                COUNT(*) AS total_calificaciones
+
+            FROM Calificacion cal
+            INNER JOIN Reservacion r
+                ON r.id_reservacion = cal.id_reservacion
+            INNER JOIN Ruta rt
+                ON rt.id_ruta = r.id_ruta
+
+            WHERE rt.id_empresa = @id_empresa
+              AND r.tipo_servicio = 'TRANSPORTE'
+        `);
+
+    return result.recordset[0];
+};
+
 module.exports = {
     createEmpresa,
     createRoute,
@@ -893,5 +1143,14 @@ module.exports = {
     activateRoute,
     getRouteById,
     updateCompanyProfile,
-    getReportesDeClientes
+    getReportesDeClientes,
+    getTransportReservationByCompany,
+    updateTransportReservationStatus,
+    getCompanyByUserId,
+    getRoutesForReservationFilter,
+    getRouteRatingsByCompany,
+    getRouteRatingByCompany,
+    ratingResponseExists,
+    createRatingResponse,
+    getRatingsSummary
 };

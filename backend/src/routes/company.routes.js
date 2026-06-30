@@ -25,7 +25,14 @@ const {
     getDashboardEmpresa,
     getMyProfileChangeRequests,
     getReportesClientes,
-    activateRoute  
+    activateRoute,
+    getTransportReservations,
+    startTransportReservation,
+    finishTransportReservation,
+    cancelTransportReservation,
+    getRoutesFilter,
+    getRouteRatings,
+    respondRouteRating  
 } = require("../controllers/company.controller");
 
 // Registro (público)
@@ -133,6 +140,55 @@ router.get(
     verifyToken,
     requireRole(4),
     getVehicles
+);
+
+router.get(
+    "/transport-reservations",
+    verifyToken,
+    requireRole(4),
+    getTransportReservations
+);
+
+router.patch(
+    "/transport-reservations/:id/start",
+    verifyToken,
+    requireRole(4),
+    startTransportReservation
+);
+
+router.patch(
+    "/transport-reservations/:id/finish",
+    verifyToken,
+    requireRole(4),
+    finishTransportReservation
+);
+
+router.patch(
+    "/transport-reservations/:id/cancel",
+    verifyToken,
+    requireRole(4),
+    cancelTransportReservation
+);
+
+router.get(
+    "/transport-reservations/routes-filter",
+    verifyToken,
+    requireRole(4),
+    getRoutesFilter
+);
+
+router.get(
+    "/ratings",
+    verifyToken,
+    requireRole(4),
+    getRouteRatings
+);
+
+router.post(
+    "/ratings/:id/respond",
+    verifyToken,
+    requireRole(4),
+    respondRouteRating
 );
 
 module.exports = router;

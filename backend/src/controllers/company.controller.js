@@ -746,6 +746,268 @@ const getReportesClientes = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+
+const getTransportReservations = async (req, res) => {
+    try {
+        const { mes, id_ruta } = req.query;
+
+        const empresa = await companyService.getCompanyByUserId(
+            req.user.id_usuario
+        );
+
+        if (!empresa) {
+            return res.status(404).json({
+                message: "Empresa no encontrada"
+            });
+        }
+
+        const reservaciones =
+            await companyService.getTransportReservationsByCompany({
+                id_empresa: empresa.id_empresa,
+                mes,
+                id_ruta: id_ruta || null
+            });
+
+        return res.status(200).json({ reservaciones });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+const startTransportReservation = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const empresa = await companyService.getCompanyByUserId(
+            req.user.id_usuario
+        );
+
+        const reservacion =
+            await companyService.getTransportReservationByCompany(
+                id,
+                empresa.id_empresa
+            );
+
+        if (!reservacion) {
+            return res.status(404).json({
+                message: "Reservación no encontrada"
+            });
+        }
+
+        if (reservacion.estado !== "PENDIENTE") {
+            return res.status(400).json({
+                message: "Solo se pueden iniciar reservaciones pendientes"
+            });
+        }
+
+        await companyService.updateTransportReservationStatus(id, 3); // EN_TRANSITO
+
+        return res.status(200).json({
+            message: "Reservación marcada como EN_TRANSITO"
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+const finishTransportReservation = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const empresa = await companyService.getCompanyByUserId(
+            req.user.id_usuario
+        );
+
+        const reservacion =
+            await companyService.getTransportReservationByCompany(
+                id,
+                empresa.id_empresa
+            );
+
+        if (!reservacion) {
+            return res.status(404).json({
+                message: "Reservación no encontrada"
+            });
+        }
+
+        if (reservacion.estado !== "EN_TRANSITO") {
+            return res.status(400).json({
+                message: "Solo se pueden finalizar reservaciones en tránsito"
+            });
+        }
+
+        await companyService.updateTransportReservationStatus(id, 4); // ENTREGADO
+
+        return res.status(200).json({
+            message: "Reservación marcada como ENTREGADO"
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+const cancelTransportReservation = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const empresa = await companyService.getCompanyByUserId(req.user.id_usuario);
+
+        const reservacion =
+            await companyService.getTransportReservationByCompany(
+                id,
+                empresa.id_empresa
+            );
+
+        if (!reservacion) {
+            return res.status(404).json({
+                message: "Reservación no encontrada"
+            });
+        }
+
+        if (reservacion.estado !== "PENDIENTE") {
+            return res.status(400).json({
+                message: "Solo se pueden cancelar reservaciones pendientes."
+            });
+        }
+
+        // 3 = CANCELADO (ajústalo si tu catálogo usa otro id)
+        await companyService.updateTransportReservationStatus(id, 5);
+
+        return res.status(200).json({
+            message: "Reservación cancelada correctamente."
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+const getRoutesFilter = async (req, res) => {
+    try {
+        const empresa = await companyService.getCompanyByUserId(req.user.id_usuario);
+
+        if (!empresa) {
+            return res.status(404).json({
+                message: "Empresa no encontrada"
+            });
+        }
+
+        const rutas = await companyService.getRoutesForReservationFilter(
+            empresa.id_empresa
+        );
+
+        return res.status(200).json({ rutas });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+const getRouteRatings = async (req, res) => {
+    try {
+        const { id_ruta, puntuacion } = req.query;
+
+        const empresa = await companyService.getCompanyByUserId(
+            req.user.id_usuario
+        );
+
+        if (!empresa) {
+            return res.status(404).json({
+                message: "Empresa no encontrada"
+            });
+        }
+
+        const calificaciones = await companyService.getRouteRatingsByCompany({
+            id_empresa: empresa.id_empresa,
+            id_ruta: id_ruta || null,
+            puntuacion: puntuacion || null
+        });
+
+        const resumen = await companyService.getRatingsSummary(
+            empresa.id_empresa
+        );
+
+        return res.status(200).json({
+            resumen,
+            calificaciones
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+const respondRouteRating = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { respuesta } = req.body;
+
+        if (!respuesta) {
+            return res.status(400).json({
+                message: "La respuesta es obligatoria"
+            });
+        }
+
+        const empresa = await companyService.getCompanyByUserId(req.user.id_usuario);
+
+        if (!empresa) {
+            return res.status(404).json({
+                message: "Empresa no encontrada"
+            });
+        }
+
+        const calificacion = await companyService.getRouteRatingByCompany(
+            id,
+            empresa.id_empresa
+        );
+
+        if (!calificacion) {
+            return res.status(404).json({
+                message: "Calificación no encontrada"
+            });
+        }
+
+        const existe = await companyService.ratingResponseExists(id);
+
+        if (existe) {
+            return res.status(400).json({
+                message: "Esta calificación ya tiene respuesta"
+            });
+        }
+
+        const respuestaCreada = await companyService.createRatingResponse({
+            id_calificacion: id,
+            respuesta
+        });
+
+        return res.status(201).json({
+            message: "Respuesta registrada correctamente",
+            respuesta: respuestaCreada
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+
 module.exports = {
     registerEmpresa,
     createRoute,
@@ -765,5 +1027,12 @@ module.exports = {
     getDashboardEmpresa,
     getMyProfileChangeRequests,
     activateRoute,
-    getReportesClientes
+    getReportesClientes,
+    getTransportReservations,
+    startTransportReservation,
+    finishTransportReservation,
+    cancelTransportReservation,
+    getRoutesFilter,
+    getRouteRatings,
+    respondRouteRating
 };
