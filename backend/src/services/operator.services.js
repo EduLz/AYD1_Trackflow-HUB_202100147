@@ -629,6 +629,92 @@ const updateReservationStatus = async (id_reservacion, id_estado, finalizar = fa
     return result.recordset[0];
 };
 
+const createClientReport = async (data) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_estado", 1) 
+        .input("id_reportante", data.id_reportante) 
+        .input("id_reportado", data.id_reportado)   
+        .input("id_reservacion", data.id_reservacion)
+        .input("tipo_reporte", 'CLIENTE')
+        .input("motivo", data.motivo)
+        .input("descripcion", data.descripcion)
+        .query(`
+            INSERT INTO Reporte
+            (id_estado, id_reportante, id_reportado, id_reservacion, tipo_reporte, motivo, descripcion)
+            OUTPUT INSERTED.*
+            VALUES
+            (@id_estado, @id_reportante, @id_reportado, @id_reservacion, @tipo_reporte, @motivo, @descripcion)
+        `);
+    return result.recordset[0];
+};
+
+const createReportEvidence = async (id_reporte, url, tipo = 'FOTO') => {
+    const pool = await connectDB();
+    await pool.request()
+        .input("id_reporte", id_reporte)
+        .input("tipo", tipo)
+        .input("url", url)
+        .query(`
+            INSERT INTO EvidenciaReporte (id_reporte, tipo, url)
+            VALUES (@id_reporte, @tipo, @url)
+        `);
+};
+
+const getClientComplaintsByOperator = async (id_operador) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_operador", id_operador)
+        .query(`
+            SELECT 
+                r.id_reporte,
+                er.nombre AS estado_reporte,
+                r.motivo,
+                r.descripcion,
+                r.fecha_reporte,
+                res.id_reservacion,
+                s.nombre AS nombre_servicio,
+                cl.nombre AS cliente_nombre,
+                cl.apellido AS cliente_apellido
+            FROM Reporte r
+            INNER JOIN EstadoReporte r_est ON r_est.id_estado = r.id_estado -- Ajustado a EstadoReporte del DDL
+            INNER JOIN EstadoReporte er ON er.id_estado = r.id_estado
+            INNER JOIN Reservacion res     ON res.id_reservacion = r.id_reservacion
+            INNER JOIN ServicioEnvio s     ON s.id_servicio = res.id_servicio_env
+            INNER JOIN Cliente cl          ON cl.id_cliente = res.id_cliente
+            WHERE s.id_operador = @id_operador AND r.tipo_reporte = 'SERVICIO_ENVIO'
+            ORDER BY r.fecha_reporte DESC
+        `);
+    return result.recordset;
+};
+
+const getReportsMadeToClients = async (id_usuario_operador) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_reportante", id_usuario_operador)
+        .query(`
+            SELECT 
+                r.id_reporte,
+                er.nombre AS estado_reporte,
+                r.motivo,
+                r.descripcion,
+                r.fecha_reporte,
+                r.id_reservacion,
+                s.nombre AS nombre_servicio,
+                cl.nombre AS cliente_nombre,
+                cl.apellido AS cliente_apellido
+            FROM Reporte r
+            INNER JOIN EstadoReporte er ON er.id_estado = r.id_estado
+            LEFT JOIN Reservacion res    ON res.id_reservacion = r.id_reservacion
+            LEFT JOIN ServicioEnvio s    ON s.id_servicio = res.id_servicio_env
+            LEFT JOIN Usuario u_cl       ON u_cl.id_usuario = r.id_reportado
+            LEFT JOIN Cliente cl         ON cl.id_usuario = u_cl.id_usuario
+            WHERE r.id_reportante = @id_reportante AND r.tipo_reporte = 'CLIENTE'
+            ORDER BY r.fecha_reporte DESC
+        `);
+    return result.recordset;
+};
+
 module.exports = {
     createOperator,
     getOperatorByUserId,
@@ -654,5 +740,9 @@ module.exports = {
     getReservacionesByOperator,
     getReporteGananciasPorServicio,
     getReservationById,
-    updateReservationStatus
+    updateReservationStatus,
+    createClientReport,
+    createReportEvidence,
+    getClientComplaintsByOperator,
+    getReportsMadeToClients
 };

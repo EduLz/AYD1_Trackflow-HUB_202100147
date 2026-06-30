@@ -969,6 +969,32 @@ const searchTransportServices = async ({ search, fecha }) => {
     return result.recordset;
 };
 
+const getReportsReceivedAsClient = async (id_usuario_cliente) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_reportado", id_usuario_cliente)
+        .query(`
+            SELECT 
+                r.id_reporte,
+                er.nombre AS estado_reporte,
+                r.motivo,
+                r.descripcion,
+                r.fecha_reporte,
+                r.id_reservacion,
+                s.nombre AS nombre_servicio,
+                CONCAT(op.nombre, ' ', op.apellido) AS operador_reportante
+            FROM Reporte r
+            INNER JOIN EstadoReporte er ON er.id_estado = r.id_estado
+            LEFT JOIN Reservacion res    ON res.id_reservacion = r.id_reservacion
+            LEFT JOIN ServicioEnvio s    ON s.id_servicio = res.id_servicio_env
+            LEFT JOIN Usuario u_op       ON u_op.id_usuario = r.id_reportante
+            LEFT JOIN OperadorLogistico op ON op.id_usuario = u_op.id_usuario
+            WHERE r.id_reportado = @id_reportado AND r.tipo_reporte = 'CLIENTE'
+            ORDER BY r.fecha_reporte DESC
+        `);
+    return result.recordset;
+};
+
 module.exports = {
     createCliente,
     getShippingServices,
@@ -1007,5 +1033,6 @@ module.exports = {
     addItemToCart,
     removeItemFromCart,
     clearCartTransaction,
-    searchTransportServices
+    searchTransportServices,
+    getReportsReceivedAsClient
 };

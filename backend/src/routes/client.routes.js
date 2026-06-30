@@ -4,7 +4,9 @@ const upload = require("../middlewares/upload.middleware");
 const router = express.Router();
 const { registerCliente, getShippingServices, registerCard, getPaymentMethods,
         deactivatePaymentMethod, createReservation, rateShippingService, cancelReservation,
-        createReport, getMyReports, getMyCoupons, getMyReservations, getCart, addToCart, removeFromCart, searchTransportServices } = require("../controllers/client.controller");
+        createReport, getMyReports, getMyCoupons, getMyReservations, getCart, addToCart, removeFromCart, searchTransportServices,
+        getMyReceivedReports
+         } = require("../controllers/client.controller");
 const { verifyToken, requireRole } = require("../middlewares/auth.middleware");
 
 router.post("/register", registerCliente);
@@ -24,5 +26,6 @@ router.post("/cart", verifyToken, requireRole(2), addToCart);
 router.delete("/cart/:id", verifyToken, requireRole(2), removeFromCart);
 router.post("/reservations", verifyToken, requireRole(2), createReservation);
 router.get("/transport-services", verifyToken, requireRole(2), searchTransportServices)
+router.get("/received-reports", verifyToken, getMyReceivedReports);
 
 module.exports = router;
