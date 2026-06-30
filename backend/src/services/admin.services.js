@@ -2,7 +2,6 @@ const { connectDB } = require("../config/database");
 const sql = require("mssql");
 
 const approveOperador = async (id_solicitud) => {
-
     const pool = await connectDB();
 
     // 1. Marcar la solicitud como APROBADA
@@ -38,7 +37,6 @@ const approveOperador = async (id_solicitud) => {
 };
 
 const rejectOperador = async (id_solicitud) => {
-
     const pool = await connectDB();
 
     // 1. Marcar la solicitud como RECHAZADA
@@ -74,8 +72,8 @@ const rejectOperador = async (id_solicitud) => {
 };
 
 const createAdmin = async ({ id_usuario, nombre, apellido }) => {
-
     const pool = await connectDB();
+
     const result = await pool.request()
         .input("id_usuario", id_usuario)
         .input("nombre", nombre)
@@ -95,12 +93,13 @@ const createAdmin = async ({ id_usuario, nombre, apellido }) => {
                 @apellido
             )
         `);
+
     return result.recordset[0];
 };
 
 const saveOTP = async (id_usuario, codigo) => {
-
     const pool = await connectDB();
+
     await pool.request()
         .input("id_usuario", id_usuario)
         .input("codigo", codigo)
@@ -108,14 +107,14 @@ const saveOTP = async (id_usuario, codigo) => {
             UPDATE Administrador
             SET
                 token_2fa = @codigo,
-                token_expiracion = DATEADD(MINUTE,5,GETDATE())
+                token_expiracion = DATEADD(MINUTE, 5, GETDATE())
             WHERE id_usuario = @id_usuario
         `);
 };
 
 const verifyOTP = async (id_usuario, codigo) => {
-
     const pool = await connectDB();
+
     const result = await pool.request()
         .input("id_usuario", id_usuario)
         .input("codigo", codigo)
@@ -131,8 +130,8 @@ const verifyOTP = async (id_usuario, codigo) => {
 };
 
 const findAdminByUserId = async (id_usuario) => {
-
     const pool = await connectDB();
+
     const result = await pool.request()
         .input("id_usuario", id_usuario)
         .query(`
@@ -143,8 +142,48 @@ const findAdminByUserId = async (id_usuario) => {
 
     return result.recordset[0];
 };
+
+const getUsuariosPanel = async (nombre_rol = null) => {
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("nombre_rol", sql.VarChar, nombre_rol)
+        .query(`
+            SELECT
+                u.id_usuario,
+                u.correo,
+                u.correo_verificado,
+                eu.nombre AS estado_usuario,
+                r.nombre AS rol
+            FROM Usuario u
+            INNER JOIN EstadoUsuario eu ON eu.id_estado = u.id_estado
+            INNER JOIN Rol r ON r.id_rol = u.id_rol
+            WHERE (@nombre_rol IS NULL OR r.nombre = @nombre_rol)
+            ORDER BY u.id_usuario DESC
+        `);
+
+    return result.recordset;
+};
+
+const getEstadisticasGenerales = async () => {
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .query(`
+            SELECT
+                COUNT(*) AS total_usuarios,
+                SUM(CASE WHEN correo_verificado = 1 THEN 1 ELSE 0 END) AS usuarios_verificados,
+                SUM(CASE WHEN correo_verificado = 0 THEN 1 ELSE 0 END) AS usuarios_no_verificados
+            FROM Usuario
+            WHERE id_rol = 2
+        `);
+
+    return result.recordset[0];
+};
+
 const getAllReportes = async () => {
     const pool = await connectDB();
+
     const result = await pool.request()
         .query(`
             SELECT
@@ -158,130 +197,34 @@ const getAllReportes = async () => {
                 ur.correo AS reportante_correo,
                 ud.correo AS reportado_correo
             FROM Reporte rep
-            INNER JOIN EstadoReporte er ON er.id_estado    = rep.id_estado
-            INNER JOIN Usuario ur       ON ur.id_usuario   = rep.id_reportante
-            INNER JOIN Usuario ud       ON ud.id_usuario   = rep.id_reportado
+            INNER JOIN EstadoReporte er ON er.id_estado = rep.id_estado
+            INNER JOIN Usuario ur ON ur.id_usuario = rep.id_reportante
+            INNER JOIN Usuario ud ON ud.id_usuario = rep.id_reportado
             ORDER BY rep.fecha_reporte DESC
         `);
+
     return result.recordset;
 };
 
 const updateReporteEstado = async (id_reporte, id_estado) => {
     const pool = await connectDB();
+
     const result = await pool.request()
         .input("id_reporte", id_reporte)
         .input("id_estado", id_estado)
         .query(`
             UPDATE Reporte
-            SET id_estado = @id_estado,
-                fecha_resolucion = CASE WHEN @id_estado IN (3,4) THEN GETDATE() ELSE fecha_resolucion END
+            SET 
+                id_estado = @id_estado,
+                fecha_resolucion = CASE 
+                    WHEN @id_estado IN (3, 4) THEN GETDATE() 
+                    ELSE fecha_resolucion 
+                END
             OUTPUT INSERTED.*
             WHERE id_reporte = @id_reporte
         `);
+
     return result.recordset[0];
-};
-
-const getUsuariosPanel = async (nombre_rol = null) => {
-    const pool = await connectDB();
-    const request = pool.request();
-    
-    let query = `
-        SELECT 
-            u.id_usuario,
-            u.correo,
-            u.correo_verificado,
-            eu.nombre AS estado_usuario,
-            r.nombre AS rol,
-            u.fecha_registro
-        FROM Usuario u
-        INNER JOIN Rol r ON r.id_rol = u.id_rol
-        INNER JOIN EstadoUsuario eu ON eu.id_estado = u.id_estado
-    `;
-
-    if (nombre_rol) {
-        query += ` WHERE r.nombre = @nombre_rol`;
-        request.input("nombre_rol", nombre_rol);
-    }
-
-    query += ` ORDER BY u.fecha_registro DESC`;
-
-    const result = await request.query(query);
-    return result.recordset;
-};
-
-const vetoUserTransaction = async (transaction, data) => {
-    await new sql.Request(transaction)
-        .input("id_usuario", data.id_usuario)
-        .query(`
-            UPDATE Usuario 
-            SET id_estado = (SELECT id_estado FROM EstadoUsuario WHERE nombre = 'VETADO')
-            WHERE id_usuario = @id_usuario
-        `);
-
-    await new sql.Request(transaction)
-        .input("id_usuario", data.id_usuario)
-        .input("id_admin", data.id_admin)
-        .input("motivo", data.motivo)
-        .query(`
-            INSERT INTO VetoUsuario (id_usuario, id_admin, motivo)
-            VALUES (@id_usuario, @id_admin, @motivo)
-        `);
-};
-
-const updateUsuarioBase = async (id_usuario, correo, id_estado) => {
-    const pool = await connectDB();
-    const result = await pool.request()
-        .input("id_usuario", id_usuario)
-        .input("correo", correo)
-        .input("id_estado", id_estado)
-        .query(`
-            UPDATE Usuario
-            SET 
-                correo = @correo,
-                id_estado = @id_estado,
-                fecha_actualizacion = GETDATE()
-            OUTPUT INSERTED.*
-            WHERE id_usuario = @id_usuario
-        `);
-    return result.recordset[0];
-};
-
-const getAllOperatorsServices = async (ordenarPor = null) => {
-    const pool = await connectDB();
-    
-    let query = `
-        SELECT
-            s.id_servicio,
-            s.nombre AS nombre_servicio,
-            s.zona_cobertura,
-            s.capacidad_carga_kg,
-            s.precio_envio,
-            s.descripcion,
-            s.calificacion_prom,
-            s.total_calificaciones,
-            s.fecha_creacion,
-            es.nombre AS estado_servicio,
-            o.id_operador,
-            CONCAT(o.nombre, ' ', o.apellido) AS operador_logistico
-        FROM ServicioEnvio s
-        INNER JOIN OperadorLogistico o ON o.id_operador = s.id_operador
-        INNER JOIN EstadoServicio es   ON es.id_estado = s.id_estado
-    `;
-
-    switch (ordenarPor) {
-        case "destino": 
-            query += " ORDER BY s.zona_cobertura ASC";
-            break;
-        case "operador": 
-            query += " ORDER BY o.nombre ASC, o.apellido ASC";
-            break;
-        default: 
-            query += " ORDER BY s.fecha_creacion DESC";
-            break;
-    }
-
-    const result = await pool.request().query(query);
-    return result.recordset;
 };
 
 module.exports = {
@@ -291,10 +234,8 @@ module.exports = {
     saveOTP,
     verifyOTP,
     findAdminByUserId,
-    getAllReportes,
-    updateReporteEstado,
     getUsuariosPanel,
-    vetoUserTransaction,
-    updateUsuarioBase,
-    getAllOperatorsServices
+    getEstadisticasGenerales,
+    getAllReportes,
+    updateReporteEstado
 };

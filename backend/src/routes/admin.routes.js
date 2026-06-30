@@ -5,7 +5,7 @@ const router = express.Router();
 const {getSolicitudes, approveSolicitud, rejectSolicitud, registerAdmin, verifyAdminOTP, 
        getPendingProfileRequests, resolveProfileRequest,
        getPendingCompanyProfileRequests, resolveCompanyProfileRequest, listarReportes, cambiarEstadoReporte,
-       getUsers, editUser, vetoUser, getOperatorsServicesForAdmin
+       getReportesGenerales, getUsers, editUser, vetoUser, getOperatorsServicesForAdmin
 } = require("../controllers/admin.controller");
 const {verifyToken, requireRole } = require("../middlewares/auth.middleware");
 
@@ -16,7 +16,7 @@ router.post("/register",registerAdmin);
 router.post("/verify-otp", verifyAdminOTP );
 router.get("/profile-change-requests", verifyToken, requireRole(1), getPendingProfileRequests);
 router.patch("/profile-change-requests/:id", verifyToken, requireRole(1), resolveProfileRequest);
-
+router.get("/reportes-generales", verifyToken, requireRole(1), getReportesGenerales);
 router.get("/company-profile-change-requests", verifyToken, requireRole(1), getPendingCompanyProfileRequests);
 router.patch("/company-profile-change-requests/:id", verifyToken, requireRole(1), resolveCompanyProfileRequest);
 router.get("/reportes", verifyToken, requireRole(1), listarReportes);
