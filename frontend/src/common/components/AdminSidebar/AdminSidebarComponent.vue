@@ -1,5 +1,5 @@
 <template>
-  <aside class="sidebar-container admin-theme">
+  <aside class="sidebar-container admin-theme" ref="sidebarRef" @scroll="saveScrollPosition">
     <div class="sidebar-menu">
 
       <nav class="nav-group">
@@ -69,8 +69,34 @@
 </template>
 
 <script>
+import { ref, onMounted } from 'vue';
+
 export default {
-  name: 'AdminSidebarComponent'
+  name: 'AdminSidebarComponent',
+  setup() {
+    const sidebarRef = ref(null);
+
+    const saveScrollPosition = (e) => {
+      sessionStorage.setItem('adminSidebarScroll', e.target.scrollTop);
+    };
+
+    onMounted(() => {
+      const savedScroll = sessionStorage.getItem('adminSidebarScroll');
+      if (sidebarRef.value && savedScroll !== null) {
+        // Necesitamos un pequeño timeout porque a veces Vue renderiza y resetea el scroll inmediatamente después del mount
+        setTimeout(() => {
+          if (sidebarRef.value) {
+            sidebarRef.value.scrollTop = parseInt(savedScroll, 10);
+          }
+        }, 0);
+      }
+    });
+
+    return {
+      sidebarRef,
+      saveScrollPosition
+    };
+  }
 };
 </script>
 

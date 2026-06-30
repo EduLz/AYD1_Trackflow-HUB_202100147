@@ -65,14 +65,20 @@ export default {
     AdminSidebarComponent
   },
   setup() {
-    // Mock data para el historial de envíos
-    const historialEnvios = ref([
-      { id: 1, id_codigo: 'ENV-1001', fecha: '2026-06-25', cliente: 'Empresa Constructora S.A.', operador: 'Transportes Rápidos', destino: 'Zona 10', monto: 1500.00, estado: 'COMPLETADO' },
-      { id: 2, id_codigo: 'ENV-1002', fecha: '2026-06-26', cliente: 'Carlos Ruiz', operador: 'Mudanzas Chapinas', destino: 'Antigua Guatemala', monto: 350.50, estado: 'EN RUTA' },
-      { id: 3, id_codigo: 'ENV-1003', fecha: '2026-06-27', cliente: 'Distribuidora El Faro', operador: 'Logística Exprés', destino: 'Quetzaltenango', monto: 2500.00, estado: 'PENDIENTE' },
-      { id: 4, id_codigo: 'ENV-1004', fecha: '2026-06-28', cliente: 'Ana Pérez', operador: 'Paquetería Veloz', destino: 'Zona 1', monto: 75.00, estado: 'CANCELADO' },
-      { id: 5, id_codigo: 'ENV-1005', fecha: '2026-06-29', cliente: 'Muebles Exclusivos', operador: 'Transportes Rápidos', destino: 'Escuintla', monto: 890.00, estado: 'COMPLETADO' }
-    ]);
+    const historialEnvios = ref([]);
+
+    onMounted(async () => {
+      try {
+        const authStore = useAuthStore();
+        const res = await fetch('http://localhost:3000/api/admin/reportes-generales', {
+          headers: { Authorization: `Bearer ${authStore.token}` }
+        });
+        const { estadisticas } = await res.json();
+        historialEnvios.value = estadisticas.historial_envios || [];
+      } catch (e) {
+        console.error('Error cargando historial de envíos:', e);
+      }
+    });
 
     const formatCurrency = (value) => {
       return value.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

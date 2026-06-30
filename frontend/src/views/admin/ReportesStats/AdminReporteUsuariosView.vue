@@ -46,21 +46,41 @@ export default {
     Bar
   },
   setup() {
-    // Mock data
     const chartData = ref({
-      labels: ['Clientes', 'Operadores', 'Empresas'],
+      labels: [],
       datasets: [
-        {
-          label: 'Aceptados',
-          backgroundColor: '#10b981', // Verde
-          data: [120, 45, 12]
-        },
-        {
-          label: 'Rechazados',
-          backgroundColor: '#ef4444', // Rojo
-          data: [5, 18, 3]
-        }
+        { label: 'Aceptados', backgroundColor: '#10b981', data: [] },
+        { label: 'Rechazados', backgroundColor: '#ef4444', data: [] }
       ]
+    });
+
+    onMounted(async () => {
+      try {
+        const authStore = useAuthStore();
+        const res = await fetch('http://localhost:3000/api/admin/reportes-generales', {
+          headers: { Authorization: `Bearer ${authStore.token}` }
+        });
+        const { estadisticas } = await res.json();
+        const datos = estadisticas.aceptados_rechazados || [];
+
+        chartData.value = {
+          labels: datos.map(d => d.rol),
+          datasets: [
+            {
+              label: 'Aceptados',
+              backgroundColor: '#10b981',
+              data: datos.map(d => Number(d.aceptados))
+            },
+            {
+              label: 'Rechazados',
+              backgroundColor: '#ef4444',
+              data: datos.map(d => Number(d.rechazados))
+            }
+          ]
+        };
+      } catch (e) {
+        console.error('Error cargando gráfica:', e);
+      }
     });
 
     const chartOptions = ref({
