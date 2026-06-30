@@ -238,6 +238,15 @@ const cambiarEstadoReporte = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+const getReportesGenerales = async (req, res) => {
+    try {
+        const estadisticas = await adminService.getEstadisticasGenerales();
+        return res.status(200).json({ estadisticas });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    }
+};
 module.exports = {
     getSolicitudes,
     approveSolicitud,
@@ -249,5 +258,6 @@ module.exports = {
     getPendingCompanyProfileRequests,
     resolveCompanyProfileRequest,
     listarReportes,
-    cambiarEstadoReporte
+    cambiarEstadoReporte,
+    getReportesGenerales
 };
