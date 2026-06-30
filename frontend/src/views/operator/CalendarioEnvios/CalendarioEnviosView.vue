@@ -63,7 +63,10 @@
                 <button v-if="res.estado === 'EN_TRANSITO'" class="btn-success btn-sm" @click="finalizarReserva(res.id_reservacion)">
                   Finalizar Envío
                 </button>
-                <button class="btn-danger btn-sm" @click="abrirModalReporte(res)">
+                <button v-if="res.reportado || enviosReportados.has(res.id_reservacion)" class="btn-secondary btn-sm" disabled>
+                  Reportado
+                </button>
+                <button v-else class="btn-danger btn-sm" @click="abrirModalReporte(res)">
                   Reportar
                 </button>
               </div>
@@ -190,6 +193,18 @@ export default {
         if (!res.ok) throw new Error();
         const data = await res.json();
         reservaciones.value = data.reservaciones || [];
+
+        // Recuperar reportes ya hechos para deshabilitar botones
+        const resReportes = await fetch(API.operador.getReportesEnviados, {
+          headers: { Authorization: `Bearer ${authStore.token}` }
+        });
+        if (resReportes.ok) {
+          const reportesData = await resReportes.json();
+          if (reportesData.reportes_enviados) {
+            reportesData.reportes_enviados.forEach(r => enviosReportados.value.add(r.id_reservacion));
+          }
+        }
+
       } catch {
         reservaciones.value = MOCK_RESERVACIONES.filter(r => r.fecha_inicio.startsWith(mesFiltro.value));
       } finally {
@@ -201,6 +216,7 @@ export default {
     const modalReporte = ref(false);
     const enviandoReporte = ref(false);
     const reservaSeleccionada = ref(null);
+    const enviosReportados = ref(new Set());
     const formulario = reactive({
       motivo: '',
       descripcion: '',
@@ -244,6 +260,7 @@ export default {
           throw new Error(errData.message || 'Error al generar el reporte');
         }
 
+        enviosReportados.value.add(reservaSeleccionada.value.id_reservacion);
         mostrarToast('Reporte generado exitosamente.', 'exito');
         cerrarModalReporte();
       } catch (error) {
@@ -313,7 +330,7 @@ export default {
 
     return {
       cargando, mesFiltro, servicioFiltro, serviciosDisponibles, diasAgrupados, toast,
-      formatearDia, cargar, iniciarReserva, finalizarReserva,
+      formatearDia, cargar, iniciarReserva, finalizarReserva, enviosReportados,
       modalReporte, abrirModalReporte, cerrarModalReporte, reservaSeleccionada, formulario, manejarEvidencias, enviarReporte, enviandoReporte
     };
   }
