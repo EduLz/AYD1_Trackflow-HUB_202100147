@@ -636,7 +636,7 @@ Los requerimientos funcionales describen las acciones que el sistema debe ser ca
 ## 8. Diagrama de despliegue
 
 
-![Diagrama de despliegue](/docs/Anexos/despliegue.png)
+![Diagrama de despliegue](/docs/Anexos/Despliegue.png)
 
 
 ---
