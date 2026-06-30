@@ -49,6 +49,7 @@ export const API = {
     cambioPerfil:   `${BASE_URL}/api/operadores/profile-change-request`,
     historialCambiosPerfil: `${BASE_URL}/api/operadores/profile-change-requests`,
     // Reportes
+    reportes:       `${BASE_URL}/api/operadores/reportes`,
     getQuejasDeClientes: `${BASE_URL}/api/operadores/quejas`,
     reportarCliente: `${BASE_URL}/api/operadores/report-client`,
     getReportesEnviados: `${BASE_URL}/api/operadores/submitted-reports`,
