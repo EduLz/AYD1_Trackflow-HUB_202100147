@@ -253,7 +253,7 @@ const createReservation = async (req, res) => {
             });
         }
 
-        const metodo = await clienteService.getCardByMethod(id_metodo_pago);
+        const metodo = await clienteService.getPaymentMethodForCheckout(id_metodo_pago);
         if (!metodo || metodo.id_cliente !== cliente.id_cliente || !metodo.activo) {
             return res.status(400).json({ message: "Método de pago inválido o inactivo" });
         }
@@ -304,14 +304,15 @@ const createReservation = async (req, res) => {
             precioTotalCarrito += precioFinal;
 
             reservacionesAProcesar.push({
-                id_servicio_env: item.id_servicio_env,
-                id_ruta: item.id_ruta,
-                fecha_inicio: item.fecha_inicio,
-                precio_total: precioFinal,
-                comision,
-                proveedor,
-                descuento_aplicado: descuentoAplicado
-            });
+    id_servicio_env: item.id_servicio_env,
+    id_ruta: item.id_ruta,
+    tipo_servicio: item.tipo_servicio,
+    fecha_inicio: item.fecha_inicio,
+    precio_total: precioFinal,
+    comision,
+    proveedor,
+    descuento_aplicado: descuentoAplicado
+});
         }
 
         if (Number(metodo.saldo) < precioTotalCarrito) {
@@ -324,17 +325,18 @@ const createReservation = async (req, res) => {
 
         for (const resData of reservacionesAProcesar) {
             await clienteService.createReservationTransaction(transaction, {
-                id_cliente: cliente.id_cliente,
-                id_metodo_pago,
-                id_servicio_env: resData.id_servicio_env,
-                id_ruta: resData.id_ruta,
-                fecha_inicio: resData.fecha_inicio,
-                precio_total: resData.precio_total,
-                comision: resData.comision,
-                proveedor: resData.proveedor,
-                id_cupon: id_cupon || null,
-                descuento_aplicado: resData.descuento_aplicado
-            });
+    id_cliente: cliente.id_cliente,
+    id_metodo_pago,
+    id_servicio_env: resData.id_servicio_env,
+    id_ruta: resData.id_ruta,
+    tipo_servicio: resData.tipo_servicio,
+    fecha_inicio: resData.fecha_inicio,
+    precio_total: resData.precio_total,
+    comision: resData.comision,
+    proveedor: resData.proveedor,
+    id_cupon: id_cupon || null,
+    descuento_aplicado: resData.descuento_aplicado
+});
         }
 
         if (id_cupon) {
@@ -638,13 +640,23 @@ const removeFromCart = async (req, res) => {
 
 const searchTransportServices = async (req, res) => {
     try {
-        const { search, fecha } = req.query;
+        const {
+            search,
+            fecha,
+            hora,
+            tiempo,
+            precio,
+            calificacion
+        } = req.query;
 
-        const services =
-            await clienteService.searchTransportServices({
-                search,
-                fecha
-            });
+        const services = await clienteService.searchTransportServices({
+            search,
+            fecha,
+            hora,
+            tiempo,
+            precio,
+            calificacion
+        });
 
         return res.status(200).json(services);
 
@@ -654,20 +666,51 @@ const searchTransportServices = async (req, res) => {
         });
     }
 };
-
 const getMyReceivedReports = async (req, res) => {
     try {
         const reportesRecibidos = await clienteService.getReportsReceivedAsClient(req.user.id_usuario);
-        
-        return res.status(200).json({ 
+
+        return res.status(200).json({
             message: "Reportes en tu contra realizados por operadores logísticos",
-            reportes_recibidos: reportesRecibidos 
+            reportes_recibidos: reportesRecibidos
         });
+
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: error.message });
+        return res.status(500).json({
+            message: error.message
+        });
     }
 };
+
+const registerWallet = async (req, res) => {
+    try {
+
+        const { saldo, alias } = req.body;
+
+        const cliente = await clienteService.getClienteByUserId(req.user.id_usuario);
+
+        if (!cliente) {
+            return res.status(404).json({
+                message: "Cliente no encontrado"
+            });
+        }
+
+        const wallet = await clienteService.registerWallet({
+            id_cliente: cliente.id_cliente,
+            saldo,
+            alias
+        });
+
+        return res.status(201).json(wallet);
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
 
 module.exports = {
     registerCliente,
@@ -686,5 +729,6 @@ module.exports = {
     addToCart,
     removeFromCart,
     searchTransportServices,
-    getMyReceivedReports
+    getMyReceivedReports,
+    registerWallet
 };
