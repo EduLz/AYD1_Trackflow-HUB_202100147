@@ -22,6 +22,10 @@ export const API = {
     // Reportes
     getReportes: `${BASE_URL}/api/admin/reportes`,
     cambiarEstadoReporte: (id) => `${BASE_URL}/api/admin/reportes/${id}`,
+    // Usuarios
+    getUsers: `${BASE_URL}/api/admin/users`,
+    editUser: (id) => `${BASE_URL}/api/admin/users/edit/${id}`,
+    vetoUser: `${BASE_URL}/api/admin/users/veto`,
   },
   reuniones: {
     crear: `${BASE_URL}/api/reuniones`,
