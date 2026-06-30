@@ -26,7 +26,8 @@
 </template>
 
 <script>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import { useAuthStore } from '../../../stores/auth';
 import UpperbarComponent from '../../../common/components/Upperbar/UpperbarComponent.vue';
 import AdminSidebarComponent from '../../../common/components/AdminSidebar/AdminSidebarComponent.vue';
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale } from 'chart.js';
@@ -43,16 +44,25 @@ export default {
     Bar
   },
   setup() {
-    // Mock data para ingresos
+    const authStore = useAuthStore();
+
     const chartData = ref({
-      labels: ['Carga Pesada', 'Carga Liviana', 'Paquetería', 'Mudanza', 'Especial'],
-      datasets: [
-        {
-          label: 'Ingresos Totales (Q)',
-          backgroundColor: '#10b981', // Verde financiero
-          data: [150000.00, 45000.50, 75200.25, 20500.00, 8500.00]
-        }
-      ]
+      labels: [],
+      datasets: [{ label: 'Ingresos Totales (Q)', backgroundColor: '#10b981', data: [] }]
+    });
+
+    onMounted(async () => {
+      try {
+        const res = await fetch('http://localhost:3000/api/admin/reportes-generales', {
+          headers: { Authorization: `Bearer ${authStore.token}` }
+        });
+        const { estadisticas } = await res.json();
+        const datos = estadisticas.ingresos_por_tipo || [];
+        chartData.value = {
+          labels: datos.map(d => d.tipo_servicio),
+          datasets: [{ label: 'Ingresos Totales (Q)', backgroundColor: '#10b981', data: datos.map(d => Number(d.ingresos)) }]
+        };
+      } catch (error) { console.error(error); }
     });
 
     const chartOptions = ref({

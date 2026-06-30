@@ -50,7 +50,8 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import { useAuthStore } from '../../../stores/auth';
 import UpperbarComponent from '../../../common/components/Upperbar/UpperbarComponent.vue';
 import AdminSidebarComponent from '../../../common/components/AdminSidebar/AdminSidebarComponent.vue';
 import jsPDF from 'jspdf';

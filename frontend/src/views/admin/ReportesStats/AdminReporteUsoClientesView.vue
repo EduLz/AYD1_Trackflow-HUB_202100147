@@ -26,7 +26,8 @@
 </template>
 
 <script>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import { useAuthStore } from '../../../stores/auth';
 import UpperbarComponent from '../../../common/components/Upperbar/UpperbarComponent.vue';
 import AdminSidebarComponent from '../../../common/components/AdminSidebar/AdminSidebarComponent.vue';
 import html2canvas from 'html2canvas';
@@ -51,21 +52,15 @@ export default {
     Pie
   },
   setup() {
-    // Mock data según el enunciado: solo envíos, solo transporte, ambos
-    const chartData = ref({
-      labels: ['Solo Envíos', 'Solo Transporte', 'Ambos Servicios'],
-      datasets: [
-        {
-          label: 'Cantidad de Clientes',
-          backgroundColor: [
-            '#3b82f6', // Azul
-            '#f59e0b', // Naranja
-            '#10b981'  // Verde
-          ],
-          data: [45, 30, 25],
-          hoverOffset: 4
-        }
-      ]
+    const authStore = useAuthStore();
+    const chartData = ref({ labels: [], datasets: [{ backgroundColor: ['#3b82f6','#10b981','#f59e0b'], data: [] }] });
+    onMounted(async () => {
+      try {
+        const res = await fetch('http://localhost:3000/api/admin/reportes-generales', { headers: { Authorization: `Bearer ${authStore.token}` } });
+        const { estadisticas } = await res.json();
+        const u = estadisticas.uso_clientes || {};
+        chartData.value = { labels: ['Solo envios','Solo transporte','Ambos'], datasets: [{ backgroundColor: ['#3b82f6','#10b981','#f59e0b'], data: [u.solo_envios||0, u.solo_transporte||0, u.ambos||0] }] };
+      } catch (e) { console.error(e); }
     });
 
     const chartOptions = ref({
