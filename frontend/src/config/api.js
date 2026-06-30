@@ -50,7 +50,9 @@ export const API = {
     historialCambiosPerfil: `${BASE_URL}/api/operadores/profile-change-requests`,
     // Reportes
     reportes:       `${BASE_URL}/api/operadores/reportes`,
-    enviarReporte:  `${BASE_URL}/api/operadores/reportar-cliente`, // Pendiente
+    getQuejasDeClientes: `${BASE_URL}/api/operadores/quejas`,
+    reportarCliente: `${BASE_URL}/api/operadores/report-client`,
+    getReportesEnviados: `${BASE_URL}/api/operadores/submitted-reports`,
     // Reservaciones (Calendario)
     reservaciones:  `${BASE_URL}/api/operadores/reservaciones`,
     iniciarReservaOperador: (id) => `${BASE_URL}/api/operadores/reservaciones/${id}/iniciar`,
@@ -58,4 +60,7 @@ export const API = {
     // Fotos estaticas servidas por el backend
     fotoUrl:        (filename) => `${BASE_URL}/uploads/${filename}`,
   },
+  cliente: {
+    getReportesRecibidos: `${BASE_URL}/api/clientes/received-reports`,
+  }
 };
