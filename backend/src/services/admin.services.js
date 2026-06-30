@@ -246,6 +246,43 @@ const updateUsuarioBase = async (id_usuario, correo, id_estado) => {
     return result.recordset[0];
 };
 
+const getAllOperatorsServices = async (ordenarPor = null) => {
+    const pool = await connectDB();
+    
+    let query = `
+        SELECT
+            s.id_servicio,
+            s.nombre AS nombre_servicio,
+            s.zona_cobertura,
+            s.capacidad_carga_kg,
+            s.precio_envio,
+            s.descripcion,
+            s.calificacion_prom,
+            s.total_calificaciones,
+            s.fecha_creacion,
+            es.nombre AS estado_servicio,
+            o.id_operador,
+            CONCAT(o.nombre, ' ', o.apellido) AS operador_logistico
+        FROM ServicioEnvio s
+        INNER JOIN OperadorLogistico o ON o.id_operador = s.id_operador
+        INNER JOIN EstadoServicio es   ON es.id_estado = s.id_estado
+    `;
+
+    switch (ordenarPor) {
+        case "destino": 
+            query += " ORDER BY s.zona_cobertura ASC";
+            break;
+        case "operador": 
+            query += " ORDER BY o.nombre ASC, o.apellido ASC";
+            break;
+        default: 
+            query += " ORDER BY s.fecha_creacion DESC";
+            break;
+    }
+
+    const result = await pool.request().query(query);
+    return result.recordset;
+};
 
 module.exports = {
     approveOperador,
@@ -258,5 +295,6 @@ module.exports = {
     updateReporteEstado,
     getUsuariosPanel,
     vetoUserTransaction,
-    updateUsuarioBase
+    updateUsuarioBase,
+    getAllOperatorsServices
 };

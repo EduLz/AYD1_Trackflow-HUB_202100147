@@ -327,6 +327,22 @@ const vetoUser = async (req, res) => {
     }
 };
 
+const getOperatorsServicesForAdmin = async (req, res) => {
+    try {
+        const { ordenar } = req.query; 
+
+        const servicios = await adminService.getAllOperatorsServices(ordenar || null);
+
+        return res.status(200).json({
+            total: servicios.length,
+            servicios
+        });
+    } catch (error) {
+        console.error("Error en getOperatorsServicesForAdmin:", error);
+        return res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     getSolicitudes,
     approveSolicitud,
@@ -341,5 +357,6 @@ module.exports = {
     cambiarEstadoReporte,
     getUsers,
     editUser,
-    vetoUser
+    vetoUser,
+    getOperatorsServicesForAdmin
 };
