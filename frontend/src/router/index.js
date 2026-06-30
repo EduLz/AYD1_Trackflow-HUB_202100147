@@ -30,6 +30,7 @@ import AdminReporteUsuariosGastoView from '../views/admin/ReportesStats/AdminRep
 import AdminReporteHistorialEnviosView from '../views/admin/ReportesStats/AdminReporteHistorialEnviosView.vue';
 import AdminReporteServiciosTransporteView from '../views/admin/ReportesStats/AdminReporteServiciosTransporteView.vue';
 import AdminReporteDestinosView from '../views/admin/ReportesStats/AdminReporteDestinosView.vue';
+import AdminReporteUsoClientesView from '../views/admin/ReportesStats/AdminReporteUsoClientesView.vue';
 
 // Modulo Operador (v2.0.0)
 import MisServiciosView       from '../views/operator/MisServicios/MisServiciosView.vue';
@@ -73,6 +74,7 @@ const router = createRouter({
     { path: '/admin/reportes-estadisticas/historial-envios', name: 'admin-reporte-envios', component: AdminReporteHistorialEnviosView, meta: { role: 'ADMIN' } },
     { path: '/admin/reportes-estadisticas/servicios-transporte', name: 'admin-reporte-servicios-transporte', component: AdminReporteServiciosTransporteView, meta: { role: 'ADMIN' } },
     { path: '/admin/reportes-estadisticas/destinos', name: 'admin-reporte-destinos', component: AdminReporteDestinosView, meta: { role: 'ADMIN' } },
+    { path: '/admin/reportes-estadisticas/uso-clientes', name: 'admin-reporte-uso', component: AdminReporteUsoClientesView, meta: { role: 'ADMIN' } },
 
     // --- Modulo Operador (v2.0.0) ---
     { path: '/operator/dashboard',           name: 'operator-dashboard',          component: OperatorDashboard,       meta: { role: 'OPERADOR' } },

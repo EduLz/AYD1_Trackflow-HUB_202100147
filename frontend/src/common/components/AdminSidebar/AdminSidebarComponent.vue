@@ -59,7 +59,9 @@
         <router-link :to="{ name: 'admin-reporte-destinos' }" class="menu-item" active-class="active">
           Gráfica: Destinos Frecuentes
         </router-link>
-        <!-- Se irán agregando las demás opciones aquí paso a paso -->
+        <router-link :to="{ name: 'admin-reporte-uso' }" class="menu-item" active-class="active">
+          Gráfica: Uso de Clientes
+        </router-link>
       </nav>
 
     </div>
