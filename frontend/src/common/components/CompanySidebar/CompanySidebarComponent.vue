@@ -7,7 +7,14 @@
         <router-link to="/company/dashboard" class="menu-item" active-class="active">
           Dashboard y Reportes
         </router-link>
-        
+
+        <router-link to="/company/calendario" class="menu-item" active-class="active">
+          Calendario de Envíos
+        </router-link>
+
+        <router-link to="/company/calificaciones" class="menu-item" active-class="active">
+          Calificaciones
+        </router-link>
         <router-link to="/company/rutas" class="menu-item" active-class="active">
           Gestión de Flota y Rutas
         </router-link>

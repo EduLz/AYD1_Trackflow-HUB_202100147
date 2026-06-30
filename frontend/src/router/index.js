@@ -46,6 +46,9 @@ import OperadorQuejasReclamosView from '../views/operator/Reportes/OperadorQueja
 import EmpresaRutasView   from '../views/company/Rutas/EmpresaRutas.vue';
 import EmpresaCuponesView from '../views/company/Cupones/EmpresaCupones.vue';
 import EmpresaPerfilView  from '../views/company/Perfil/EmpresaPerfil.vue';
+// ---> NUEVAS VISTAS AGREGADAS PARA LA EMPRESA <---
+import CompanyCalendarioView from '../views/company/CompanyCalendarioView.vue';
+import CompanyCalificacionesView from '../views/company/CompanyCalificacionesView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -92,6 +95,9 @@ const router = createRouter({
     { path: '/company/rutas',     name: 'company-rutas',     component: EmpresaRutasView,   meta: { role: 'EMPRESA' } },
     { path: '/company/cupones',   name: 'company-cupones',   component: EmpresaCuponesView, meta: { role: 'EMPRESA' } },
     { path: '/company/perfil',    name: 'company-perfil',    component: EmpresaPerfilView,  meta: { role: 'EMPRESA' } },
+    // ---> NUEVAS RUTAS AGREGADAS PARA LA EMPRESA <---
+    { path: '/company/calendario', name: 'company-calendario', component: CompanyCalendarioView, meta: { role: 'EMPRESA' } },
+    { path: '/company/calificaciones', name: 'company-calificaciones', component: CompanyCalificacionesView, meta: { role: 'EMPRESA' } },
     
     // --- Modulo Cliente ---
     { path: '/client/dashboard',  name: 'client-dashboard',  component: ClientDashboard,  meta: { role: 'CLIENTE' } },
