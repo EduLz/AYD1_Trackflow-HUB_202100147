@@ -358,9 +358,11 @@ export default {
 .data-table th { background-color: #f8fafc; color: #475569; font-weight: 600; font-size: 0.875rem; }
 .font-bold-code { font-weight: bold; letter-spacing: 1px; color: #1e293b; font-family: monospace; font-size: 1rem; }
 .status-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
-.status-badge.aprobado { background-color: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
+
+/* CLASES CORREGIDAS PARA QUE COINCIDAN CON LOS ESTADOS */
+.status-badge.aprobada { background-color: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
 .status-badge.pendiente { background-color: #fef08a; color: #c2410c; border: 1px solid #fde047; }
-.status-badge.rechazado { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+.status-badge.rechazada { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
 
 .fade-in { animation: fadeIn 0.3s ease-in-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
