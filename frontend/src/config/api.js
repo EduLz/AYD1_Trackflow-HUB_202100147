@@ -26,6 +26,8 @@ export const API = {
     getUsers: `${BASE_URL}/api/admin/users`,
     editUser: (id) => `${BASE_URL}/api/admin/users/edit/${id}`,
     vetoUser: `${BASE_URL}/api/admin/users/veto`,
+    // Visualizacion
+    getOperatorsServices: `${BASE_URL}/api/admin/operators-services`,
   },
   reuniones: {
     crear: `${BASE_URL}/api/reuniones`,
