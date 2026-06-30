@@ -11,7 +11,7 @@
         </div>
         <div class="header-actions">
           <button class="btn-primary" @click="descargarPDF">
-           Descargar PDF
+            Descargar PDF
           </button>
         </div>
       </div>
@@ -26,7 +26,8 @@
 </template>
 
 <script>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import { useAuthStore } from '../../../stores/auth';
 import UpperbarComponent from '../../../common/components/Upperbar/UpperbarComponent.vue';
 import AdminSidebarComponent from '../../../common/components/AdminSidebar/AdminSidebarComponent.vue';
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale } from 'chart.js';
@@ -37,20 +38,21 @@ ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
 export default {
   name: 'AdminReporteZonasView',
-  components: { 
-    UpperbarComponent, 
+  components: {
+    UpperbarComponent,
     AdminSidebarComponent,
     Bar
   },
   setup() {
-    // Mock data para las zonas con mayor volumen de envíos
+    const authStore = useAuthStore();
+
     const chartData = ref({
-      labels: ['Zona 1', 'Zona 10', 'Antigua Guatemala', 'Quetzaltenango', 'Escuintla', 'Zona 15'],
+      labels: [],
       datasets: [
         {
           label: 'Volumen de Envíos',
-          backgroundColor: '#3b82f6', // Azul principal
-          data: [350, 420, 215, 180, 150, 110]
+          backgroundColor: '#3b82f6',
+          data: []
         }
       ]
     });
@@ -60,7 +62,7 @@ export default {
       maintainAspectRatio: false,
       plugins: {
         legend: {
-          display: false, // Ocultamos la leyenda si es una sola barra
+          display: false
         },
         title: {
           display: true,
@@ -79,21 +81,48 @@ export default {
       }
     });
 
+    onMounted(async () => {
+      try {
+        const res = await fetch('http://localhost:3000/api/admin/reportes-generales', {
+          headers: {
+            Authorization: `Bearer ${authStore.token}`
+          }
+        });
+
+        const { estadisticas } = await res.json();
+        const datos = estadisticas.zonas_mayor_volumen || [];
+
+        chartData.value = {
+          labels: datos.map(d => d.zona),
+          datasets: [
+            {
+              label: 'Volumen de Envíos',
+              backgroundColor: '#3b82f6',
+              data: datos.map(d => Number(d.total_envios))
+            }
+          ]
+        };
+      } catch (error) {
+        console.error(error);
+      }
+    });
+
     const descargarPDF = () => {
       const canvas = document.querySelector('.chart-wrapper canvas');
+
       if (canvas) {
         const imgData = canvas.toDataURL('image/png');
         const doc = new jsPDF('landscape');
-        
+
         doc.setFontSize(18);
         doc.text('Reporte: Zonas con Mayor Volumen de Envíos', 14, 22);
-        
+
         doc.setFontSize(10);
         doc.setTextColor(100);
         doc.text(`Generado el: ${new Date().toLocaleString()}`, 14, 30);
-        
+
         doc.addImage(imgData, 'PNG', 14, 40, 250, 120);
-        
+
         doc.save('Reporte_Grafica_Zonas.pdf');
       }
     };
