@@ -56,12 +56,15 @@
                 </div>
               </div>
 
-              <div class="envio-acciones" v-if="res.estado === 'PENDIENTE' || res.estado === 'EN_TRANSITO'">
+              <div class="envio-acciones">
                 <button v-if="res.estado === 'PENDIENTE'" class="btn-primary btn-sm" @click="iniciarReserva(res.id_reservacion)">
                   Iniciar Envío
                 </button>
                 <button v-if="res.estado === 'EN_TRANSITO'" class="btn-success btn-sm" @click="finalizarReserva(res.id_reservacion)">
                   Finalizar Envío
+                </button>
+                <button class="btn-danger btn-sm" @click="abrirModalReporte(res)">
+                  Reportar
                 </button>
               </div>
 
@@ -71,6 +74,56 @@
       </div>
 
     </main>
+
+    <!-- Modal Reportar Cliente -->
+    <div v-if="modalReporte" class="modal-overlay" @click.self="cerrarModalReporte">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Reportar Cliente</h2>
+          <button class="btn-close" @click="cerrarModalReporte">&times;</button>
+        </div>
+        <form class="report-form" @submit.prevent="enviarReporte">
+          <p class="modal-subtitle">Reportando servicio: <strong>#{{ reservaSeleccionada.id_reservacion.toString().padStart(4, '0') }} - {{ reservaSeleccionada.nombre_servicio }}</strong></p>
+
+          <div class="form-group">
+            <label>Tipo de Infracción *</label>
+            <select v-model="formulario.motivo" required>
+              <option value="" disabled>Selecciona el motivo...</option>
+              <option value="Daño intencional a paquetes">Daño intencional a paquetes</option>
+              <option value="Información falsa de destino">Información falsa de destino</option>
+              <option value="Comportamiento inadecuado">Comportamiento inadecuado</option>
+              <option value="Falta de pago o fraude">Falta de pago o fraude</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Descripción Detallada *</label>
+            <textarea 
+              v-model="formulario.descripcion" 
+              rows="4" 
+              placeholder="Explica qué sucedió..." 
+              required
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Evidencias (Fotografías o Video)</label>
+            <div class="file-upload-wrapper">
+              <input type="file" multiple accept="image/*,video/*" @change="manejarEvidencias" />
+            </div>
+            <small class="hint">Selecciona varios archivos manteniendo presionada la tecla Ctrl.</small>
+          </div>
+
+          <div class="form-actions-modal">
+            <button type="button" class="btn-secondary" @click="cerrarModalReporte">Cancelar</button>
+            <button type="submit" class="btn-danger" :disabled="enviandoReporte">
+              {{ enviandoReporte ? 'Enviando...' : 'Generar Reporte' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <!-- Nota de mock -->
     <div class="mock-aviso">
@@ -144,6 +197,62 @@ export default {
       }
     };
 
+    // Lógica del Reporte
+    const modalReporte = ref(false);
+    const enviandoReporte = ref(false);
+    const reservaSeleccionada = ref(null);
+    const formulario = reactive({
+      motivo: '',
+      descripcion: '',
+      archivos: []
+    });
+
+    const abrirModalReporte = (reserva) => {
+      reservaSeleccionada.value = reserva;
+      formulario.motivo = '';
+      formulario.descripcion = '';
+      formulario.archivos = [];
+      modalReporte.value = true;
+    };
+
+    const cerrarModalReporte = () => {
+      modalReporte.value = false;
+      reservaSeleccionada.value = null;
+    };
+
+    const manejarEvidencias = (e) => {
+      formulario.archivos = Array.from(e.target.files);
+    };
+
+    const enviarReporte = async () => {
+      enviandoReporte.value = true;
+      try {
+        const formData = new FormData();
+        formData.append('id_reservacion', reservaSeleccionada.value.id_reservacion);
+        formData.append('motivo', formulario.motivo);
+        formData.append('descripcion', formulario.descripcion);
+        formulario.archivos.forEach(file => formData.append('evidencias', file));
+
+        const res = await fetch(API.operador.reportarCliente, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${authStore.token}` }, // fetch pone multipart automaticamente
+          body: formData
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || 'Error al generar el reporte');
+        }
+
+        mostrarToast('Reporte generado exitosamente.', 'exito');
+        cerrarModalReporte();
+      } catch (error) {
+        mostrarToast(error.message, 'error');
+      } finally {
+        enviandoReporte.value = false;
+      }
+    };
+
     const iniciarReserva = async (id) => {
       try {
         const res = await fetch(API.operador.iniciarReservaOperador(id), {
@@ -204,7 +313,8 @@ export default {
 
     return {
       cargando, mesFiltro, servicioFiltro, serviciosDisponibles, diasAgrupados, toast,
-      formatearDia, cargar, iniciarReserva, finalizarReserva
+      formatearDia, cargar, iniciarReserva, finalizarReserva,
+      modalReporte, abrirModalReporte, cerrarModalReporte, reservaSeleccionada, formulario, manejarEvidencias, enviarReporte, enviandoReporte
     };
   }
 };
@@ -389,4 +499,25 @@ export default {
     from { transform: translateY(12px); opacity: 0; } 
     to   { transform: translateY(0); opacity: 1; } 
 }
+
+/* Modal Estilos */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; animation: fadeIn 0.2s; }
+.modal-content { background: #fff; width: 500px; max-width: 90%; border-radius: 8px; padding: 2rem; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+.modal-header h2 { font-size: 1.25rem; margin: 0; color: #1e293b; }
+.btn-close { background: none; border: none; font-size: 1.5rem; color: #64748b; cursor: pointer; }
+.btn-close:hover { color: #dc2626; }
+.modal-subtitle { margin-bottom: 1.5rem; font-size: 0.95rem; color: #475569; background: #f8fafc; padding: 0.8rem; border-radius: 6px; }
+
+.report-form { display: flex; flex-direction: column; gap: 1.25rem; }
+.form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.form-group label { font-weight: 600; font-size: 0.9rem; color: #334155; }
+.form-group select, .form-group textarea, .form-group input[type="file"] { padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem; font-family: inherit; }
+.form-group select:focus, .form-group textarea:focus { outline: none; border-color: #3b82f6; }
+.hint { font-size: 0.8rem; color: #94a3b8; }
+.form-actions-modal { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem; }
+.btn-danger { background-color: #ef4444; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+.btn-danger:hover:not(:disabled) { background-color: #dc2626; }
+.btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
