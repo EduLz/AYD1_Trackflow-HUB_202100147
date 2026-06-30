@@ -7,7 +7,7 @@ const { registerOperador, updateServiceStatus, createService, getMyServices, upd
         createCoupon, getMyCoupons, assignCouponToClient, requestProfileChange,
         getMyProfile, getMyProfileRequests,
         getMyCalificaciones, responderCalificacion, getCalendarioEnvios, getReportes, getReservaciones, 
-        startReservation, finishReservation } = require("../controllers/operator.controller");
+        startReservation, finishReservation, reportClient, getIncomingComplaints } = require("../controllers/operator.controller");
 const {verifyToken, requireRole} = require("../middlewares/auth.middleware");
 
 router.post("/register", upload.single("fotografia"), registerOperador);
@@ -29,5 +29,7 @@ router.get("/profile-change-requests", verifyToken, requireRole(3), getMyProfile
 router.get("/reservaciones", verifyToken, requireRole(3), getReservaciones);
 router.patch("/reservaciones/:id/iniciar", verifyToken, requireRole(3), startReservation);
 router.patch("/reservaciones/:id/finalizar", verifyToken, requireRole(3), finishReservation);
+router.post("/report-client", verifyToken, requireRole(3), upload.array("evidencias", 5), reportClient);
+router.get("/quejas", verifyToken, requireRole(3), getIncomingComplaints);
 
 module.exports = router;

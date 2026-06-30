@@ -6,6 +6,7 @@ const solicitudService = require("../services/request.services");
 const emailService = require("../services/email.services");
 const { encryptPassword } = require("../utils/password");
 const requestService = require("../services/request.services");
+const { connectDB } = require("../config/database");
 
 
 const registerOperador = async (req, res) => {
@@ -647,6 +648,75 @@ const finishReservation = async (req, res) => {
     }
 };
 
+const reportClient = async (req, res) => {
+    try {
+        const { id_reservacion, motivo, descripcion } = req.body;
+
+        if (!id_reservacion || !motivo || !descripcion) {
+            return res.status(400).json({ message: "La reservación, motivo y descripción son obligatorios" });
+        }
+
+        const pool = await connectDB();
+        
+        const resQuery = await pool.request()
+            .input("id_res", id_reservacion)
+            .query(`
+                SELECT r.id_cliente, cl.id_usuario AS id_usuario_cliente
+                FROM Reservacion r
+                INNER JOIN Cliente cl ON cl.id_cliente = r.id_cliente
+                WHERE r.id_reservacion = @id_res
+            `);
+
+        if (resQuery.recordset.length === 0) {
+            return res.status(404).json({ message: "Reservación no encontrada" });
+        }
+
+        const id_reportado = resQuery.recordset[0].id_usuario_cliente;
+
+        const reporte = await operadorService.createClientReport({
+            id_reportante: req.user.id_usuario, 
+            id_reportado,
+            id_reservacion,
+            motivo,
+            descripcion
+        });
+
+        if (req.files && req.files.length > 0) {
+            for (const file of req.files) {
+                const tipo = file.mimetype.startsWith('video/') ? 'VIDEO' : 'FOTO';
+                await operadorService.createReportEvidence(
+                    reporte.id_reporte,
+                    `/uploads/${file.filename}`,
+                    tipo
+                );
+            }
+        }
+
+        return res.status(201).json({
+            message: "Reporte contra el cliente creado exitosamente y enviado a revisión.",
+            id_reporte: reporte.id_reporte
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+const getIncomingComplaints = async (req, res) => {
+    try {
+        const operador = await operadorService.getOperatorByUserId(req.user.id_usuario);
+        if (!operador) {
+            return res.status(404).json({ message: "Operador no encontrado" });
+        }
+        const quejas = await operadorService.getClientComplaintsByOperator(operador.id_operador);
+        return res.status(200).json({ quejas });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+
 module.exports = {
     registerOperador,
     createService,
@@ -666,5 +736,7 @@ module.exports = {
     getMyProfileRequests,
     getReservaciones,
     startReservation,
-    finishReservation
+    finishReservation,
+    reportClient,
+    getIncomingComplaints
 };
