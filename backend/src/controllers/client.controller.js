@@ -414,7 +414,13 @@ const rateShippingService = async (req, res) => {
                 comentario
 
             });
-        await clienteService.updateServiceRating(reservacion.id_servicio_env);
+        if (reservacion.tipo_servicio === "ENVIO") {
+    await clienteService.updateServiceRating(reservacion.id_servicio_env);
+}
+
+if (reservacion.tipo_servicio === "TRANSPORTE") {
+    await clienteService.updateRouteRating(reservacion.id_ruta);
+}
         return res.status(201).json({
             message: "Calificación registrada correctamente",
             rating
