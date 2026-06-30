@@ -716,6 +716,14 @@ const getIncomingComplaints = async (req, res) => {
     }
 };
 
+const getMySubmittedReports = async (req, res) => {
+    try {
+        const reportes = await operadorService.getReportsMadeToClients(req.user.id_usuario);
+        return res.status(200).json({ reportes_enviados: reportes });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
 
 module.exports = {
     registerOperador,
@@ -738,5 +746,6 @@ module.exports = {
     startReservation,
     finishReservation,
     reportClient,
-    getIncomingComplaints
+    getIncomingComplaints,
+    getMySubmittedReports
 };

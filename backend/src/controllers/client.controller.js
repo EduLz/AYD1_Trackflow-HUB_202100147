@@ -655,6 +655,20 @@ const searchTransportServices = async (req, res) => {
     }
 };
 
+const getMyReceivedReports = async (req, res) => {
+    try {
+        const reportesRecibidos = await clienteService.getReportsReceivedAsClient(req.user.id_usuario);
+        
+        return res.status(200).json({ 
+            message: "Reportes en tu contra realizados por operadores logísticos",
+            reportes_recibidos: reportesRecibidos 
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     registerCliente,
     getShippingServices,
@@ -671,5 +685,6 @@ module.exports = {
     getCart,
     addToCart,
     removeFromCart,
-    searchTransportServices
+    searchTransportServices,
+    getMyReceivedReports
 };

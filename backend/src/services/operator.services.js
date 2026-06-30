@@ -688,6 +688,33 @@ const getClientComplaintsByOperator = async (id_operador) => {
     return result.recordset;
 };
 
+const getReportsMadeToClients = async (id_usuario_operador) => {
+    const pool = await connectDB();
+    const result = await pool.request()
+        .input("id_reportante", id_usuario_operador)
+        .query(`
+            SELECT 
+                r.id_reporte,
+                er.nombre AS estado_reporte,
+                r.motivo,
+                r.descripcion,
+                r.fecha_reporte,
+                r.id_reservacion,
+                s.nombre AS nombre_servicio,
+                cl.nombre AS cliente_nombre,
+                cl.apellido AS cliente_apellido
+            FROM Reporte r
+            INNER JOIN EstadoReporte er ON er.id_estado = r.id_estado
+            LEFT JOIN Reservacion res    ON res.id_reservacion = r.id_reservacion
+            LEFT JOIN ServicioEnvio s    ON s.id_servicio = res.id_servicio_env
+            LEFT JOIN Usuario u_cl       ON u_cl.id_usuario = r.id_reportado
+            LEFT JOIN Cliente cl         ON cl.id_usuario = u_cl.id_usuario
+            WHERE r.id_reportante = @id_reportante AND r.tipo_reporte = 'CLIENTE'
+            ORDER BY r.fecha_reporte DESC
+        `);
+    return result.recordset;
+};
+
 module.exports = {
     createOperator,
     getOperatorByUserId,
@@ -716,5 +743,6 @@ module.exports = {
     updateReservationStatus,
     createClientReport,
     createReportEvidence,
-    getClientComplaintsByOperator
+    getClientComplaintsByOperator,
+    getReportsMadeToClients
 };

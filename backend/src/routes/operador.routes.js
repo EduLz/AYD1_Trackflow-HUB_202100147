@@ -5,9 +5,9 @@ const router = express.Router();
 const upload = require("../middlewares/upload.middleware");
 const { registerOperador, updateServiceStatus, createService, getMyServices, updateService, deleteService,
         createCoupon, getMyCoupons, assignCouponToClient, requestProfileChange,
-        getMyProfile, getMyProfileRequests,
+        getMyProfile, getMyProfileRequests, 
         getMyCalificaciones, responderCalificacion, getCalendarioEnvios, getReportes, getReservaciones, 
-        startReservation, finishReservation, reportClient, getIncomingComplaints } = require("../controllers/operator.controller");
+        startReservation, finishReservation, reportClient, getIncomingComplaints, getMySubmittedReports } = require("../controllers/operator.controller");
 const {verifyToken, requireRole} = require("../middlewares/auth.middleware");
 
 router.post("/register", upload.single("fotografia"), registerOperador);
@@ -31,5 +31,6 @@ router.patch("/reservaciones/:id/iniciar", verifyToken, requireRole(3), startRes
 router.patch("/reservaciones/:id/finalizar", verifyToken, requireRole(3), finishReservation);
 router.post("/report-client", verifyToken, requireRole(3), upload.array("evidencias", 5), reportClient);
 router.get("/quejas", verifyToken, requireRole(3), getIncomingComplaints);
+router.get("/submitted-reports", verifyToken, requireRole(3), getMySubmittedReports);
 
 module.exports = router;
