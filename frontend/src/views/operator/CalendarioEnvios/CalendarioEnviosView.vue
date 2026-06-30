@@ -128,11 +128,6 @@
       </div>
     </div>
 
-    <!-- Nota de mock -->
-    <div class="mock-aviso">
-      Datos de muestra. Endpoint pendiente: GET /api/operadores/reservaciones
-    </div>
-
     <!-- Toast -->
     <div v-if="toast.visible" class="op-toast" :class="toast.tipo === 'exito' ? 'toast-exito' : 'toast-error'">
       {{ toast.mensaje }}
