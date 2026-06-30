@@ -91,9 +91,9 @@
 
 <script>
 import { ref, reactive, computed, onMounted } from 'vue';
-import { useAuthStore } from '../../../stores/auth';
-import UpperbarComponent from '../../../common/components/Upperbar/UpperbarComponent.vue';
-import CompanySidebarComponent from '../../../common/components/CompanySidebar/CompanySidebarComponent.vue';
+import { useAuthStore } from '../../stores/auth';
+import UpperbarComponent from '../../../src/common/components/Upperbar/UpperbarComponent.vue';
+import CompanySidebarComponent from '../../../src/common/components/CompanySidebar/CompanySidebarComponent.vue';
 
 export default {
   name: 'CompanyCalendarioView',
