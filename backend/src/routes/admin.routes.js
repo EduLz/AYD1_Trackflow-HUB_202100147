@@ -4,7 +4,9 @@ const router = express.Router();
 
 const {getSolicitudes, approveSolicitud, rejectSolicitud, registerAdmin, verifyAdminOTP, 
        getPendingProfileRequests, resolveProfileRequest,
-       getPendingCompanyProfileRequests, resolveCompanyProfileRequest, listarReportes, cambiarEstadoReporte, getReportesGenerales} = require("../controllers/admin.controller");
+       getPendingCompanyProfileRequests, resolveCompanyProfileRequest, listarReportes, cambiarEstadoReporte,
+       getReportesGenerales, getUsers, editUser, vetoUser, getOperatorsServicesForAdmin
+} = require("../controllers/admin.controller");
 const {verifyToken, requireRole } = require("../middlewares/auth.middleware");
 
 router.get("/solicitudes",verifyToken, requireRole(1), getSolicitudes);
@@ -19,5 +21,10 @@ router.get("/company-profile-change-requests", verifyToken, requireRole(1), getP
 router.patch("/company-profile-change-requests/:id", verifyToken, requireRole(1), resolveCompanyProfileRequest);
 router.get("/reportes", verifyToken, requireRole(1), listarReportes);
 router.patch("/reportes/:id", verifyToken, requireRole(1), cambiarEstadoReporte);
+
+router.get("/users", verifyToken, requireRole(1), getUsers);
+router.put("/users/edit/:id", verifyToken, requireRole(1), editUser);
+router.post("/users/veto", verifyToken, requireRole(1), vetoUser);
+router.get("/operators-services", verifyToken, requireRole(1), getOperatorsServicesForAdmin);
 
 module.exports = router;

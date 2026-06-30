@@ -18,6 +18,19 @@ import SolicitudesRegistroView from '../views/admin/SolicitudesRegistro/Solicitu
 import ReunionesVirtualesView  from '../views/admin/ReunionesVirtuales/ReunionesVirtualesView.vue';
 import AdminSolicitudesPerfilView from '../views/admin/SolicitudesCambioPerfil/AdminSolicitudesPerfilView.vue';
 import AdminGestionReportesView from '../views/admin/GestionReportes/AdminGestionReportesView.vue';
+import AdminGestionUsuariosView from '../views/admin/GestionUsuarios/AdminGestionUsuariosView.vue';
+import AdminVisualizacionInfoView from '../views/admin/Visualizacion/AdminVisualizacionInfoView.vue';
+import AdminReporteLogsView from '../views/admin/ReportesStats/AdminReporteLogsView.vue';
+import AdminReporteUsuariosView from '../views/admin/ReportesStats/AdminReporteUsuariosView.vue';
+import AdminReporteZonasView from '../views/admin/ReportesStats/AdminReporteZonasView.vue';
+import AdminReporteServiciosView from '../views/admin/ReportesStats/AdminReporteServiciosView.vue';
+import AdminReporteIngresosView from '../views/admin/ReportesStats/AdminReporteIngresosView.vue';
+import AdminReporteEstadoReportesView from '../views/admin/ReportesStats/AdminReporteEstadoReportesView.vue';
+import AdminReporteUsuariosGastoView from '../views/admin/ReportesStats/AdminReporteUsuariosGastoView.vue';
+import AdminReporteHistorialEnviosView from '../views/admin/ReportesStats/AdminReporteHistorialEnviosView.vue';
+import AdminReporteServiciosTransporteView from '../views/admin/ReportesStats/AdminReporteServiciosTransporteView.vue';
+import AdminReporteDestinosView from '../views/admin/ReportesStats/AdminReporteDestinosView.vue';
+import AdminReporteUsoClientesView from '../views/admin/ReportesStats/AdminReporteUsoClientesView.vue';
 
 // Modulo Operador (v2.0.0)
 import MisServiciosView       from '../views/operator/MisServicios/MisServiciosView.vue';
@@ -49,6 +62,19 @@ const router = createRouter({
     { path: '/admin/reuniones',           name: 'admin-reuniones',           component: ReunionesVirtualesView,  meta: { role: 'ADMIN' } },
     { path: '/admin/cambio-perfil',       name: 'admin-cambio-perfil',       component: AdminSolicitudesPerfilView, meta: { role: 'ADMIN' } },
     { path: '/admin/reportes',            name: 'admin-reportes',            component: AdminGestionReportesView, meta: { role: 'ADMIN' } },
+    { path: '/admin/usuarios',            name: 'admin-usuarios',            component: AdminGestionUsuariosView, meta: { role: 'ADMIN' } },
+    { path: '/admin/visualizacion',       name: 'admin-visualizacion',       component: AdminVisualizacionInfoView, meta: { role: 'ADMIN' } },
+    { path: '/admin/reportes-estadisticas/logs', name: 'admin-reporte-logs', component: AdminReporteLogsView, meta: { role: 'ADMIN' } },
+    { path: '/admin/reportes-estadisticas/usuarios', name: 'admin-reporte-usuarios', component: AdminReporteUsuariosView, meta: { role: 'ADMIN' } },
+    { path: '/admin/reportes-estadisticas/zonas', name: 'admin-reporte-zonas', component: AdminReporteZonasView, meta: { role: 'ADMIN' } },
+    { path: '/admin/reportes-estadisticas/servicios', name: 'admin-reporte-servicios', component: AdminReporteServiciosView, meta: { role: 'ADMIN' } },
+    { path: '/admin/reportes-estadisticas/ingresos', name: 'admin-reporte-ingresos', component: AdminReporteIngresosView, meta: { role: 'ADMIN' } },
+    { path: '/admin/reportes-estadisticas/estado-reportes', name: 'admin-reporte-estados', component: AdminReporteEstadoReportesView, meta: { role: 'ADMIN' } },
+    { path: '/admin/reportes-estadisticas/usuarios-gasto', name: 'admin-reporte-gasto', component: AdminReporteUsuariosGastoView, meta: { role: 'ADMIN' } },
+    { path: '/admin/reportes-estadisticas/historial-envios', name: 'admin-reporte-envios', component: AdminReporteHistorialEnviosView, meta: { role: 'ADMIN' } },
+    { path: '/admin/reportes-estadisticas/servicios-transporte', name: 'admin-reporte-servicios-transporte', component: AdminReporteServiciosTransporteView, meta: { role: 'ADMIN' } },
+    { path: '/admin/reportes-estadisticas/destinos', name: 'admin-reporte-destinos', component: AdminReporteDestinosView, meta: { role: 'ADMIN' } },
+    { path: '/admin/reportes-estadisticas/uso-clientes', name: 'admin-reporte-uso', component: AdminReporteUsoClientesView, meta: { role: 'ADMIN' } },
 
     // --- Modulo Operador (v2.0.0) ---
     { path: '/operator/dashboard',           name: 'operator-dashboard',          component: OperatorDashboard,       meta: { role: 'OPERADOR' } },

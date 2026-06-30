@@ -18,26 +18,45 @@
       <form @submit.prevent="enviarReporte" class="form-grid">
         
         <div class="form-group full-width">
-          <label>Servicio Afectado</label>
-          <select v-model="servicioSeleccionado" class="input-field" required @change="actualizarMotivos">
+          <label>Servicio Afectado (Solo Entregados)</label>
+          <select v-model="servicioSeleccionado" class="input-field" required>
             <option value="" disabled>Seleccione una reservación...</option>
-            <option value="ENVIO_1">ENV-11023 | Paquete Express Plus (Envío)</option>
-            <option value="TRANSPORTE_1">TRK-55102 | Flete Directo Occidente (Transporte)</option>
+            <option v-if="cargandoReservaciones" value="" disabled>Cargando servicios...</option>
+            <option v-else-if="reservacionesEntregadas.length === 0" value="" disabled>
+              No tiene servicios entregados para reportar.
+            </option>
+            <option v-for="reserva in reservacionesEntregadas" :key="reserva.id_reservacion" :value="reserva.id_reservacion">
+              Reserva #{{ reserva.id_reservacion }} | {{ reserva.servicio }}
+            </option>
           </select>
         </div>
 
         <div class="form-group">
           <label>Motivo del Reporte</label>
-          <select v-model="nuevoReporte.motivo" class="input-field" :disabled="!servicioSeleccionado" required>
-            <option value="" disabled>Seleccione el motivo principal...</option>
-            <option v-for="motivo in motivosDisponibles" :key="motivo" :value="motivo">{{ motivo }}</option>
-          </select>
+          <input 
+            type="text" 
+            v-model="nuevoReporte.motivo" 
+            class="input-field" 
+            placeholder="Ej: Paquete dañado" 
+            required 
+          />
         </div>
 
         <div class="form-group">
           <label>Adjuntar Evidencias (Fotos, Recibos)</label>
-          <input type="file" @change="subirEvidencia" class="input-field file-input" accept="image/*,.pdf" />
-          <span class="help-text" v-if="archivoAdjunto">{{ archivoAdjunto.name }} listo.</span>
+          <div class="file-upload-wrapper">
+            <label class="btn-upload">
+              + Agregar Imágenes
+              <input type="file" @change="agregarEvidencias" class="hidden-input" accept="image/*,.pdf" multiple />
+            </label>
+          </div>
+          
+          <div v-if="archivosAdjuntos.length > 0" class="file-list">
+            <div v-for="(archivo, index) in archivosAdjuntos" :key="index" class="file-item">
+              <span class="file-name">📄 {{ archivo.name }}</span>
+              <button type="button" class="btn-remove" @click="removerEvidencia(index)">✕</button>
+            </div>
+          </div>
         </div>
 
         <div class="form-group full-width">
@@ -46,17 +65,17 @@
         </div>
 
         <div class="form-actions full-width">
-          <button type="submit" class="btn-submit">Enviar Reporte</button>
+          <button type="submit" class="btn-submit" :disabled="enviandoReporte">
+            {{ enviandoReporte ? 'Enviando...' : 'Enviar Reporte' }}
+          </button>
         </div>
       </form>
     </div>
 
     <div v-if="pestanaActiva === 'historial'" class="reports-list">
-      
       <div v-if="cargandoHistorial" class="loading-state">
         Cargando historial de reportes...
       </div>
-      
       <div v-else-if="reportes.length === 0" class="empty-state">
         No ha generado ningún reporte.
       </div>
@@ -91,10 +110,8 @@
             <strong>Respuesta Administrativa ({{ formatearFecha(reporte.fecha_resolucion) }}):</strong>
             <p>{{ reporte.accion_tomada }}</p>
           </div>
-
         </div>
       </div>
-
     </div>
   </div>
 </template>
@@ -105,56 +122,107 @@ import { ref, onMounted } from 'vue';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const pestanaActiva = ref('nuevo');
-const archivoAdjunto = ref(null);
 const servicioSeleccionado = ref('');
-const motivosDisponibles = ref([]);
+const archivosAdjuntos = ref([]);
 const reportes = ref([]);
+const reservacionesEntregadas = ref([]);
+
 const cargandoHistorial = ref(false);
-
-const motivosEnvio = [
-  'Operador no realizó la recolección a tiempo',
-  'Cobro no acordado',
-  'Daño al paquete',
-  'Otro motivo'
-];
-
-const motivosTransporte = [
-  'Retrasos no justificados',
-  'Cobros extra',
-  'Cancelaciones sin aviso',
-  'Otro motivo'
-];
+const cargandoReservaciones = ref(false);
+const enviandoReporte = ref(false);
 
 const nuevoReporte = ref({
   motivo: '',
   descripcion: ''
 });
 
-// Cambia los motivos dinámicamente
-const actualizarMotivos = () => {
-  nuevoReporte.value.motivo = '';
-  if (servicioSeleccionado.value.includes('ENVIO')) {
-    motivosDisponibles.value = motivosEnvio;
-  } else if (servicioSeleccionado.value.includes('TRANSPORTE')) {
-    motivosDisponibles.value = motivosTransporte;
+// === LOGICA DE CREACION DE REPORTES ===
+
+// Obtener las reservaciones para filtrar las "ENTREGADO"
+const cargarReservaciones = async () => {
+  cargandoReservaciones.value = true;
+  try {
+    const token = localStorage.getItem('tf_jwt');
+    // NOTA: Mencionaste POST en tu mensaje ("el endpoint si mal no recuerdo es este POST"). 
+    // Usualmente listar datos es por GET. Si te da error de método, cámbialo a 'POST'.
+    const response = await fetch(`${API_URL}/api/clientes/reservaciones`, {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data.reservaciones) {
+        // Filtrar estrictamente las que ya se entregaron
+        reservacionesEntregadas.value = data.reservaciones.filter(r => r.estado === 'ENTREGADO');
+      }
+    }
+  } catch (error) {
+    console.error("Error al obtener reservaciones:", error);
+  } finally {
+    cargandoReservaciones.value = false;
   }
 };
 
-const subirEvidencia = (event) => {
-  archivoAdjunto.value = event.target.files[0];
+const agregarEvidencias = (event) => {
+  // Convertir FileList a Array y agregarlos a nuestro arreglo local
+  const files = Array.from(event.target.files);
+  archivosAdjuntos.value.push(...files);
+  // Limpiamos el valor del input para permitir subir el mismo archivo si fuese necesario
+  event.target.value = ''; 
 };
 
-const enviarReporte = () => {
-  // Aquí irá la lógica POST de tu nuevo reporte
-  alert("Reporte 'Enviado' exitosamente. Pasará a revisión del administrador.");
-  servicioSeleccionado.value = '';
-  nuevoReporte.value = { motivo: '', descripcion: '' };
-  archivoAdjunto.value = null;
-  // Cambiamos a historial y lo recargamos
-  cargarHistorial();
+const removerEvidencia = (index) => {
+  archivosAdjuntos.value.splice(index, 1);
 };
 
-// === NUEVA LÓGICA PARA EL GET /api/clientes/reportes ===
+const enviarReporte = async () => {
+  enviandoReporte.value = true;
+  try {
+    const token = localStorage.getItem('tf_jwt');
+    
+    // Al usar FormData, no requerimos enviar JSON, preparamos todo multipart/form-data
+    const formData = new FormData();
+    formData.append('id_reservacion', servicioSeleccionado.value);
+    formData.append('motivo', nuevoReporte.value.motivo);
+    formData.append('descripcion', nuevoReporte.value.descripcion);
+    
+    // Agregar múltiples imágenes con la misma llave 'evidencias' tal cual solicita tu Postman
+    archivosAdjuntos.value.forEach(file => {
+      formData.append('evidencias', file);
+    });
+
+    const response = await fetch(`${API_URL}/api/clientes/reportes`, {
+      method: 'POST',
+      headers: { 
+        'Authorization': `Bearer ${token}` 
+        // IMPORTANTE: NO se coloca 'Content-Type': 'multipart/form-data' de forma manual,
+        // FormData se encarga de generarlo y colocarle el boundary necesario.
+      },
+      body: formData
+    });
+
+    if (response.ok) {
+      alert("Reporte enviado exitosamente. Pasará a revisión del administrador.");
+      
+      // Limpiar Formulario
+      servicioSeleccionado.value = '';
+      nuevoReporte.value = { motivo: '', descripcion: '' };
+      archivosAdjuntos.value = [];
+      
+      // Mover a historial
+      cargarHistorial();
+    } else {
+      alert("Ocurrió un error al enviar el reporte. Por favor verifique sus datos.");
+    }
+  } catch (error) {
+    console.error("Error al intentar enviar el reporte:", error);
+  } finally {
+    enviandoReporte.value = false;
+  }
+};
+
+// === LOGICA DEL HISTORIAL ===
 
 const cargarHistorial = async () => {
   pestanaActiva.value = 'historial';
@@ -194,7 +262,8 @@ const obtenerClaseEstado = (estado) => {
 };
 
 onMounted(() => {
-  // Opcional: Cargar historial por defecto si quisieras iniciar en esa pestaña
+  // Cargar las opciones del Select al montar el componente
+  cargarReservaciones();
 });
 </script>
 
@@ -215,13 +284,22 @@ onMounted(() => {
 .form-group label { font-size: 0.9rem; font-weight: 600; color: #475569; }
 .input-field { padding: 0.8rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem; }
 .input-field:disabled { background-color: #f1f5f9; cursor: not-allowed; }
-.textarea { resize: vertical; }
-.file-input { padding: 0.6rem; background-color: #f8fafc; }
-.help-text { font-size: 0.85rem; color: #10b981; font-weight: bold; }
+.textarea { resize: vertical; font-family: inherit; }
+
+/* Nuevos Estilos para subida de múltiples archivos */
+.hidden-input { display: none; }
+.btn-upload { display: inline-block; background-color: #f8fafc; border: 1px dashed #94a3b8; color: #475569; padding: 0.6rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: background 0.2s, border-color 0.2s; text-align: center;}
+.btn-upload:hover { background-color: #f1f5f9; border-color: #64748b; }
+.file-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+.file-item { display: flex; justify-content: space-between; align-items: center; background-color: #f1f5f9; padding: 0.4rem 0.8rem; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.85rem; }
+.file-name { color: #334155; font-weight: 500; }
+.btn-remove { background: #fee2e2; color: #dc2626; border: none; border-radius: 4px; padding: 0.2rem 0.5rem; cursor: pointer; font-weight: bold; transition: background 0.2s;}
+.btn-remove:hover { background: #fecaca; }
 
 .form-actions { display: flex; justify-content: flex-end; margin-top: 1rem; }
 .btn-submit { background-color: #ef4444; color: white; border: none; padding: 0.8rem 2rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
-.btn-submit:hover { background-color: #dc2626; }
+.btn-submit:hover:not(:disabled) { background-color: #dc2626; }
+.btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .reports-list { display: flex; flex-direction: column; gap: 1rem; max-width: 800px; }
 .report-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }

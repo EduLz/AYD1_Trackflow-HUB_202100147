@@ -154,10 +154,31 @@ const sendCompanyCouponEmail = async (
     });
 };
 
+const sendVetoEmail = async (correo, motivo) => {
+    await transporter.sendMail({
+        from: `"TrackFlowHub Admin" <${process.env.EMAIL_USER}>`,
+        to: correo,
+        subject: "AVISO IMPORTANTE: Cuenta Vetada - TrackFlow HUB",
+        html: `
+            <div style="font-family: Arial; padding: 20px; border: 2px solid #ff4d4d; border-radius: 8px;">
+                <h2 style="color: #d9534f;">Su cuenta ha sido Vetada</h2>
+                <p>Lamentamos informarle que su acceso a la plataforma TrackFlow-HUB ha sido revocado permanentemente por el administrador.</p>
+                <div style="background-color: #f2f2f2; padding: 15px; border-left: 5px solid #d9534f; margin: 15px 0;">
+                    <strong>Motivo del Veto:</strong>
+                    <p>${motivo}</p>
+                </div>
+                <p>Si considera que esto es un error, por favor póngase en contacto directo con soporte administrativo.</p>
+                <p><em>Nota: No se admiten apelaciones a través de la plataforma web.</em></p>
+            </div>
+        `
+    });
+};
+
 module.exports = {
     sendVerificationEmail,
     sendAdminOTPEmail,
     sendMeetingEmail,
     sendCouponEmail,
-    sendCompanyCouponEmail
+    sendCompanyCouponEmail,
+    sendVetoEmail
 };
