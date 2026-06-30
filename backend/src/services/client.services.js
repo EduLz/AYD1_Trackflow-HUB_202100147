@@ -245,26 +245,21 @@ const getPaymentMethods = async (id_cliente) => {
         .query(`
             SELECT
                 mp.id_metodo,
-                tmp.nombre AS tipo,
+                tmp.nombre AS tipo_metodo,
                 mp.activo,
-                mp.fecha_registro,
-
-                ts.nombre_titular,
-                ts.numero_ultimos4,
-                ts.fecha_vencimiento,
-                ts.saldo
-
+                t.nombre_titular,
+                t.numero_ultimos4,
+                w.alias,
+                COALESCE(w.saldo, t.saldo) AS saldo
             FROM MetodoPago mp
-
             INNER JOIN TipoMetodoPago tmp
                 ON tmp.id_tipo = mp.id_tipo
-
-            LEFT JOIN TarjetaSimulada ts
-                ON ts.id_metodo = mp.id_metodo
-
+            LEFT JOIN TarjetaSimulada t
+                ON t.id_metodo = mp.id_metodo
+            LEFT JOIN WalletSimulado w
+                ON w.id_metodo = mp.id_metodo
             WHERE mp.id_cliente = @id_cliente
-
-            ORDER BY mp.fecha_registro DESC
+            ORDER BY mp.fecha_registro DESC;
         `);
 
     return result.recordset;
@@ -360,15 +355,15 @@ const discountBalance = async (id_metodo, monto) => {
 };
 
 const createReservation = async (data) => {
-
     const pool = await connectDB();
 
     const result = await pool.request()
         .input("id_cliente", data.id_cliente)
         .input("id_estado", 1)
         .input("id_metodo_pago", data.id_metodo_pago)
-        .input("id_servicio_env", data.id_servicio_env)
-        .input("tipo_servicio", "ENVIO")
+        .input("id_servicio_env", data.id_servicio_env || null)
+        .input("id_ruta", data.id_ruta || null)
+        .input("tipo_servicio", data.tipo_servicio)
         .input("fecha_inicio", data.fecha_inicio)
         .input("precio_total", data.precio_total)
         .input("comision", data.comision)
@@ -380,21 +375,21 @@ const createReservation = async (data) => {
                 id_estado,
                 id_metodo_pago,
                 id_servicio_env,
+                id_ruta,
                 tipo_servicio,
                 fecha_inicio,
                 precio_total,
                 comision_plataforma,
                 monto_proveedor
             )
-
             OUTPUT INSERTED.*
-
             VALUES
             (
                 @id_cliente,
                 @id_estado,
                 @id_metodo_pago,
                 @id_servicio_env,
+                @id_ruta,
                 @tipo_servicio,
                 @fecha_inicio,
                 @precio_total,
@@ -402,28 +397,33 @@ const createReservation = async (data) => {
                 @proveedor
             )
         `);
+
     return result.recordset[0];
 };
 
 const discountBalanceTransaction = async (transaction, id_metodo, monto) => {
-
     await new sql.Request(transaction)
         .input("id_metodo", id_metodo)
         .input("monto", monto)
         .query(`
             UPDATE TarjetaSimulada
             SET saldo = saldo - @monto
-            WHERE id_metodo = @id_metodo
+            WHERE id_metodo = @id_metodo;
+
+            UPDATE WalletSimulado
+            SET saldo = saldo - @monto
+            WHERE id_metodo = @id_metodo;
         `);
 };
 
 const createReservationTransaction = async (transaction, data) => {
-
     const result = await new sql.Request(transaction)
         .input("id_cliente", data.id_cliente)
         .input("id_estado", 1)
         .input("id_metodo", data.id_metodo_pago)
-        .input("id_servicio", data.id_servicio_env)
+        .input("id_servicio", data.id_servicio_env || null)
+        .input("id_ruta", data.id_ruta || null)
+        .input("tipo_servicio", data.tipo_servicio)
         .input("fecha", data.fecha_inicio)
         .input("precio", data.precio_total)
         .input("comision", data.comision)
@@ -437,6 +437,7 @@ const createReservationTransaction = async (transaction, data) => {
                 id_estado,
                 id_metodo_pago,
                 id_servicio_env,
+                id_ruta,
                 id_cupon_aplicado,
                 tipo_servicio,
                 fecha_inicio,
@@ -445,17 +446,16 @@ const createReservationTransaction = async (transaction, data) => {
                 monto_proveedor,
                 descuento_aplicado
             )
-
             OUTPUT INSERTED.*
-
             VALUES
             (
                 @id_cliente,
                 @id_estado,
                 @id_metodo,
                 @id_servicio,
+                @id_ruta,
                 @id_cupon,
-                'ENVIO',
+                @tipo_servicio,
                 @fecha,
                 @precio,
                 @comision,
@@ -463,6 +463,7 @@ const createReservationTransaction = async (transaction, data) => {
                 @descuento
             )
         `);
+
     return result.recordset[0];
 };
 
@@ -816,44 +817,63 @@ const increaseCouponUsesTransaction = async (transaction, id_cupon) => {
 };
 
 const getReservationsByClient = async (id_cliente) => {
-
     const pool = await connectDB();
+
     const result = await pool.request()
         .input("id_cliente", id_cliente)
         .query(`
             SELECT
                 r.id_reservacion,
-                es.nombre AS estado,
+                er.nombre AS estado,
                 r.tipo_servicio,
                 r.fecha_inicio,
                 r.fecha_fin,
                 r.precio_total,
                 r.descuento_aplicado,
                 r.fecha_reservacion,
-                s.id_servicio,
-                s.nombre AS servicio,
-                s.zona_cobertura,
-                s.precio_envio,
-                op.id_operador,
-                op.nombre AS operador_nombre,
-                op.apellido AS operador_apellido,
+
+                r.id_servicio_env,
+                se.nombre AS servicio_envio,
+                se.zona_cobertura,
+                se.precio_envio,
+
+                r.id_ruta,
+                rt.origen,
+                rt.destino,
+                rt.tipo_servicio AS tipo_ruta,
+                rt.hora_inicio,
+                rt.tiempo_estimado_hrs,
+                rt.precio AS precio_transporte,
+
+                et.nombre_empresa,
+
                 c.codigo AS cupon,
                 cal.puntuacion,
                 cal.comentario
+
             FROM Reservacion r
-            INNER JOIN EstadoReservacion es
-                ON es.id_estado = r.id_estado
-            INNER JOIN ServicioEnvio s
-                ON s.id_servicio = r.id_servicio_env
-            INNER JOIN OperadorLogistico op
-                ON op.id_operador = s.id_operador
+            INNER JOIN EstadoReservacion er
+                ON er.id_estado = r.id_estado
+
+            LEFT JOIN ServicioEnvio se
+                ON se.id_servicio = r.id_servicio_env
+
+            LEFT JOIN Ruta rt
+                ON rt.id_ruta = r.id_ruta
+
+            LEFT JOIN EmpresaTransporte et
+                ON et.id_empresa = rt.id_empresa
+
             LEFT JOIN Cupon c
                 ON c.id_cupon = r.id_cupon_aplicado
+
             LEFT JOIN Calificacion cal
                 ON cal.id_reservacion = r.id_reservacion
+
             WHERE r.id_cliente = @id_cliente
             ORDER BY r.fecha_reservacion DESC
         `);
+
     return result.recordset;
 };
 
@@ -922,51 +942,194 @@ const clearCartTransaction = async (transaction, id_cliente) => {
         `);
 };
 
-const searchTransportServices = async ({ search, fecha }) => {
-
+const searchTransportServices = async ({
+    search,
+    fecha,
+    hora,
+    tiempo,
+    precio,
+    calificacion
+}) => {
     const pool = await connectDB();
-    console.log("Buscando rutas:", { search, fecha });
+    const request = pool.request();
 
-    const result = await pool.request()
-        .input("search", search || null)
-        .input("fecha", fecha || null)
-        .query(`
-            SELECT
-                r.id_ruta,
-                e.nombre_empresa,
-                r.origen,
-                r.destino,
-                r.tipo_servicio,
-                r.hora_inicio,
-                r.tiempo_estimado_hrs,
-                r.precio,
-                v.placa,
-                v.tipo AS tipo_vehiculo,
-                CAST(r.fecha_creacion AS DATE) AS fecha,
-                es.nombre AS estado
-            FROM Ruta r
-            INNER JOIN EmpresaTransporte e
-                ON r.id_empresa = e.id_empresa
-            INNER JOIN EstadoServicio es
-                ON r.id_estado = es.id_estado
-            LEFT JOIN RutaVehiculo rv
-                ON r.id_ruta = rv.id_ruta
-            LEFT JOIN Vehiculo v
-                ON rv.id_vehiculo = v.id_vehiculo
-            WHERE es.nombre = 'ACTIVO'
-              AND (
-                    @search IS NULL
-                    OR r.destino LIKE '%' + @search + '%'
-                    OR e.nombre_empresa LIKE '%' + @search + '%'
-                  )
-              AND (
-                    @fecha IS NULL
-                    OR CAST(r.fecha_creacion AS DATE) = @fecha
-                  )
-            ORDER BY r.fecha_creacion DESC
-        `);
+    request.input("search", sql.VarChar(200), search || null);
+    request.input("fecha", sql.Date, fecha || null);
+
+    let query = `
+        SELECT
+            r.id_ruta,
+            e.nombre_empresa,
+            r.origen,
+            r.destino,
+            r.tipo_servicio,
+            CONVERT(VARCHAR(8), r.hora_inicio, 108) AS hora_inicio,
+            r.tiempo_estimado_hrs,
+            r.precio,
+            r.calificacion_prom,
+            v.placa,
+            v.tipo AS tipo_vehiculo,
+            CONVERT(VARCHAR(10), r.fecha_creacion, 23) AS fecha,
+            es.nombre AS estado
+        FROM Ruta r
+        INNER JOIN EmpresaTransporte e ON r.id_empresa = e.id_empresa
+        INNER JOIN EstadoServicio es ON r.id_estado = es.id_estado
+        LEFT JOIN RutaVehiculo rv ON r.id_ruta = rv.id_ruta
+        LEFT JOIN Vehiculo v ON rv.id_vehiculo = v.id_vehiculo
+        WHERE es.nombre = 'ACTIVO'
+          AND (
+                @search IS NULL
+                OR r.origen LIKE '%' + @search + '%'
+                OR r.destino LIKE '%' + @search + '%'
+                OR e.nombre_empresa LIKE '%' + @search + '%'
+          )
+          AND (
+                @fecha IS NULL
+                OR CAST(r.fecha_creacion AS DATE) = @fecha
+          )
+    `;
+
+    if (hora === "MANANA") {
+        query += ` AND r.hora_inicio < '12:00:00'`;
+    }
+
+    if (hora === "TARDE") {
+        query += ` AND r.hora_inicio >= '12:00:00'`;
+    }
+
+    if (tiempo === "RAPIDO") {
+        query += ` AND r.tiempo_estimado_hrs < 2`;
+    }
+
+    if (tiempo === "LENTO") {
+        query += ` AND r.tiempo_estimado_hrs > 6`;
+    }
+
+    if (precio === "ASC") {
+        query += ` ORDER BY r.precio ASC`;
+    } else if (precio === "DESC") {
+        query += ` ORDER BY r.precio DESC`;
+    } else if (calificacion === "DESC") {
+        query += ` ORDER BY r.calificacion_prom DESC`;
+    } else if (calificacion === "ASC") {
+        query += ` ORDER BY r.calificacion_prom ASC`;
+    } else {
+        query += ` ORDER BY r.fecha_creacion DESC`;
+    }
+
+    const result = await request.query(query);
 
     return result.recordset;
+};
+
+const registerTransferPayment = async (req, res) => {
+    try {
+        const cliente = await clienteService.getClienteByUserId(req.user.id_usuario);
+
+        if (!cliente) {
+            return res.status(404).json({
+                message: "Cliente no encontrado"
+            });
+        }
+
+        await clienteService.createMetodoPago(cliente.id_cliente, 2);
+
+        return res.status(201).json({
+            message: "Método de pago registrado correctamente"
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+const registerWallet = async ({ id_cliente, saldo, alias }) => {
+    const pool = await connectDB();
+    const transaction = new sql.Transaction(pool);
+
+    try {
+        await transaction.begin();
+
+        // Crear el método de pago (suponiendo que 2 = WALLET)
+        const metodo = await new sql.Request(transaction)
+            .input("id_cliente", id_cliente)
+            .input("id_tipo", 2)
+            .query(`
+                INSERT INTO MetodoPago
+                (
+                    id_cliente,
+                    id_tipo,
+                    activo
+                )
+                OUTPUT INSERTED.id_metodo
+                VALUES
+                (
+                    @id_cliente,
+                    @id_tipo,
+                    1
+                )
+            `);
+
+        const idMetodo = metodo.recordset[0].id_metodo;
+
+        // Crear la wallet
+        const wallet = await new sql.Request(transaction)
+            .input("id_metodo", idMetodo)
+            .input("saldo", saldo || 0)
+            .input("alias", alias || null)
+            .query(`
+                INSERT INTO WalletSimulado
+                (
+                    id_metodo,
+                    saldo,
+                    alias
+                )
+                OUTPUT INSERTED.*
+                VALUES
+                (
+                    @id_metodo,
+                    @saldo,
+                    @alias
+                )
+            `);
+
+        await transaction.commit();
+
+        return wallet.recordset[0];
+
+    } catch (error) {
+
+        await transaction.rollback();
+        throw error;
+
+    }
+};
+
+const getPaymentMethodForCheckout = async (id_metodo) => {
+    const pool = await connectDB();
+
+    const result = await pool.request()
+        .input("id_metodo", id_metodo)
+        .query(`
+            SELECT
+                mp.id_metodo,
+                mp.id_cliente,
+                mp.activo,
+                tmp.nombre AS tipo_metodo,
+                COALESCE(ts.saldo, ws.saldo) AS saldo
+            FROM MetodoPago mp
+            INNER JOIN TipoMetodoPago tmp
+                ON tmp.id_tipo = mp.id_tipo
+            LEFT JOIN TarjetaSimulada ts
+                ON ts.id_metodo = mp.id_metodo
+            LEFT JOIN WalletSimulado ws
+                ON ws.id_metodo = mp.id_metodo
+            WHERE mp.id_metodo = @id_metodo
+        `);
+
+    return result.recordset[0];
 };
 
 module.exports = {
@@ -1007,5 +1170,7 @@ module.exports = {
     addItemToCart,
     removeItemFromCart,
     clearCartTransaction,
-    searchTransportServices
+    searchTransportServices,
+    registerWallet,
+    getPaymentMethodForCheckout
 };

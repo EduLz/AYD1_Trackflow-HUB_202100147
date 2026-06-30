@@ -108,8 +108,24 @@
           >
             <input type="radio" :value="tarjeta.id_metodo" v-model="metodoPago" />
             <div class="method-info">
-              <span class="method-name">{{ tarjeta.tipo === 'TARJETA' ? 'Tarjeta terminada en ' + tarjeta.numero_ultimos4 : tarjeta.tipo }}</span>
-              <span class="method-desc">Titular: {{ tarjeta.nombre_titular }} | Saldo: <strong>Q{{ tarjeta.saldo.toFixed(2) }}</strong></span>
+              <span class="method-name">
+  {{
+    tarjeta.tipo_metodo === 'TARJETA'
+      ? 'Tarjeta terminada en ' + tarjeta.numero_ultimos4
+      : 'TrackFlow Wallet'
+  }}
+</span>
+
+<span class="method-desc">
+  {{
+    tarjeta.tipo_metodo === 'WALLET'
+      ? `Alias: ${tarjeta.alias}`
+      : `Titular: ${tarjeta.nombre_titular}`
+  }}
+  |
+  Saldo:
+  <strong>Q{{ Number(tarjeta.saldo).toFixed(2) }}</strong>
+</span>
             </div>
           </label>
 

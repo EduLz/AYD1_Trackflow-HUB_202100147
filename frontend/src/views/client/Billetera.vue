@@ -19,6 +19,97 @@
       </div>
     </div>
 
+    
+    <div class="wallet-section" v-if="wallets.length > 0">
+
+  <div class="section-title-bar">
+  <h2>Mis TrackFlow Wallets</h2>
+
+  <button
+    class="btn-add-card"
+    @click="mostrarFormularioWallet = !mostrarFormularioWallet"
+  >
+    {{ mostrarFormularioWallet ? 'Cancelar' : '+ Crear Wallet' }}
+  </button>
+</div>
+
+<div v-if="mostrarFormularioWallet" class="add-card-form">
+  <h3>Crear TrackFlow Wallet</h3>
+
+  <form @submit.prevent="registrarWallet">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Alias de la Wallet</label>
+        <input
+          type="text"
+          v-model="nuevaWallet.alias"
+          class="input-field"
+          placeholder="Ej: Mi Wallet Principal"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label>Saldo Inicial</label>
+        <input
+          type="number"
+          v-model.number="nuevaWallet.saldo"
+          class="input-field"
+          min="0"
+          step="0.01"
+          placeholder="Ej: 500"
+          required
+        />
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-save" :disabled="procesando">
+        {{ procesando ? 'Creando...' : 'Crear Wallet' }}
+      </button>
+    </div>
+  </form>
+</div>
+
+  <div class="saved-cards-grid">
+    <div
+      v-for="wallet in wallets"
+      :key="wallet.id_metodo"
+      class="wallet-item"
+      :class="{ 'inactive-card': !wallet.activo }"
+    >
+      <div class="wallet-icon">👛</div>
+
+      <div class="card-number">
+        {{ wallet.alias || 'TrackFlow Wallet' }}
+      </div>
+
+      <div class="card-balance">
+        <span class="balance-label">Saldo Wallet:</span>
+        <span>Q{{ Number(wallet.saldo || 0).toFixed(2) }}</span>
+      </div>
+
+      <div class="card-actions">
+        <span
+          v-if="!wallet.activo"
+          class="badge-inactive"
+        >
+          Inactiva
+        </span>
+
+        <button
+          v-if="wallet.activo"
+          class="btn-deactivate"
+          @click="desactivarTarjeta(wallet.id_metodo)"
+        >
+          Desactivar
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
     <div class="cards-section">
       <div class="section-title-bar">
         <h2>Mis Tarjetas Vinculadas</h2>
@@ -95,8 +186,7 @@ const mostrarFormulario = ref(false);
 const errorLuhn = ref(false);
 const cargando = ref(true);
 const procesando = ref(false);
-const tarjetas = ref([]);
-
+const metodosPago = ref([]);
 const nuevaTarjeta = ref({
   numero_tarjeta: '',
   nombre_titular: '',
@@ -114,7 +204,7 @@ const cargarTarjetas = async () => {
     });
     if (response.ok) {
       const data = await response.json();
-      tarjetas.value = data.tarjetas || data;
+      metodosPago.value = data.tarjetas || data;
     }
   } catch (error) {
     console.error("Error obteniendo tarjetas:", error);
@@ -127,12 +217,6 @@ onMounted(() => {
   cargarTarjetas();
 });
 
-// Propiedad computada para sumar el saldo total de las tarjetas activas
-const saldoDisponible = computed(() => {
-  return tarjetas.value
-    .filter(tarjeta => tarjeta.activo)
-    .reduce((total, tarjeta) => total + (Number(tarjeta.saldo) || 0), 0);
-});
 
 // Validación Algoritmo Luhn manual
 const validarAlgoritmoLuhn = (numeroStr) => {
@@ -207,6 +291,65 @@ const desactivarTarjeta = async (id) => {
     console.error("Error al desactivar la tarjeta:", error);
   }
 };
+
+const tarjetas = computed(() =>
+  metodosPago.value.filter(m => m.tipo_metodo === 'TARJETA')
+);
+
+const wallets = computed(() =>
+  metodosPago.value.filter(m => m.tipo_metodo === 'WALLET')
+);
+
+const saldoDisponible = computed(() => {
+  return metodosPago.value
+    .filter(m => m.activo)
+    .reduce((total, metodo) => total + Number(metodo.saldo || 0), 0);
+});
+
+const mostrarFormularioWallet = ref(false);
+const nuevaWallet = ref({
+  alias: '',
+  saldo: 0
+});
+
+const registrarWallet = async () => {
+  procesando.value = true;
+
+  try {
+    const token = localStorage.getItem('tf_jwt');
+
+    const response = await fetch(`${API_URL}/api/clientes/payment/wallet`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+  alias: nuevaWallet.value.alias,
+  saldo: nuevaWallet.value.saldo
+})
+    });
+
+    if (response.ok) {
+      alert('Wallet registrada correctamente.');
+      nuevaWallet.value = {
+  alias: '',
+  saldo: 0
+};
+      mostrarFormularioWallet.value = false;
+      cargarTarjetas();
+    } else {
+      const error = await response.json();
+      alert(error.message || 'Error al registrar Wallet.');
+    }
+
+  } catch (error) {
+    console.error(error);
+  } finally {
+    procesando.value = false;
+  }
+};
+
 </script>
 
 <style scoped>
@@ -261,4 +404,24 @@ const desactivarTarjeta = async (id) => {
 .badge-inactive { font-size: 0.7rem; font-weight: bold; background: #ef4444; padding: 0.2rem 0.5rem; border-radius: 4px; }
 
 .loading-state, .empty-state { grid-column: 1 / -1; text-align: center; color: #94a3b8; padding: 2rem; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1; }
+
+.wallet-section {
+  margin-top: 1.5rem;
+}
+
+.wallet-item {
+  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  position: relative;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.wallet-icon {
+  font-size: 2rem;
+}
 </style>
