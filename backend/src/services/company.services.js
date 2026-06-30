@@ -1152,5 +1152,6 @@ module.exports = {
     getRouteRatingByCompany,
     ratingResponseExists,
     createRatingResponse,
-    getRatingsSummary
+    getRatingsSummary,
+    getTransportReservationsByCompany
 };
