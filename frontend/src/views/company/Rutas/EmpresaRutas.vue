@@ -141,6 +141,8 @@
               <tr>
                 <th>ID</th>
                 <th>Trayecto</th>
+                <th>Hora Inicio</th>
+                <th>Tiempo Estimado</th>
                 <th>Servicio</th>
                 <th>Unidad (Placa)</th>
                 <th>Precio</th>
@@ -152,6 +154,8 @@
               <tr v-for="ruta in rutas" :key="ruta.id_ruta">
                 <td class="font-bold-code">#{{ ruta.id_ruta }}</td>
                 <td><strong>{{ ruta.origen }}</strong> a <strong>{{ ruta.destino }}</strong></td>
+                <td>{{ formatHora(ruta.hora_inicio) }}</td>
+                <td>{{ ruta.tiempo_estimado_hrs }} hrs</td>
                 <td><span class="badge" :class="ruta.tipo_servicio?.toLowerCase() || 'estandar'">{{ ruta.tipo_servicio }}</span></td>
                 <td>{{ ruta.placa }}</td>
                 <td>Q{{ ruta.precio }}</td>
@@ -179,7 +183,7 @@
                 </td>
               </tr>
               <tr v-if="rutas.length === 0">
-                <td colspan="7" class="text-center empty-state">No hay rutas registradas actualmente.</td>
+                <td colspan="9" class="text-center empty-state">No hay rutas registradas actualmente.</td>
               </tr>
             </tbody>
           </table>
@@ -578,6 +582,15 @@ export default {
       return estado.toLowerCase().replace(/\b\w/g, letra => letra.toUpperCase());
     };
 
+    const formatHora = (isoString) => {
+      if (!isoString) return '--:--';
+      if (isoString.includes('T')) {
+        // Extrae directamente la parte de la hora del string ISO para evitar problemas de zona horaria
+        return isoString.split('T')[1].substring(0, 5); 
+      }
+      return isoString;
+    };
+
     onMounted(() => {
       obtenerRutas();
       obtenerVehiculos();
@@ -588,7 +601,7 @@ export default {
       isSuspendModalOpen, rutaASuspender, isCancelModalOpen, rutaACancelar, 
       isReactivateModalOpen, rutaAReactivar, formManual, vehiculos, rutas,
       isEditModalOpen, rutaAEditar, 
-      obtenerRutas, registrarRutaManual, manejarArchivo, removerArchivo, manejarDrop, procesarCSV, formatEstado,
+      obtenerRutas, registrarRutaManual, manejarArchivo, removerArchivo, manejarDrop, procesarCSV, formatEstado, formatHora,
       abrirModalEdicion, cerrarModalEdicion, guardarEdicion,
       abrirModalSuspension, cerrarModalSuspension, confirmarSuspension,
       abrirModalReactivacion, cerrarModalReactivacion, confirmarReactivacion,
