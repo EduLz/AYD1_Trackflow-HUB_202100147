@@ -141,6 +141,12 @@
           <li><strong>Telefono de Respaldo:</strong> {{ datosParseados.telefono_respaldo || 'N/A' }}</li>
         </ul>
 
+        <!-- Notas del Administrador (Solo aparece si existe contenido) -->
+        <div v-if="solicitudSeleccionada?.notas_admin" class="admin-notes-container">
+          <h3>Notas del Administrador</h3>
+          <p>{{ solicitudSeleccionada.notas_admin }}</p>
+        </div>
+
         <div class="modal-actions" style="margin-top: 2rem;">
           <button type="button" class="btn-primary" @click="cerrarModalDetalles">Cerrar</button>
         </div>
@@ -359,7 +365,6 @@ export default {
 .font-bold-code { font-weight: bold; letter-spacing: 1px; color: #1e293b; font-family: monospace; font-size: 1rem; }
 .status-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
 
-/* CLASES CORREGIDAS PARA QUE COINCIDAN CON LOS ESTADOS */
 .status-badge.aprobada { background-color: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
 .status-badge.pendiente { background-color: #fef08a; color: #c2410c; border: 1px solid #fde047; }
 .status-badge.rechazada { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
@@ -375,5 +380,11 @@ export default {
 .details-list li { padding: 0.75rem 0; border-bottom: 1px solid #e2e8f0; color: #334155; font-size: 0.95rem; }
 .details-list li:last-child { border-bottom: none; }
 .details-list strong { color: #0f172a; margin-right: 0.5rem; }
+
+/* Estilos para Notas del Administrador */
+.admin-notes-container { margin-top: 1.5rem; padding: 1rem; background-color: #f8fafc; border-left: 4px solid #3b82f6; border-radius: 4px; }
+.admin-notes-container h3 { font-size: 0.95rem; margin-top: 0; margin-bottom: 0.5rem; color: #1e293b; }
+.admin-notes-container p { margin: 0; font-size: 0.9rem; color: #475569; }
+
 .modal-actions { display: flex; justify-content: flex-end; gap: 1rem; }
 </style>
