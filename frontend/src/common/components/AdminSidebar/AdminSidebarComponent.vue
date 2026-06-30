@@ -56,6 +56,9 @@
         <router-link :to="{ name: 'admin-reporte-servicios-transporte' }" class="menu-item" active-class="active">
           Historial de Servicios de Transporte
         </router-link>
+        <router-link :to="{ name: 'admin-reporte-destinos' }" class="menu-item" active-class="active">
+          Gráfica: Destinos Frecuentes
+        </router-link>
         <!-- Se irán agregando las demás opciones aquí paso a paso -->
       </nav>
 
