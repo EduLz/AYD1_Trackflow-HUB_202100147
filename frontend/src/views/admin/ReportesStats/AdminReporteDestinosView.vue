@@ -1,0 +1,200 @@
+<template>
+  <div>
+    <UpperbarComponent />
+    <AdminSidebarComponent />
+
+    <main class="admin-content">
+      <div class="admin-header">
+        <div>
+          <h1>Gráfica de Destinos Más Frecuentes</h1>
+          <p class="admin-subtitle">Visualización de las zonas y ubicaciones con mayor demanda de envíos.</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn-primary" @click="descargarPDF">
+           Descargar PDF
+          </button>
+        </div>
+      </div>
+
+      <div class="chart-container fade-in" id="reporte-destinos">
+        <div class="chart-wrapper">
+          <Bar :data="chartData" :options="chartOptions" />
+        </div>
+      </div>
+    </main>
+  </div>
+</template>
+
+<script>
+import { ref } from 'vue';
+import UpperbarComponent from '../../../common/components/Upperbar/UpperbarComponent.vue';
+import AdminSidebarComponent from '../../../common/components/AdminSidebar/AdminSidebarComponent.vue';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale
+} from 'chart.js';
+import { Bar } from 'vue-chartjs';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+
+export default {
+  name: 'AdminReporteDestinosFrecuentesView',
+  components: { 
+    UpperbarComponent, 
+    AdminSidebarComponent,
+    Bar
+  },
+  setup() {
+    const chartData = ref({
+      labels: ['Zona 10', 'Antigua Guatemala', 'Quetzaltenango', 'Zona 1', 'Escuintla', 'Zona 14', 'Cobán'],
+      datasets: [
+        {
+          label: 'Cantidad de Envíos',
+          backgroundColor: [
+            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'
+          ],
+          borderRadius: 6,
+          data: [150, 120, 95, 80, 65, 50, 40]
+        }
+      ]
+    });
+
+    const chartOptions = ref({
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        title: {
+          display: true,
+          text: 'Top Destinos Más Solicitados',
+          font: { size: 16 }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Número de Envíos'
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: 'Destino'
+          }
+        }
+      }
+    });
+
+    const descargarPDF = async () => {
+      const element = document.getElementById('reporte-destinos');
+      const canvas = await html2canvas(element, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      
+      const pdf = new jsPDF('landscape', 'mm', 'a4');
+      pdf.setFontSize(18);
+      pdf.text('Reporte: Destinos Más Frecuentes', 14, 22);
+      
+      pdf.setFontSize(10);
+      pdf.setTextColor(100);
+      pdf.text(`Generado el: ${new Date().toLocaleString()}`, 14, 30);
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth() - 28;
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 14, 40, pdfWidth, pdfHeight);
+      pdf.save('Reporte_Destinos_Frecuentes.pdf');
+    };
+
+    return {
+      chartData,
+      chartOptions,
+      descargarPDF
+    };
+  }
+};
+</script>
+
+<style scoped>
+.admin-content {
+  margin-top: 60px;
+  margin-left: 240px;
+  padding: 2rem;
+  min-height: calc(100vh - 60px);
+  background-color: #f8fafc;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.admin-header h1 {
+  font-size: 1.8rem;
+  color: #1e293b;
+  margin-bottom: 0.2rem;
+}
+
+.admin-subtitle {
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.btn-primary {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover {
+  background: #2563eb;
+}
+
+.chart-container {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border: 1px solid #e2e8f0;
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.chart-wrapper {
+  width: 100%;
+  max-width: 900px;
+  height: 500px;
+}
+
+.fade-in { animation: fadeIn 0.3s ease-in-out; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
