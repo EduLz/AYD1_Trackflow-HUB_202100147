@@ -32,6 +32,7 @@ import UpperbarComponent from '../../../common/components/Upperbar/UpperbarCompo
 import AdminSidebarComponent from '../../../common/components/AdminSidebar/AdminSidebarComponent.vue';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import BASE_URL from "../../../config/api.js"
 import {
   Chart as ChartJS,
   Title,

@@ -87,6 +87,7 @@ import CompanySidebarComponent from '../../../common/components/CompanySidebar/C
 import './CompanyDashboard.css';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import BASE_URL from "../../../config/api.js"
 
 export default {
   name: 'CompanyDashboard',
@@ -112,7 +113,7 @@ export default {
     const obtenerDashboardInfo = async () => {
       isLoading.value = true;
       try {
-        const response = await fetch('http://localhost:3000/api/empresas/dashboard', {
+        const response = await fetch(`${BASE_URL}/api/empresas/dashboard`, {
           headers: { 'Authorization': `Bearer ${authStore.token}` }
         });
         

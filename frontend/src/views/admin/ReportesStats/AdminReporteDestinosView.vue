@@ -32,6 +32,7 @@ import UpperbarComponent from '../../../common/components/Upperbar/UpperbarCompo
 import AdminSidebarComponent from '../../../common/components/AdminSidebar/AdminSidebarComponent.vue';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import BASE_URL from "../../../config/api.js"
 import {
   Chart as ChartJS,
   Title,
@@ -57,7 +58,7 @@ export default {
     const chartData = ref({ labels: [], datasets: [{ label: 'Cantidad de Envíos', backgroundColor: '#3b82f6', data: [] }] });
     onMounted(async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/admin/reportes-generales', { headers: { Authorization: `Bearer ${authStore.token}` } });
+        const res = await fetch(`${BASE_URL}/api/admin/reportes-generales`, { headers: { Authorization: `Bearer ${authStore.token}` } });
         const { estadisticas } = await res.json();
         const datos = estadisticas.destinos_frecuentes || [];
         chartData.value = { labels: datos.map(d => d.destino), datasets: [{ label: 'Cantidad de Envíos', backgroundColor: '#3b82f6', data: datos.map(d => Number(d.total)) }] };
