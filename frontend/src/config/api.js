@@ -2,7 +2,7 @@
 // Todos los fetch del frontend deben importar desde aqui
 // para evitar URLs hardcodeadas en los componentes.
 
-const BASE_URL = 'http://18.217.64.50:3000';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export const API = {
   auth: {
@@ -64,3 +64,5 @@ export const API = {
     getReportesRecibidos: `${BASE_URL}/api/clientes/received-reports`,
   }
 };
+
+export default BASE_URL;

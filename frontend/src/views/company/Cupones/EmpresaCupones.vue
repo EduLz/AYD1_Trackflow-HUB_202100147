@@ -110,6 +110,7 @@ import { ref, onMounted } from 'vue';
 import { useAuthStore } from '../../../stores/auth';
 import UpperbarComponent from '../../../common/components/Upperbar/UpperbarComponent.vue';
 import CompanySidebarComponent from '../../../common/components/CompanySidebar/CompanySidebarComponent.vue';
+import BASE_URL from "../../../config/api.js"
 
 export default {
   name: 'EmpresaCupones',

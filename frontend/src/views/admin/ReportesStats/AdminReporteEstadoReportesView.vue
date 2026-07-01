@@ -34,6 +34,7 @@ import AdminSidebarComponent from '../../../common/components/AdminSidebar/Admin
 import { Chart as ChartJS, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { Pie } from 'vue-chartjs';
 import jsPDF from 'jspdf';
+import BASE_URL from "../../../config/api.js"
 
 // Registramos los componentes de Chart.js necesarios para Pie
 ChartJS.register(Title, Tooltip, Legend, ArcElement);
@@ -50,7 +51,7 @@ export default {
     const chartData = ref({ labels: [], datasets: [{ label: 'Reportes', backgroundColor: '#f59e0b', data: [] }] });
     onMounted(async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/admin/reportes-generales', { headers: { Authorization: `Bearer ${authStore.token}` } });
+        const res = await fetch(`${BASE_URL}/api/admin/reportes-generales`, { headers: { Authorization: `Bearer ${authStore.token}` } });
         const { estadisticas } = await res.json();
         const datos = estadisticas.reportes_por_estado || [];
         chartData.value = { labels: datos.map(d => d.estado), datasets: [{ label: 'Reportes', backgroundColor: '#f59e0b', data: datos.map(d => Number(d.total)) }] };
