@@ -13,4 +13,4 @@ COPY . .
 EXPOSE 3000
 
 # Comando para arrancar la aplicación
-CMD ["node", "src/app.js"]
+CMD ["npm", "start", "src/app.js"]
