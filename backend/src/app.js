@@ -15,6 +15,10 @@ app.get('/', (req, res) => {
     });
 });
 
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: "ok" });
+});
+
 app.use("/uploads", express.static("src/uploads"));
 app.use("/api/auth",require("./routes/auth.routes"));
 app.use("/api/clientes", require("./routes/client.routes"));
