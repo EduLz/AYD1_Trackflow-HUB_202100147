@@ -2,7 +2,7 @@
 // Todos los fetch del frontend deben importar desde aqui
 // para evitar URLs hardcodeadas en los componentes.
 
-const BASE_URL = 'http://18.217.64.50:3000';
+const BASE_URL = 'http://142.93.121.137:3000';
 
 export const API = {
   auth: {

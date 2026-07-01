@@ -12,22 +12,44 @@ services:
       - "1434:1433"
     volumes:
       - sqlserver_data:/var/opt/mssql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Password123!' -C -Q 'SELECT 1' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
 
   backend:
-    image: wichopedia/trackflow-backend:v3.0.0
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: trackflowhub-backend
-    restart: always
+    restart: unless-stopped
     depends_on:
-      - sqlserver
-    env_file:
-      - ./backend/.env
+      sqlserver:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      DB_USER: sa
+      DB_PASSWORD: Password123!
+      DB_SERVER: sqlserver
+      DB_PORT: 1433
+      DB_DATABASE: TrackFlowHub
+      JWT_SECRET: trackflow_secret_key
+      JWT_EXPIRES_IN: 24h
+      EMAIL_USER: gonzalezluisfernando894@gmail.com
+      EMAIL_PASSWORD: pckmbrxxnnkazcdv
+      FRONTEND_URL: http://142.93.121.137
     ports:
       - "3000:3000"
 
   frontend:
-    image: wichopedia/trackflow-frontend:v3.0.0
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: trackflowhub-frontend
-    restart: always
+    restart: unless-stopped
     depends_on:
       - backend
     ports:

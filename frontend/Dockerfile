@@ -1,24 +1,24 @@
-# Etapa 1: Compilación de la aplicación
-FROM node:22-alpine as build-stage
+# Etapa 1: Build de Vue con Vite
+FROM node:22-alpine AS build-stage
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
 RUN npm run build
 
-# Etapa 2: Servidor de producción con Nginx
-FROM nginx:stable-alpine as production-stage
+# Etapa 2: Servidor Nginx para produccion
+FROM nginx:stable-alpine AS production-stage
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
-# Copiar configuración básica para manejar rutas de Vue Router SPA
-RUN echo 'server { \
-    listen 80; \
-    location / { \
-        root /usr/share/nginx/html; \
-        index index.html index.htm; \
-        try_files $uri $uri/ /index.html; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
+# Configuracion para Vue Router SPA (evita 404 en rutas del frontend)
+RUN printf 'server {\n\
+    listen 80;\n\
+    root /usr/share/nginx/html;\n\
+    index index.html;\n\
+    location / {\n\
+        try_files $uri $uri/ /index.html;\n\
+    }\n\
+}\n' > /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
