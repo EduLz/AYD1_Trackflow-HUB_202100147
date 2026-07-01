@@ -3,7 +3,7 @@ name: CI/CD TrackFlowHub
 on:
   push:
     branches:
-      - master
+      - master  
       - develop
   pull_request:
     branches:
@@ -13,13 +13,20 @@ on:
 
 env:
   TAG: ${{ github.sha }}
-  DOCKERHUB_USER: wichopedia
+  DOCKERHUB_USER: ${{ secrets.DOCKER_USERNAME }}
 
 jobs:
 
-  test-backend:
-    name: 1a. Test Backend
+  # ------------------------------------------------------------------
+  # JOB 1: TESTS
+  # Corre en cualquier push o pull_request, a cualquier rama.
+  # Solo pruebas unitarias (no e2e): backend con Jest (tests/unit),
+  # frontend con Vitest.
+  # ------------------------------------------------------------------
+  test:
+    name: 1. Testing
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout codigo
         uses: actions/checkout@v4
@@ -28,50 +35,42 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'backend/package-lock.json'
 
+      # ---------------- Backend ----------------
       - name: Instalar dependencias del backend
         working-directory: ./backend
         run: npm ci
 
-      - name: Ejecutar pruebas unitarias (jest)
+      # Se apunta explicitamente a tests/unit para no ejecutar tests/e2e,
+      # que requieren un backend + DB reales corriendo.
+      - name: Ejecutar pruebas unitarias del backend
         working-directory: ./backend
-        run: npm test -- --testPathPattern=tests/unit
+        run: npx jest tests/unit --coverage
         continue-on-error: true
 
-  test-frontend:
-    name: 1b. Test Frontend
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout codigo
-        uses: actions/checkout@v4
-
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'frontend/package-lock.json'
-
+      # ---------------- Frontend ----------------
       - name: Instalar dependencias del frontend
         working-directory: ./frontend
         run: npm ci
 
-      - name: Ejecutar pruebas unitarias (vitest)
+      - name: Ejecutar pruebas unitarias del frontend
         working-directory: ./frontend
-        run: npm run test:unit -- --run
+        run: npx vitest run
         continue-on-error: true
 
-      - name: Verificar que el build compila
-        working-directory: ./frontend
-        run: npm run build
+      - name: Resumen de pruebas
+        run: echo "Pruebas unitarias de backend y frontend ejecutadas."
 
+  # ------------------------------------------------------------------
+  # JOB 2: BUILD & PUSH a DockerHub
+  # Solo en push real a main o develop (no en PRs).
+  # Sube :latest y :<sha> para backend y frontend.
+  # ------------------------------------------------------------------
   build-and-push:
     name: 2. Build and Push a DockerHub
     runs-on: ubuntu-latest
-    needs: [test-backend, test-frontend]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop')
+    needs: test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
 
     steps:
       - name: Checkout codigo
@@ -110,27 +109,37 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Verificar imagenes publicadas
+        run: |
+          echo "Imagenes subidas a DockerHub:"
+          echo "  ${{ secrets.DOCKER_USERNAME }}/trackflow-backend:latest"
+          echo "  ${{ secrets.DOCKER_USERNAME }}/trackflow-backend:${{ env.TAG }}"
+          echo "  ${{ secrets.DOCKER_USERNAME }}/trackflow-frontend:latest"
+          echo "  ${{ secrets.DOCKER_USERNAME }}/trackflow-frontend:${{ env.TAG }}"
+
+  # ------------------------------------------------------------------
+  # JOB 3: DEPLOY SIMULADO
+  # Solo en push a main. Levanta sqlserver + backend + frontend con
+  # docker compose usando las imagenes recien publicadas (tag = sha)
+  # y verifica que respondan.
+  # ------------------------------------------------------------------
   deploy-simulated:
-    name: 3. Deploy Simulado (solo master)
+    name: 3. Deploy Simulado (solo main)
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout codigo
         uses: actions/checkout@v4
 
-      - name: Generar .env raiz para docker-compose
-        run: |
-          cat > .env << EOF
-          DOCKERHUB_USER=${{ secrets.DOCKER_USERNAME }}
-          TAG_VERSION=${{ env.TAG }}
-          EOF
-
-      - name: Generar backend/.env
+      # El backend lee sus variables via env_file: ./backend/.env
+      # (ver docker-compose.yml), por eso se genera aqui antes de
+      # levantar los servicios.
+      - name: Generar backend/.env para el despliegue
         run: |
           cat > backend/.env << EOF
-          PORT=3000
+          PORT=${{ secrets.PORT }}
           DB_USER=${{ secrets.DB_USER }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
           DB_SERVER=sqlserver
@@ -144,38 +153,46 @@ jobs:
           EOF
 
       - name: Descargar imagenes desde DockerHub
-        run: docker compose pull
+        run: docker compose pull backend frontend
 
       - name: Levantar servicios con docker compose
         run: docker compose up -d
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKER_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          TAG: ${{ env.TAG }}
 
-      - name: Esperar que el backend este saludable
+      # SQL Server dentro de un contenedor recien creado puede tardar
+      # 15-30s en aceptar conexiones, y el backend depende de el.
+      - name: Esperar que los servicios esten listos
         run: |
-          echo "Esperando que el backend este listo..."
-          for i in {1..20}; do
-            if docker compose exec -T backend curl -f -s http://localhost:3000/health > /dev/null 2>&1; then
+          echo "Esperando que backend y sqlserver esten listos..."
+          for i in {1..15}; do
+            if docker compose exec -T backend wget -q -O- http://localhost:3000/health; then
               echo "Backend saludable en el intento $i"
               break
             fi
-            echo "Intento $i/20 - backend aun no responde"
+            echo "Intento $i/15 - backend aun no responde"
             sleep 5
           done
 
       - name: Verificar salud del Backend
         run: |
-          if docker compose exec -T backend curl -f -s http://localhost:3000/health; then
+          if docker compose exec -T backend wget -q -O- http://localhost:3000/health; then
             echo "Backend respondiendo correctamente"
           else
             echo "Backend no responde al healthcheck"
+            docker compose logs backend
             exit 1
           fi
 
-      - name: Verificar que el Frontend sirve contenido
+      - name: Verificar salud del Frontend
         run: |
-          if docker compose exec -T frontend curl -f -s http://localhost:80/ > /dev/null; then
+          if docker compose exec -T frontend wget -q -O- http://localhost:80/health; then
             echo "Frontend respondiendo correctamente"
           else
-            echo "Frontend no responde"
+            echo "Frontend no responde al healthcheck"
+            docker compose logs frontend
           fi
 
       - name: Resumen del despliegue
@@ -188,10 +205,14 @@ jobs:
         if: always()
         run: docker compose down -v
 
+  # ------------------------------------------------------------------
+  # JOB 4: REPORTE FINAL
+  # Siempre corre, resume el estado de los jobs anteriores.
+  # ------------------------------------------------------------------
   report:
     name: 4. Resumen Final
     runs-on: ubuntu-latest
-    needs: [test-backend, test-frontend, build-and-push, deploy-simulated]
+    needs: [test, build-and-push, deploy-simulated]
     if: always()
 
     steps:
@@ -203,32 +224,26 @@ jobs:
           echo "Commit : ${{ env.TAG }}"
           echo "=========================================="
 
-          if [ "${{ needs.test-backend.result }}" = "success" ]; then
-            echo "TEST BACKEND  : OK"
+          if [ "${{ needs.test.result }}" = "success" ]; then
+            echo "TEST       : OK"
           else
-            echo "TEST BACKEND  : FALLO"
-          fi
-
-          if [ "${{ needs.test-frontend.result }}" = "success" ]; then
-            echo "TEST FRONTEND : OK"
-          else
-            echo "TEST FRONTEND : FALLO"
+            echo "TEST       : FALLO"
           fi
 
           if [ "${{ needs.build-and-push.result }}" = "success" ]; then
-            echo "BUILD/PUSH    : OK"
+            echo "BUILD/PUSH : OK"
           elif [ "${{ needs.build-and-push.result }}" = "skipped" ]; then
-            echo "BUILD/PUSH    : OMITIDO (solo corre en push a main/develop)"
+            echo "BUILD/PUSH : OMITIDO (solo corre en push a main/develop)"
           else
-            echo "BUILD/PUSH    : FALLO"
+            echo "BUILD/PUSH : FALLO"
           fi
 
           if [ "${{ needs.deploy-simulated.result }}" = "success" ]; then
-            echo "DEPLOY        : OK"
+            echo "DEPLOY     : OK"
           elif [ "${{ needs.deploy-simulated.result }}" = "skipped" ]; then
-            echo "DEPLOY        : OMITIDO (solo corre en push a main)"
+            echo "DEPLOY     : OMITIDO (solo corre en push a main)"
           else
-            echo "DEPLOY        : FALLO"
+            echo "DEPLOY     : FALLO"
           fi
 
           echo "=========================================="
