@@ -1,28 +1,25 @@
-name: CI/CD AYD1 - EV - 2026
+name: CI/CD TrackFlowHub
 
 on:
   push:
     branches:
-      - main
+      - master
       - develop
   pull_request:
     branches:
-      - main
+      - master
       - develop
   workflow_dispatch:
 
 env:
-  # TAG usa el SHA del commit para identificar unicamente cada imagen
   TAG: ${{ github.sha }}
+  DOCKERHUB_USER: wichopedia
 
 jobs:
 
-  # Ejecuta las pruebas unitarias del backend.
-  # Corre en cualquier push o pull_request, sin importar la rama
-  test:
-    name: 1. Testing
+  test-backend:
+    name: 1a. Test Backend
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout codigo
         uses: actions/checkout@v4
@@ -38,29 +35,43 @@ jobs:
         working-directory: ./backend
         run: npm ci
 
-      # continue-on-error permite que el pipeline continúe aunque fallen pruebas unitarias, para que el job de reporte final pueda mostrar el resultado completo.
-      - name: Ejecutar pruebas unitarias
+      - name: Ejecutar pruebas unitarias (jest)
         working-directory: ./backend
-        run: npm test -- --watchAll=false --coverage
+        run: npm test -- --testPathPattern=tests/unit
         continue-on-error: true
 
-      - name: Mostrar resumen de pruebas
-        run: |
-          echo "Pruebas ejecutadas. Reporte de cobertura disponible en coverage/"
+  test-frontend:
+    name: 1b. Test Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout codigo
+        uses: actions/checkout@v4
 
-  # Construye las imagenes Docker del backend y frontend
-  # y las sube a DockerHub con dos tags:
-  #   - :latest        -> siempre apunta a la ultima version
-  #   - :<github.sha>  -> tag unico e inmutable por commit
-  #
-  # Condicion: solo corre en push a main o develop (no en PRs).
-  # Depende de: test
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Instalar dependencias del frontend
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Ejecutar pruebas unitarias (vitest)
+        working-directory: ./frontend
+        run: npm run test:unit -- --run
+        continue-on-error: true
+
+      - name: Verificar que el build compila
+        working-directory: ./frontend
+        run: npm run build
+
   build-and-push:
     name: 2. Build and Push a DockerHub
     runs-on: ubuntu-latest
-    needs: test
-    # Solo construir cuando hay un push real a main o develop
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    needs: [test-backend, test-frontend]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop')
 
     steps:
       - name: Checkout codigo
@@ -81,11 +92,9 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          # Se suben dos tags: uno fijo (latest) y uno por commit (SHA)
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/backend-app:latest
-            ${{ secrets.DOCKER_USERNAME }}/backend-app:${{ env.TAG }}
-          # Cache de GitHub Actions para acelerar builds repetidos
+            ${{ secrets.DOCKER_USERNAME }}/trackflow-backend:latest
+            ${{ secrets.DOCKER_USERNAME }}/trackflow-backend:${{ env.TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -96,51 +105,42 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/frontend-app:latest
-            ${{ secrets.DOCKER_USERNAME }}/frontend-app:${{ env.TAG }}
+            ${{ secrets.DOCKER_USERNAME }}/trackflow-frontend:latest
+            ${{ secrets.DOCKER_USERNAME }}/trackflow-frontend:${{ env.TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Verificar imagenes publicadas
-        run: |
-          echo "Imagenes subidas a DockerHub:"
-          echo "  ${{ secrets.DOCKER_USERNAME }}/backend-app:latest"
-          echo "  ${{ secrets.DOCKER_USERNAME }}/backend-app:${{ env.TAG }}"
-          echo "  ${{ secrets.DOCKER_USERNAME }}/frontend-app:latest"
-          echo "  ${{ secrets.DOCKER_USERNAME }}/frontend-app:${{ env.TAG }}"
-
-  # DEPLOY (SIMULADO)
-  # Descarga las imagenes desde DockerHub y levanta los contenedores
-  # usando docker-compose para verificar que el despliegue funciona.
-  #
-  # Condicion: SOLO se ejecuta cuando el push es a main.
-  # Develop solo construye y publica imagenes, no despliega.
-  # Depende de: build-and-push
   deploy-simulated:
-    name: 3. Deploy Simulado (solo main)
+    name: 3. Deploy Simulado (solo master)
     runs-on: ubuntu-latest
     needs: build-and-push
-    # Buena practica: el deploy a produccion solo ocurre desde main
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
 
     steps:
       - name: Checkout codigo
         uses: actions/checkout@v4
 
-      # El archivo .env debe generarse ANTES de docker compose pull
-      # para que Compose pueda resolver DOCKER_USERNAME y TAG correctamente
-      - name: Generar archivo .env para el despliegue
+      - name: Generar .env raiz para docker-compose
         run: |
           cat > .env << EOF
+          DOCKERHUB_USER=${{ secrets.DOCKER_USERNAME }}
+          TAG_VERSION=${{ env.TAG }}
+          EOF
+
+      - name: Generar backend/.env
+        run: |
+          cat > backend/.env << EOF
+          PORT=3000
           DB_USER=${{ secrets.DB_USER }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          DB_NAME=${{ secrets.DB_NAME }}
-          DB_TEST_NAME=${{ secrets.DB_TEST_NAME }}
-          PORT=${{ secrets.PORT }}
-          NODE_ENV=${{ secrets.NODE_ENV }}
-          REACT_APP_API_URL=${{ secrets.REACT_APP_API_URL }}
-          DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
-          TAG=${{ env.TAG }}
+          DB_SERVER=sqlserver
+          DB_PORT=1433
+          DB_DATABASE=${{ secrets.DB_DATABASE }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          JWT_EXPIRES_IN=${{ secrets.JWT_EXPIRES_IN }}
+          EMAIL_USER=${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}
+          FRONTEND_URL=${{ secrets.FRONTEND_URL }}
           EOF
 
       - name: Descargar imagenes desde DockerHub
@@ -149,18 +149,15 @@ jobs:
       - name: Levantar servicios con docker compose
         run: docker compose up -d
 
-      # Esperar activamente a que el backend este healthy
-      # en lugar de un sleep fijo, que puede ser muy corto o muy largo
       - name: Esperar que el backend este saludable
         run: |
           echo "Esperando que el backend este listo..."
           for i in {1..20}; do
-            STATUS=$(docker compose ps backend | grep -o 'healthy' || echo 'not ready')
-            if [ "$STATUS" = "healthy" ]; then
+            if docker compose exec -T backend curl -f -s http://localhost:3000/health > /dev/null 2>&1; then
               echo "Backend saludable en el intento $i"
               break
             fi
-            echo "Intento $i/20 - estado: $STATUS"
+            echo "Intento $i/20 - backend aun no responde"
             sleep 5
           done
 
@@ -173,139 +170,65 @@ jobs:
             exit 1
           fi
 
-      - name: Verificar salud del Frontend
+      - name: Verificar que el Frontend sirve contenido
         run: |
-          if docker compose exec -T frontend curl -f -s http://localhost:80/health; then
+          if docker compose exec -T frontend curl -f -s http://localhost:80/ > /dev/null; then
             echo "Frontend respondiendo correctamente"
           else
-            echo "Frontend no responde al healthcheck"
+            echo "Frontend no responde"
           fi
-
-      - name: Probar endpoint de usuarios
-        run: |
-          echo "Creando usuario de prueba..."
-          docker compose exec -T backend curl -s -X POST \
-            -H "Content-Type: application/json" \
-            -d '{"name":"Test User","email":"test@ci.com","age":25}' \
-            http://localhost:3000/api/users
-
-          echo "Listando usuarios..."
-          docker compose exec -T backend curl -s http://localhost:3000/api/users
 
       - name: Resumen del despliegue
         run: |
           echo "Despliegue simulado completado"
-          echo "Backend : ${{ secrets.DOCKER_USERNAME }}/backend-app:${{ env.TAG }}"
-          echo "Frontend: ${{ secrets.DOCKER_USERNAME }}/frontend-app:${{ env.TAG }}"
+          echo "Backend : ${{ secrets.DOCKER_USERNAME }}/trackflow-backend:${{ env.TAG }}"
+          echo "Frontend: ${{ secrets.DOCKER_USERNAME }}/trackflow-frontend:${{ env.TAG }}"
 
-      # Limpieza siempre se ejecuta, incluso si pasos anteriores fallaron
       - name: Limpiar entorno
         if: always()
-        run: docker compose down
+        run: docker compose down -v
 
-  # JOB 4: DEPLOY  EN AWS EC2 
-  # Secrets adicionales necesarios:
-  #   EC2_HOST       -> IP publica o Elastic IP de la instancia
-  #   EC2_USERNAME   -> usuario SSH, normalmente "ubuntu" en Ubuntu AMIs
-  #   EC2_SSH_KEY    -> clave privada PEM completa (cat my-key.pem)
-  # deploy-aws:
-  #   name: 4. Deploy a AWS EC2
-  #   runs-on: ubuntu-latest
-  #   needs: build-and-push
-  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-  #   environment:
-  #     name: production
-  #     url: http://3.211.201.56
-  
-  #   steps:
-  #     - name: Checkout codigo
-  #       uses: actions/checkout@v4
-  
-  #     - name: Generar archivo .env
-  #       run: |
-  #         cat > .env << EOF
-  #         DB_USER=${{ secrets.DB_USER }}
-  #         DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-  #         DB_NAME=${{ secrets.DB_NAME }}
-  #         PORT=${{ secrets.PORT }}
-  #         NODE_ENV=production
-  #         DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
-  #         TAG=${{ env.TAG }}
-  #         EOF
-  
-  #     - name: Copiar archivos al servidor EC2
-  #       uses: appleboy/scp-action@v0.1.7
-  #       with:
-  #         host: ${{ secrets.EC2_HOST }}
-  #         username: ${{ secrets.EC2_USERNAME }}
-  #         key: ${{ secrets.EC2_SSH_KEY }}
-  #         source: ".,!node_modules,!**/node_modules"
-  #         target: "/home/${{ secrets.EC2_USERNAME }}/app"
-  
-  #     - name: Desplegar en EC2 via SSH
-  #       uses: appleboy/ssh-action@v1.0.3
-  #       with:
-  #         host: ${{ secrets.EC2_HOST }}
-  #         username: ${{ secrets.EC2_USERNAME }}
-  #         key: ${{ secrets.EC2_SSH_KEY }}
-  #         script: |
-  #           cd /home/${{ secrets.EC2_USERNAME }}/app
-  #           # Iniciar sesion en DockerHub para bajar imagenes
-  #           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-  #           # Bajar las imagenes nuevas
-  #           docker compose pull
-
-  #           # Levantar contenedores y limpiar los anteriores
-  #           docker compose up -d --remove-orphans
-
-  #           # Limpiar imagenes viejas para no llenar el disco
-  #           docker image prune -f
-  #     - name: Verificar que la app este respondiendo
-  #       run: |
-  #         sleep 20
-  #         curl -f http://${{ secrets.EC2_HOST }}:3000/health || echo "Revisar manualmente en http://${{ secrets.EC2_HOST }}"      
-
-
-  # JOB 5: REPORTE FINAL
-  # Resume el estado de todos los jobs anteriores.
-  # Se ejecuta siempre (if: always()), incluso si alguno fallo,
-  # para tener visibilidad del resultado completo del pipeline.
   report:
-    name: 5. Resumen Final
+    name: 4. Resumen Final
     runs-on: ubuntu-latest
-    needs: [test, build-and-push, deploy-simulated]
+    needs: [test-backend, test-frontend, build-and-push, deploy-simulated]
     if: always()
 
     steps:
       - name: Generar reporte del pipeline
         run: |
           echo "=========================================="
-          echo "REPORTE DEL PIPELINE CI/CD"
+          echo "REPORTE DEL PIPELINE CI/CD - TrackFlowHub"
           echo "Rama   : ${{ github.ref_name }}"
           echo "Commit : ${{ env.TAG }}"
           echo "=========================================="
 
-          if [ "${{ needs.test.result }}" = "success" ]; then
-            echo "TEST       : OK"
+          if [ "${{ needs.test-backend.result }}" = "success" ]; then
+            echo "TEST BACKEND  : OK"
           else
-            echo "TEST       : FALLO"
+            echo "TEST BACKEND  : FALLO"
+          fi
+
+          if [ "${{ needs.test-frontend.result }}" = "success" ]; then
+            echo "TEST FRONTEND : OK"
+          else
+            echo "TEST FRONTEND : FALLO"
           fi
 
           if [ "${{ needs.build-and-push.result }}" = "success" ]; then
-            echo "BUILD/PUSH : OK"
+            echo "BUILD/PUSH    : OK"
           elif [ "${{ needs.build-and-push.result }}" = "skipped" ]; then
-            echo "BUILD/PUSH : OMITIDO (solo corre en push a main/develop)"
+            echo "BUILD/PUSH    : OMITIDO (solo corre en push a main/develop)"
           else
-            echo "BUILD/PUSH : FALLO"
+            echo "BUILD/PUSH    : FALLO"
           fi
 
           if [ "${{ needs.deploy-simulated.result }}" = "success" ]; then
-            echo "DEPLOY     : OK"
+            echo "DEPLOY        : OK"
           elif [ "${{ needs.deploy-simulated.result }}" = "skipped" ]; then
-            echo "DEPLOY     : OMITIDO (solo corre en push a main)"
+            echo "DEPLOY        : OMITIDO (solo corre en push a main)"
           else
-            echo "DEPLOY     : FALLO"
+            echo "DEPLOY        : FALLO"
           fi
 
           echo "=========================================="
