@@ -14,10 +14,8 @@ services:
       - sqlserver_data:/var/opt/mssql
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: backend
+    image: wichopedia/trackflow-backend:v3.0.0
+    container_name: trackflowhub-backend
     restart: always
     depends_on:
       - sqlserver
@@ -27,15 +25,13 @@ services:
       - "3000:3000"
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: frontend
+    image: wichopedia/trackflow-frontend:v3.0.0
+    container_name: trackflowhub-frontend
     restart: always
     depends_on:
       - backend
     ports:
-      - "5173:80"
+      - "80:80"
 
 volumes:
   sqlserver_data:

@@ -1,11 +1,16 @@
-FROM node:20-alpine
+FROM node:18-alpine
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
+# Copiar archivos de dependencias primero para aprovechar la caché de Docker
 COPY package*.json ./
+RUN npm install --production
 
-RUN npm install
-
+# Copiar todo el código fuente del backend, incluyendo src
 COPY . .
 
-CMD ["npm", "run", "dev"]
+# Exponer el puerto en el que corre app.js 
+EXPOSE 3000
+
+# Comando para arrancar la aplicación
+CMD ["npm", "start"]

@@ -1,5 +1,5 @@
 USE TrackFlowHUB;
-
+GO
 
 -- Roles del sistema
 INSERT INTO Rol (nombre, descripcion) VALUES
@@ -55,6 +55,6 @@ INSERT INTO EstadoReporte (nombre) VALUES
 
 
 -- Tipos de metodo de pa (MetodoPa.id_tipo)
-INSERT INTO TipoMetodoPa (nombre) VALUES
+INSERT INTO TipoMetodoPago (nombre) VALUES
 ('TARJETA'),      -- id 1: tarjeta credito/debito simulada
 ('WALLET');       -- id 2: wallet simulado
