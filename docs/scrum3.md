@@ -13,7 +13,7 @@
 - Fecha: 24/06/2026
 - Duracion: 2 Horas
 - Plataforma: Google Meet
-- Fin Sprint: 29/06/2026
+- Fin Sprint: 30/06/2026
 
 ---
 

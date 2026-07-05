@@ -232,6 +232,7 @@ export default {
             direccion_origen: form.address || " "
           };
 
+          response = await fetch('http://142.93.121.137:3000/api/clientes/register', {
           response = await fetch(`${BASE_URL}/api/clientes/register`, {
             method: 'POST',
             headers: {
@@ -255,6 +256,7 @@ export default {
           formData.append('confirmarContrasena', form.confirmPassword);
           formData.append('fotografia', form.photo);
 
+          response = await fetch('http://142.93.121.137:3000/api/operadores/register', {
           response = await fetch(`${BASE_URL}/api/operadores/register`, {
             method: 'POST',
             body: formData
@@ -272,6 +274,7 @@ export default {
             contrasena:          form.password,
             confirmarContrasena: form.confirmPassword
           };
+          response = await fetch('http://142.93.121.137:3000/api/empresas/register', {
           response = await fetch(`${BASE_URL}/api/empresas/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

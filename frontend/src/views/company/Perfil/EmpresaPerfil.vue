@@ -228,6 +228,7 @@ export default {
 
     const obtenerSolicitudes = async () => {
       try {
+        const response = await fetch('http://142.93.121.137:3000/api/empresas/profile-change', {
         const response = await fetch(`${BASE_URL}/api/empresas/profile-change`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${authStore.token}` }
@@ -249,6 +250,7 @@ export default {
     const obtenerPerfil = async () => {
       isLoading.value = true;
       try {
+        const response = await fetch('http://142.93.121.137:3000/api/empresas/profile', {
         const response = await fetch(`${BASE_URL}/api/empresas/profile`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${authStore.token}` }
@@ -295,6 +297,7 @@ export default {
       };
 
       try {
+        const response = await fetch('http://142.93.121.137:3000/api/empresas/profile-change', {
         const response = await fetch(`${BASE_URL}/api/empresas/profile-change`, {
           method: 'POST',
           headers: {

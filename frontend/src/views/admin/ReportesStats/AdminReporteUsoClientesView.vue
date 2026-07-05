@@ -57,7 +57,7 @@ export default {
     const chartData = ref({ labels: [], datasets: [{ backgroundColor: ['#3b82f6','#10b981','#f59e0b'], data: [] }] });
     onMounted(async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/admin/reportes-generales', { headers: { Authorization: `Bearer ${authStore.token}` } });
+        const res = await fetch('http://142.93.121.137:3000/api/admin/reportes-generales', { headers: { Authorization: `Bearer ${authStore.token}` } });
         const { estadisticas } = await res.json();
         const u = estadisticas.uso_clientes || {};
         chartData.value = { labels: ['Solo envios','Solo transporte','Ambos'], datasets: [{ backgroundColor: ['#3b82f6','#10b981','#f59e0b'], data: [u.solo_envios||0, u.solo_transporte||0, u.ambos||0] }] };

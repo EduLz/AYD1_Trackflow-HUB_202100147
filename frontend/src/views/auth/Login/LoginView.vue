@@ -164,6 +164,7 @@ export default {
       // =========================================================================
 
       try {
+        const response = await fetch('http://142.93.121.137:3000/api/auth/login', {
         const response = await fetch(`${BASE_URL}/api/auth/login`, {
           method: 'POST',
           headers: {

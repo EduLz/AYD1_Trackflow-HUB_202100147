@@ -26,7 +26,7 @@
               No tiene servicios entregados para reportar.
             </option>
             <option v-for="reserva in reservacionesEntregadas" :key="reserva.id_reservacion" :value="reserva.id_reservacion">
-              Reserva #{{ reserva.id_reservacion }} | {{ reserva.servicio }}
+              Reserva #{{ reserva.id_reservacion }} | {{ reserva.servicio_envio || reserva.proveedor || reserva.tipo_servicio }}
             </option>
           </select>
         </div>
@@ -119,6 +119,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://142.93.121.137:3000';
 import BASE_URL from "../../../config/api.js"
 
 const pestanaActiva = ref('nuevo');

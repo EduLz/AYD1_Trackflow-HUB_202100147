@@ -123,7 +123,7 @@ export default {
 
     const cargarRutasComboBox = async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/empresas/transport-reservations/routes-filter', {
+        const res = await fetch('http://142.93.121.137:3000/api/empresas/transport-reservations/routes-filter', {
           headers: { Authorization: `Bearer ${authStore.token}` }
         });
 
@@ -139,7 +139,7 @@ export default {
     const cargarReservaciones = async () => {
       cargando.value = true;
       try {
-        let url = `http://localhost:3000/api/empresas/transport-reservations?mes=${mesFiltro.value}`;
+        let url = `http://142.93.121.137:3000/api/empresas/transport-reservations?mes=${mesFiltro.value}`;
         if (rutaFiltro.value) {
           url += `&id_ruta=${rutaFiltro.value}`;
         }
@@ -160,7 +160,7 @@ export default {
 
     const cambiarEstado = async (id, accion) => {
       try {
-        const res = await fetch(`http://localhost:3000/api/empresas/transport-reservations/${id}/${accion}`, {
+        const res = await fetch(`http://142.93.121.137:3000/api/empresas/transport-reservations/${id}/${accion}`, {
           method: 'PATCH',
           headers: { Authorization: `Bearer ${authStore.token}` }
         });

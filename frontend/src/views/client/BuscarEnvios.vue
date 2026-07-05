@@ -134,6 +134,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://142.93.121.137:3000';
 import BASE_URL from "../../../config/api.js"
 
 // --- ESTADOS DE BÚSQUEDA (BACKEND) ---
