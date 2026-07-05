@@ -112,7 +112,7 @@ export default {
     const obtenerDashboardInfo = async () => {
       isLoading.value = true;
       try {
-        const response = await fetch('http://localhost:3000/api/empresas/dashboard', {
+        const response = await fetch('http://142.93.121.137:3000/api/empresas/dashboard', {
           headers: { 'Authorization': `Bearer ${authStore.token}` }
         });
         

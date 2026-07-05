@@ -40,7 +40,7 @@ services:
       JWT_EXPIRES_IN: 24h
       EMAIL_USER: gonzalezluisfernando894@gmail.com
       EMAIL_PASSWORD: pckmbrxxnnkazcdv
-      FRONTEND_URL: http://142.93.121.137
+      FRONTEND_URL: http://142.93.121.137:3000/api/auth
     ports:
       - "3000:3000"
 

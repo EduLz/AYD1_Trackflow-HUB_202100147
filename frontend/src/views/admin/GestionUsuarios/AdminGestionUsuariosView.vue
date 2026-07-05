@@ -47,7 +47,7 @@
                   {{ user.estado_usuario }}
                 </span>
               </td>
-              <td>{{ new Date(user.fecha_registro).toLocaleDateString() }}</td>
+              <td>{{ user.fecha_registro ? new Date(user.fecha_registro).toLocaleDateString('es-GT') : 'N/A' }}</td>
               <td>
                 <template v-if="user.estado_usuario !== 'VETADO'">
                   <button class="btn-vetar" @click="abrirModalVeto(user)">Vetar</button>

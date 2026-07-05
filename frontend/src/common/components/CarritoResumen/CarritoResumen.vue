@@ -59,7 +59,7 @@
 import { ref, computed, onMounted } from 'vue';
 
 const emit = defineEmits(['cerrar', 'ir-checkout']);
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://142.93.121.137:3000';
 
 // Estados
 const items = ref([]);

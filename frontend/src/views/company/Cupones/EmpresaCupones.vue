@@ -151,7 +151,7 @@ export default {
     const obtenerHistorial = async () => {
       isLoading.value = true;
       try {
-        const response = await fetch('http://localhost:3000/api/empresas/coupons', {
+        const response = await fetch('http://142.93.121.137:3000/api/empresas/coupons', {
           headers: { 'Authorization': `Bearer ${authStore.token}` }
         });
         if (response.ok) {
@@ -196,7 +196,7 @@ export default {
       };
 
       try {
-        const response = await fetch('http://localhost:3000/api/empresas/coupons', {
+        const response = await fetch('http://142.93.121.137:3000/api/empresas/coupons', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${authStore.token}`,

@@ -83,7 +83,7 @@ export default {
 
     onMounted(async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/admin/reportes-generales', {
+        const res = await fetch('http://142.93.121.137:3000/api/admin/reportes-generales', {
           headers: {
             Authorization: `Bearer ${authStore.token}`
           }

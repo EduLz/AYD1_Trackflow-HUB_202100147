@@ -123,7 +123,7 @@ export default {
 
     const cargarRutasComboBox = async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/empresas/transport-reservations/routes-filter', {
+        const res = await fetch('http://142.93.121.137:3000/api/empresas/transport-reservations/routes-filter', {
           headers: { Authorization: `Bearer ${authStore.token}` }
         });
 
@@ -139,7 +139,7 @@ export default {
     const cargarCalificaciones = async () => {
       cargando.value = true;
       try {
-        let url = `http://localhost:3000/api/empresas/ratings?`;
+        let url = `http://142.93.121.137:3000/api/empresas/ratings?`;
         if (filtroRuta.value) url += `id_ruta=${filtroRuta.value}&`;
         if (filtroPuntuacion.value) url += `puntuacion=${filtroPuntuacion.value}`;
 
@@ -171,7 +171,7 @@ export default {
       }
       enviandoResp.value = true;
       try {
-        const res = await fetch(`http://localhost:3000/api/empresas/ratings/${id_calificacion}/respond`, {
+        const res = await fetch(`http://142.93.121.137:3000/api/empresas/ratings/${id_calificacion}/respond`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authStore.token}` },
           body: JSON.stringify({ respuesta: textoRespuesta.value }),

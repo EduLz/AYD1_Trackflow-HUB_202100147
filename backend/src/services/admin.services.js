@@ -154,7 +154,8 @@ const getUsuariosPanel = async (nombre_rol = null) => {
                 u.correo,
                 u.correo_verificado,
                 eu.nombre AS estado_usuario,
-                r.nombre AS rol
+                r.nombre AS rol,
+                u.fecha_registro
             FROM Usuario u
             INNER JOIN EstadoUsuario eu ON eu.id_estado = u.id_estado
             INNER JOIN Rol r ON r.id_rol = u.id_rol
@@ -459,6 +460,26 @@ const getAllOperatorsServices = async (ordenar = null) => {
     return result.recordset;
 };
 
+const vetoUserTransaction = async (transaction, { id_usuario, id_admin, motivo }) => {
+    await transaction.request()
+        .input("id_usuario", id_usuario)
+        .input("id_estado", 4) // 4 es VETADO en EstadoUsuario
+        .query(`
+            UPDATE Usuario
+            SET id_estado = @id_estado, fecha_actualizacion = GETDATE()
+            WHERE id_usuario = @id_usuario
+        `);
+
+    await transaction.request()
+        .input("id_admin", id_admin)
+        .input("id_usuario2", id_usuario) // renombrado para que no choque si se reúsa el query param, aunque transaction.request limpia
+        .input("motivo", motivo)
+        .query(`
+            INSERT INTO VetoUsuario (id_usuario, id_admin, motivo)
+            VALUES (@id_usuario2, @id_admin, @motivo)
+        `);
+};
+
 module.exports = {
     approveOperador,
     rejectOperador,
@@ -470,5 +491,6 @@ module.exports = {
     getEstadisticasGenerales,
     getAllReportes,
     updateReporteEstado,
-    getAllOperatorsServices
+    getAllOperatorsServices,
+    vetoUserTransaction
 };

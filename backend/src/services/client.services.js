@@ -671,23 +671,33 @@ const getReservationReportData = async (id_reservacion, id_cliente) => {
         .query(`
             SELECT
                 r.id_reservacion,
-                u.id_usuario AS reportado,
+                COALESCE(u_op.id_usuario, u_emp.id_usuario) AS reportado,
                 c.id_usuario AS cliente
             FROM Reservacion r
-            INNER JOIN ServicioEnvio s
-                ON s.id_servicio = r.id_servicio_env
-            INNER JOIN OperadorLogistico o
-                ON o.id_operador = s.id_operador
-            INNER JOIN Usuario u
-                ON u.id_usuario = o.id_usuario
+            INNER JOIN EstadoReservacion er
+                ON er.id_estado = r.id_estado
             INNER JOIN Cliente c
                 ON c.id_cliente = r.id_cliente
+            LEFT JOIN ServicioEnvio se
+                ON se.id_servicio = r.id_servicio_env
+            LEFT JOIN OperadorLogistico o
+                ON o.id_operador = se.id_operador
+            LEFT JOIN Usuario u_op
+                ON u_op.id_usuario = o.id_usuario
+            LEFT JOIN Ruta rt
+                ON rt.id_ruta = r.id_ruta
+            LEFT JOIN EmpresaTransporte et
+                ON et.id_empresa = rt.id_empresa
+            LEFT JOIN Usuario u_emp
+                ON u_emp.id_usuario = et.id_usuario
             WHERE
                 r.id_reservacion = @id_reservacion
             AND r.id_cliente = @id_cliente
+            AND er.nombre = 'ENTREGADO'
         `);
     return result.recordset[0];
 };
+
 
 const getMyReports = async (id_usuario) => {
 

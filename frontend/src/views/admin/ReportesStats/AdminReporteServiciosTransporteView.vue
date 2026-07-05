@@ -49,7 +49,7 @@ export default {
     const chartData = ref({ labels: [], datasets: [{ label: 'Usos', backgroundColor: '#8b5cf6', data: [] }] });
     onMounted(async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/admin/reportes-generales', { headers: { Authorization: `Bearer ${authStore.token}` } });
+        const res = await fetch('http://142.93.121.137:3000/api/admin/reportes-generales', { headers: { Authorization: `Bearer ${authStore.token}` } });
         const { estadisticas } = await res.json();
         const datos = estadisticas.transporte_mas_usado || [];
         chartData.value = { labels: datos.map(d => d.ruta), datasets: [{ label: 'Usos', backgroundColor: '#8b5cf6', data: datos.map(d => Number(d.total_usos)) }] };
@@ -82,7 +82,7 @@ export default {
 
     onMounted(async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/admin/reportes-generales', {
+        const res = await fetch('http://142.93.121.137:3000/api/admin/reportes-generales', {
           headers: {
             Authorization: `Bearer ${authStore.token}`
           }
