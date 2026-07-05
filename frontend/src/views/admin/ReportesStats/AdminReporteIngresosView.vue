@@ -33,6 +33,7 @@ import AdminSidebarComponent from '../../../common/components/AdminSidebar/Admin
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale } from 'chart.js';
 import { Bar } from 'vue-chartjs';
 import jsPDF from 'jspdf';
+import BASE_URL from "../../../config/api.js"
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale);
 
@@ -54,6 +55,7 @@ export default {
     onMounted(async () => {
       try {
         const res = await fetch('http://142.93.121.137:3000/api/admin/reportes-generales', {
+        const res = await fetch(`${BASE_URL}/api/admin/reportes-generales`, {
           headers: { Authorization: `Bearer ${authStore.token}` }
         });
         const { estadisticas } = await res.json();

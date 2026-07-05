@@ -182,6 +182,7 @@
 import { ref, onMounted, computed } from 'vue';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://142.93.121.137:3000';
+import BASE_URL from "../../../config/api.js"
 const mostrarFormulario = ref(false);
 const errorLuhn = ref(false);
 const cargando = ref(true);
@@ -199,7 +200,7 @@ const cargarTarjetas = async () => {
   cargando.value = true;
   try {
     const token = localStorage.getItem('tf_jwt');
-    const response = await fetch(`${API_URL}/api/clientes/payment`, {
+    const response = await fetch(`${BASE_URL}/api/clientes/payment`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (response.ok) {
@@ -248,7 +249,7 @@ const vincularTarjeta = async () => {
   procesando.value = true;
   try {
     const token = localStorage.getItem('tf_jwt');
-    const response = await fetch(`${API_URL}/api/clientes/payment/card`, {
+    const response = await fetch(`${BASE_URL}/api/clientes/payment/card`, {
       method: 'POST',
       headers: { 
         'Authorization': `Bearer ${token}`,
@@ -278,7 +279,7 @@ const desactivarTarjeta = async (id) => {
   
   try {
     const token = localStorage.getItem('tf_jwt');
-    const response = await fetch(`${API_URL}/api/clientes/payment/${id}/deactivate`, {
+    const response = await fetch(`${BASE_URL}/api/clientes/payment/${id}/deactivate`, {
       method: 'PATCH',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -318,7 +319,7 @@ const registrarWallet = async () => {
   try {
     const token = localStorage.getItem('tf_jwt');
 
-    const response = await fetch(`${API_URL}/api/clientes/payment/wallet`, {
+    const response = await fetch(`${BASE_URL}/api/clientes/payment/wallet`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,

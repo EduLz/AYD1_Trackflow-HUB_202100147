@@ -33,6 +33,7 @@
 import { ref, onMounted } from 'vue';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://142.93.121.137:3000';
+import BASE_URL from "../../../config/api.js"
 const cupones = ref([]);
 const cargando = ref(true);
 
@@ -46,7 +47,7 @@ const cargarCupones = async () => {
   cargando.value = true;
   try {
     const token = localStorage.getItem('tf_jwt');
-    const response = await fetch(`${API_URL}/api/clientes/cupones`, {
+    const response = await fetch(`${BASE_URL}/api/clientes/cupones`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     

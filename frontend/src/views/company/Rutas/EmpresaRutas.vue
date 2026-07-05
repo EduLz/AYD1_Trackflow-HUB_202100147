@@ -265,6 +265,7 @@ import { ref, onMounted } from 'vue';
 import { useAuthStore } from '../../../stores/auth';
 import UpperbarComponent from '../../../common/components/Upperbar/UpperbarComponent.vue';
 import CompanySidebarComponent from '../../../common/components/CompanySidebar/CompanySidebarComponent.vue';
+import BASE_URL from "../../../config/api.js"
 
 export default {
   name: 'EmpresaRutas',
@@ -315,6 +316,7 @@ export default {
     const obtenerRutas = async () => {
       try {
         const response = await fetch('http://142.93.121.137:3000/api/empresas/routes', {
+        const response = await fetch(`${BASE_URL}/api/empresas/routes`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${authStore.token}`,
@@ -346,6 +348,7 @@ export default {
 
       try {
         const response = await fetch('http://142.93.121.137:3000/api/empresas/routes', {
+        const response = await fetch(`${BASE_URL}/api/empresas/routes`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${authStore.token}`,
@@ -408,6 +411,8 @@ export default {
       const endpoint = tipoCargaCSV.value === 'flota' 
         ? 'http://142.93.121.137:3000/api/empresas/fleet/csv' 
         : 'http://142.93.121.137:3000/api/empresas/routes/csv';
+        ? `${BASE_URL}/api/empresas/fleet/csv` 
+        : `${BASE_URL}/api/empresas/routes/csv`;
 
       try {
         const response = await fetch(endpoint, {
@@ -447,6 +452,7 @@ export default {
       isLoading.value = true;
       try {
         const response = await fetch(`http://142.93.121.137:3000/api/empresas/routes/${rutaAEditar.value.id_ruta}`, {
+        const response = await fetch(`${BASE_URL}/api/empresas/routes/${rutaAEditar.value.id_ruta}`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${authStore.token}`,
@@ -482,6 +488,7 @@ export default {
     const confirmarSuspension = async () => {
       try {
         const response = await fetch(`http://142.93.121.137:3000/api/empresas/routes/${rutaASuspender.value.id_ruta}/suspend`, {
+        const response = await fetch(`${BASE_URL}/api/empresas/routes/${rutaASuspender.value.id_ruta}/suspend`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${authStore.token}`
@@ -512,6 +519,7 @@ export default {
     const confirmarReactivacion = async () => {
       try {
         const response = await fetch(`http://142.93.121.137:3000/api/empresas/routes/${rutaAReactivar.value.id_ruta}/activate`, {
+        const response = await fetch(`${BASE_URL}/api/empresas/routes/${rutaAReactivar.value.id_ruta}/activate`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${authStore.token}`
@@ -542,6 +550,7 @@ export default {
     const confirmarCancelacion = async () => {
       try {
         const response = await fetch(`http://142.93.121.137:3000/api/empresas/routes/${rutaACancelar.value.id_ruta}/cancel`, {
+        const response = await fetch(`${BASE_URL}/api/empresas/routes/${rutaACancelar.value.id_ruta}/cancel`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${authStore.token}`
@@ -562,6 +571,7 @@ export default {
     const obtenerVehiculos = async () => {
       try {
         const response = await fetch('http://142.93.121.137:3000/api/empresas/vehicles', {
+        const response = await fetch(`${BASE_URL}/api/empresas/vehicles`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${authStore.token}`,

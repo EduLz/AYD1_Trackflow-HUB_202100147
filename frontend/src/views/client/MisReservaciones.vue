@@ -107,6 +107,7 @@ const mostrarModalCalificacion = ref(false);
 const mostrarModalCancelacion = ref(false);
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://142.93.121.137:3000';
+import BASE_URL from "../../../config/api.js"
 
 const calificacionData = ref({
   id_reservacion: null,
@@ -124,7 +125,7 @@ const cargarReservaciones = async () => {
   cargando.value = true;
   try {
     const token = localStorage.getItem('tf_jwt');
-    const response = await fetch(`${API_URL}/api/clientes/reservaciones`, { 
+    const response = await fetch(`${BASE_URL}/api/clientes/reservaciones`, { 
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if(response.ok) { 
@@ -183,7 +184,7 @@ const enviarCalificacion = async () => {
   procesando.value = true;
   try {
     const token = localStorage.getItem('tf_jwt');
-    const response = await fetch(`${API_URL}/api/clientes/calificaciones`, {
+    const response = await fetch(`${BASE_URL}/api/clientes/calificaciones`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(calificacionData.value)
@@ -215,7 +216,7 @@ const enviarCancelacion = async () => {
   procesando.value = true;
   try {
     const token = localStorage.getItem('tf_jwt');
-    const response = await fetch(`${API_URL}/api/clientes/reservations/${cancelacionData.value.id_reservacion}/cancelar`, {
+    const response = await fetch(`${BASE_URL}/api/clientes/reservations/${cancelacionData.value.id_reservacion}/cancelar`, {
       method: 'PATCH',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ motivo: cancelacionData.value.motivo })

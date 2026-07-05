@@ -99,7 +99,7 @@
           <div v-if="reporte.evidencias && reporte.evidencias.length > 0" class="evidencias-container">
             <p><strong>Evidencias adjuntas:</strong></p>
             <div class="evidencias-gallery">
-              <a v-for="evidencia in reporte.evidencias" :key="evidencia.id_evidencia" :href="API_URL + evidencia.url" target="_blank" class="evidencia-link">
+              <a v-for="evidencia in reporte.evidencias" :key="evidencia.id_evidencia" :href="BASE_URL + evidencia.url" target="_blank" class="evidencia-link">
                 <span v-if="evidencia.tipo === 'FOTO'">📷 Ver Foto</span>
                 <span v-else>📄 Ver Archivo</span>
               </a>
@@ -120,6 +120,7 @@
 import { ref, onMounted } from 'vue';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://142.93.121.137:3000';
+import BASE_URL from "../../../config/api.js"
 
 const pestanaActiva = ref('nuevo');
 const servicioSeleccionado = ref('');
@@ -145,7 +146,7 @@ const cargarReservaciones = async () => {
     const token = localStorage.getItem('tf_jwt');
     // NOTA: Mencionaste POST en tu mensaje ("el endpoint si mal no recuerdo es este POST"). 
     // Usualmente listar datos es por GET. Si te da error de método, cámbialo a 'POST'.
-    const response = await fetch(`${API_URL}/api/clientes/reservaciones`, {
+    const response = await fetch(`${BASE_URL}/api/clientes/reservaciones`, {
       method: 'GET',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -192,7 +193,7 @@ const enviarReporte = async () => {
       formData.append('evidencias', file);
     });
 
-    const response = await fetch(`${API_URL}/api/clientes/reportes`, {
+    const response = await fetch(`${BASE_URL}/api/clientes/reportes`, {
       method: 'POST',
       headers: { 
         'Authorization': `Bearer ${token}` 
@@ -230,7 +231,7 @@ const cargarHistorial = async () => {
   
   try {
     const token = localStorage.getItem('tf_jwt');
-    const response = await fetch(`${API_URL}/api/clientes/reportes`, {
+    const response = await fetch(`${BASE_URL}/api/clientes/reportes`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     

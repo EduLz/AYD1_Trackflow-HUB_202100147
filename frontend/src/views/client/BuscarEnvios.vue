@@ -135,6 +135,7 @@
 import { ref, computed, onMounted } from 'vue';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://142.93.121.137:3000';
+import BASE_URL from "../../../config/api.js"
 
 // --- ESTADOS DE BÚSQUEDA (BACKEND) ---
 const tipoBusqueda = ref('nombre');
@@ -219,7 +220,7 @@ const ejecutarBusqueda = async () => {
   cargando.value = true;
   try {
     const token = localStorage.getItem('tf_jwt');
-    let endpoint = `${API_URL}/api/clientes/shipping-services`;
+    let endpoint = `${BASE_URL}/api/clientes/shipping-services`;
     
     // Si hay texto, se adjunta el parámetro de búsqueda (manejado por el backend)
     if (busquedaTexto.value.trim() !== '') {
@@ -296,7 +297,7 @@ const validarYAgregarEnvio = async () => {
       fecha_inicio: fechaInicio.value 
     };
 
-    const response = await fetch(`${API_URL}/api/clientes/cart`, {
+    const response = await fetch(`${BASE_URL}/api/clientes/cart`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

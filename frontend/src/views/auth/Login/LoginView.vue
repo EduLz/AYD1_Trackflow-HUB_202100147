@@ -99,6 +99,8 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../../stores/auth';
 import { API } from '../../../config/api';
 import './Login.css';
+import BASE_URL from "../../../config/api.js"
+
 
 export default {
   name: 'LoginView',
@@ -163,6 +165,7 @@ export default {
 
       try {
         const response = await fetch('http://142.93.121.137:3000/api/auth/login', {
+        const response = await fetch(`${BASE_URL}/api/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -203,7 +206,7 @@ export default {
       isLoading.value = true;
 
       try {
-        const res = await fetch(API.auth.verifyOtp, {
+        const res = await fetch(`${BASE_URL}/api/auth/verify-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

@@ -149,6 +149,7 @@ import { ref, computed, onMounted } from 'vue';
 
 const emit = defineEmits(['regresar', 'pagoExitoso']);
 const API_URL = import.meta.env.VITE_API_URL || 'http://142.93.121.137:3000';
+import BASE_URL from "../../../config/api.js"
 
 // Estados
 const cargandoDatos = ref(true);
@@ -206,9 +207,9 @@ const cargarDatosCheckout = async () => {
 
     // Disparamos las 3 peticiones en paralelo
     const [resCarrito, resCupones, resPagos] = await Promise.all([
-      fetch(`${API_URL}/api/clientes/cart`, { headers }),
-      fetch(`${API_URL}/api/clientes/cupones`, { headers }),
-      fetch(`${API_URL}/api/clientes/payment`, { headers })
+      fetch(`${BASE_URL}/api/clientes/cart`, { headers }),
+      fetch(`${BASE_URL}/api/clientes/cupones`, { headers }),
+      fetch(`${BASE_URL}/api/clientes/payment`, { headers })
     ]);
 
     // 1. Procesar Carrito
@@ -273,7 +274,7 @@ const procesarPago = async () => {
       id_cupon: idCuponSeleccionado.value || null
     };
 
-    const response = await fetch(`${API_URL}/api/clientes/reservations`, {
+    const response = await fetch(`${BASE_URL}/api/clientes/reservations`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',

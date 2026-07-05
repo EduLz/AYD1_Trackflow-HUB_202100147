@@ -64,3 +64,5 @@ export const API = {
     getReportesRecibidos: `${BASE_URL}/api/clientes/received-reports`,
   }
 };
+
+export default BASE_URL;

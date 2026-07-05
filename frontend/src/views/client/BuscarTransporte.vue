@@ -185,6 +185,7 @@ const rutaSeleccionada = ref(null);
 const fechaInicioReserva = ref('');
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://142.93.121.137:3000';
+import BASE_URL from "../../../config/api.js"
 
 const cargarTransportes = async () => {
   
@@ -221,7 +222,7 @@ const cargarTransportes = async () => {
     }
 
     const response = await fetch(
-      `${API_URL}/api/clientes/transport-services?${params.toString()}`,
+      `${BASE_URL}/api/clientes/transport-services?${params.toString()}`,
       {
         headers: {
           Authorization: `Bearer ${token}`
@@ -266,7 +267,7 @@ const agregarRutaAlCarrito = async () => {
 
   const token = localStorage.getItem('tf_jwt');
 
-  const response = await fetch(`${API_URL}/api/clientes/cart`, {
+  const response = await fetch(`${BASE_URL}/api/clientes/cart`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,

@@ -92,6 +92,7 @@ import { ref, reactive, onMounted } from 'vue';
 import { useAuthStore } from '../../stores/auth';
 import UpperbarComponent from '../../../src/common/components/Upperbar/UpperbarComponent.vue';
 import CompanySidebarComponent from '../../../src/common/components/CompanySidebar/CompanySidebarComponent.vue';
+import BASE_URL from "../../../config/api.js"
 
 export default {
   name: 'CompanyCalificacionesView',
